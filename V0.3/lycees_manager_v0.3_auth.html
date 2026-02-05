@@ -1,0 +1,1437 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionnaire Lycées v3 - Avec Authentification Onisep</title>
+    
+    <!-- SQL.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --primary: #2E5090;
+            --primary-light: #4472C4;
+            --accent: #5B9BD5;
+            --success: #70AD47;
+            --warning: #FFC107;
+            --danger: #E74C3C;
+            --bg-main: #f5f7fa;
+            --bg-card: #ffffff;
+            --text: #2c3e50;
+            --text-light: #7f8c8d;
+            --border: #e1e8ed;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-main);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 30px 0;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        header p {
+            opacity: 0.9;
+            font-size: 14px;
+        }
+        
+        .auth-status {
+            margin-top: 10px;
+            padding: 10px 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            font-size: 13px;
+            display: inline-block;
+        }
+        
+        .auth-status.connected {
+            background: rgba(112,173,71,0.3);
+        }
+        
+        .actions-bar {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+        
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) { background: var(--primary-light); }
+        
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: white;
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+        
+        .card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--primary);
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--text);
+        }
+        
+        input[type="email"],
+        input[type="password"],
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(46,80,144,0.1);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        thead {
+            background: var(--primary);
+            color: white;
+        }
+        
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        td {
+            padding: 15px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .badge-primary { background: #e3f2fd; color: var(--primary); }
+        .badge-success { background: #e8f5e9; color: var(--success); }
+        .badge-warning { background: #fff3e0; color: var(--warning); }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        .modal-header {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 25px;
+            color: var(--primary);
+        }
+        
+        .progress-container {
+            margin: 30px 0;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 40px;
+            background: #e0e0e0;
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        .progress-message {
+            margin-top: 15px;
+            font-size: 15px;
+            color: var(--text);
+            font-weight: 500;
+        }
+        
+        .progress-details {
+            margin-top: 8px;
+            font-size: 13px;
+            color: var(--text-light);
+        }
+        
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid var(--success);
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid var(--danger);
+        }
+        
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border-left: 4px solid var(--warning);
+        }
+        
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border-left: 4px solid #17a2b8;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-light);
+        }
+        
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .help-text {
+            font-size: 13px;
+            color: var(--text-light);
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🎓 Gestionnaire de Lycées - Rennes Métropole</h1>
+            <p>Base de données des lycées généraux, technologiques et professionnels (v3.0 - Avec authentification)</p>
+            <div class="auth-status" id="auth-status">
+                🔒 Non connecté à l'API Onisep
+            </div>
+        </div>
+    </header>
+    
+    <div class="container">
+        <!-- Alertes -->
+        <div id="alerts"></div>
+        
+        <!-- Authentification Onisep -->
+        <div class="card" id="auth-card">
+            <h2 class="card-title">🔑 Authentification Onisep</h2>
+            <p style="margin-bottom: 20px; color: var(--text-light);">
+                Pour utiliser l'API Onisep et extraire les données automatiquement, vous devez vous connecter avec votre compte Onisep Open Data.
+                <br><strong>Quota</strong> : 5000 requêtes/jour (contre 200 en anonyme)
+            </p>
+            
+            <div id="login-form">
+                <div class="form-group">
+                    <label for="onisep-email">Email Onisep</label>
+                    <input type="email" id="onisep-email" placeholder="votre-email@example.com">
+                    <div class="help-text">Email de votre compte sur opendata.onisep.fr</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="onisep-password">Mot de passe</label>
+                    <input type="password" id="onisep-password" placeholder="••••••••">
+                </div>
+                
+                <div class="form-group">
+                    <label for="onisep-appid">Application ID (optionnel)</label>
+                    <input type="text" id="onisep-appid" placeholder="Laissez vide si vous n'en avez pas">
+                    <div class="help-text">Disponible dans "Vos applications" sur opendata.onisep.fr</div>
+                </div>
+                
+                <button class="btn-primary" onclick="loginOnisep()">
+                    🔐 Se connecter
+                </button>
+                
+                <div class="help-text" style="margin-top: 15px;">
+                    <strong>Pas de compte ?</strong> 
+                    <a href="https://opendata.onisep.fr/" target="_blank">Créer un compte sur opendata.onisep.fr</a>
+                    (Type : Développeur)
+                </div>
+            </div>
+            
+            <div id="logout-section" style="display:none;">
+                <div class="alert alert-success">
+                    ✅ Connecté à l'API Onisep
+                </div>
+                <button class="btn-secondary" onclick="logoutOnisep()">
+                    🚪 Se déconnecter
+                </button>
+            </div>
+        </div>
+        
+        <!-- Actions principales -->
+        <div class="actions-bar">
+            <button class="btn-primary" id="btn-refresh" onclick="refreshFromOnisep()" disabled>
+                🌐 Rafraîchir depuis Onisep
+            </button>
+            <button class="btn-success" onclick="generateDocument()">
+                📄 Générer le Document
+            </button>
+            <button class="btn-secondary" onclick="exportDatabase()">
+                💾 Télécharger la Base
+            </button>
+            <button class="btn-secondary" onclick="importDatabase()">
+                📥 Importer une Base
+            </button>
+        </div>
+        
+        <!-- Statistiques -->
+        <div class="stats-grid" id="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="stat-lycees">-</div>
+                <div class="stat-label">Lycées</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-diplomes">-</div>
+                <div class="stat-label">Diplômes</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-formations">-</div>
+                <div class="stat-label">Formations</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-dispositifs">-</div>
+                <div class="stat-label">Dispositifs</div>
+            </div>
+        </div>
+        
+        <!-- Liste des lycées -->
+        <div class="card">
+            <h2 class="card-title">📚 Liste des Lycées</h2>
+            <div id="lycees-container">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Chargement de la base de données...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Extraction Onisep -->
+    <div id="onisep-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">🌐 Extraction depuis Onisep</div>
+            <div class="progress-container">
+                <div class="progress-bar">
+                    <div id="progress-fill" class="progress-fill">0%</div>
+                </div>
+                <div id="progress-message" class="progress-message">Initialisation...</div>
+                <div id="progress-details" class="progress-details"></div>
+            </div>
+            <div id="extraction-summary" style="display:none; margin-top: 20px;">
+                <!-- Résumé de l'extraction -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Input file caché pour import -->
+    <input type="file" id="file-input" accept=".db,.sqlite,.sqlite3" style="display:none" onchange="handleFileImport(event)">
+    
+    <script>
+/**
+ * Client API Onisep pour extraction des données lycées
+ * Utilisation : const api = new OnisepAPI(); await api.extractRennesMetropole(callback);
+ */
+class OnisepAPI {
+    constructor(token = null, appId = null) {
+        this.baseURL = 'https://api.opendata.onisep.fr/api/1.0';
+        this.datasets = {
+            structures: '5fa5816ac6a6e',      // Lycées
+            actions: '66263935522cd',         // Actions de formation + langues
+            formations: '5fa591127f501'       // Formations initiales
+        };
+        this.token = token;
+        this.appId = appId;
+        this.requestCount = 0;
+    }
+    
+    /**
+     * Génère un token d'authentification
+     */
+    async login(email, password) {
+        try {
+            const response = await fetch(`${this.baseURL}/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `email=${encodeURIComponent(email)}&password=${encodeURIComponent(password)}`
+            });
+            
+            if (!response.ok) {
+                throw new Error(`Erreur d'authentification: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            this.token = data.token;
+            
+            console.log('✓ Token généré avec succès');
+            return data.token;
+        } catch (error) {
+            console.error('Erreur login:', error);
+            throw new Error(`Impossible de se connecter: ${error.message}`);
+        }
+    }
+    
+    /**
+     * Récupère les headers d'authentification
+     */
+    _getHeaders() {
+        const headers = {
+            'Accept': 'application/json'
+        };
+        
+        if (this.token) {
+            headers['Authorization'] = `Bearer ${this.token}`;
+        }
+        
+        if (this.appId) {
+            headers['Application-ID'] = this.appId;
+        }
+        
+        return headers;
+    }
+    
+    /**
+     * Recherche des établissements (lycées)
+     */
+    async searchStructures(params = {}) {
+        const url = new URL(`${this.baseURL}/dataset/${this.datasets.structures}/search`);
+        
+        url.searchParams.append('size', params.size || 100);
+        
+        if (params.commune) url.searchParams.append('facet.commune', params.commune);
+        if (params.region) url.searchParams.append('facet.region', params.region);
+        if (params.academie) url.searchParams.append('facet.academie', params.academie);
+        if (params.type) url.searchParams.append('facet.type', params.type);
+        
+        try {
+            this.requestCount++;
+            const response = await fetch(url, {
+                headers: this._getHeaders()
+            });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+            
+            const data = await response.json();
+            return data.results || [];
+        } catch (error) {
+            console.error('Erreur searchStructures:', error);
+            throw error;
+        }
+    }
+    
+    /**
+     * Récupère les actions de formation d'un établissement
+     */
+    async getActionsFormation(uai) {
+        const url = new URL(`${this.baseURL}/dataset/${this.datasets.actions}/search`);
+        url.searchParams.append('facet.uai_lieu_de_cours', uai);
+        url.searchParams.append('size', 300);
+        
+        try {
+            this.requestCount++;
+            const response = await fetch(url, {
+                headers: this._getHeaders()
+            });
+            
+            if (!response.ok) {
+                console.warn(`Erreur HTTP ${response.status} pour ${uai}`);
+                return [];
+            }
+            
+            const data = await response.json();
+            return data.results || [];
+        } catch (error) {
+            console.error(`Erreur getActionsFormation pour ${uai}:`, error);
+            return [];
+        }
+    }
+    
+    /**
+     * Extrait toutes les données pour les lycées de Rennes Métropole
+     */
+    async extractRennesMetropole(progressCallback) {
+        const communes = ['Rennes', 'Cesson-Sévigné', 'Bruz', 'Le Rheu', 'Saint-Grégoire'];
+        
+        const result = {
+            lycees: [],
+            diplomes: new Map(),      // code -> diplome
+            formations: new Map(),     // code -> formation
+            dispositifs: new Map(),    // nom -> dispositif
+            langues: new Map(),        // nom -> langue
+            stats: {
+                lyceesTotal: 0,
+                actionsTotal: 0,
+                requestCount: 0
+            }
+        };
+        
+        // Étape 1: Récupérer tous les lycées
+        progressCallback({ 
+            step: 'search', 
+            message: 'Recherche des lycées...',
+            percent: 0
+        });
+        
+        for (let i = 0; i < communes.length; i++) {
+            const commune = communes[i];
+            const structures = await this.searchStructures({ commune, size: 100 });
+            
+            // Filtrer uniquement les lycées
+            const lycees = structures.filter(s => {
+                const type = (s.type || '').toLowerCase();
+                return type.includes('lycée') || type.includes('lycee');
+            });
+            
+            result.lycees.push(...lycees);
+            
+            progressCallback({
+                step: 'search',
+                message: `Recherche: ${commune} (${lycees.length} lycées)`,
+                percent: ((i + 1) / communes.length) * 20
+            });
+            
+            await this._sleep(300);
+        }
+        
+        result.stats.lyceesTotal = result.lycees.length;
+        
+        // Étape 2: Pour chaque lycée, récupérer les actions de formation
+        for (let i = 0; i < result.lycees.length; i++) {
+            const lycee = result.lycees[i];
+            const uai = lycee.uai;
+            const nom = lycee.nom || 'Sans nom';
+            
+            progressCallback({
+                step: 'extract',
+                message: `Extraction: ${nom}`,
+                current: i + 1,
+                total: result.lycees.length,
+                percent: 20 + ((i + 1) / result.lycees.length) * 70
+            });
+            
+            const actions = await this.getActionsFormation(uai);
+            lycee.actions_formation = actions;
+            result.stats.actionsTotal += actions.length;
+            
+            // Extraire les données des actions
+            for (const action of actions) {
+                this._extractFromAction(action, result);
+            }
+            
+            await this._sleep(400);
+        }
+        
+        // Étape 3: Finalisation
+        progressCallback({
+            step: 'finalize',
+            message: 'Finalisation...',
+            percent: 95
+        });
+        
+        result.stats.requestCount = this.requestCount;
+        
+        // Convertir Maps en Arrays
+        const finalResult = {
+            lycees: result.lycees,
+            diplomes: Array.from(result.diplomes.values()),
+            formations: Array.from(result.formations.values()),
+            dispositifs: Array.from(result.dispositifs.values()),
+            langues: Array.from(result.langues.values()),
+            stats: result.stats
+        };
+        
+        progressCallback({
+            step: 'done',
+            message: 'Extraction terminée !',
+            percent: 100
+        });
+        
+        return finalResult;
+    }
+    
+    /**
+     * Extrait diplômes, formations, langues, dispositifs depuis une action
+     */
+    _extractFromAction(action, result) {
+        // Formations et diplômes
+        const libelle = action.libelle_formation_principal || '';
+        
+        if (libelle) {
+            // Déterminer si c'est un diplôme ou une formation
+            const isDiplome = libelle.includes('BTS') || 
+                            libelle.includes('CAP') || 
+                            libelle.includes('Bac ') ||
+                            libelle.includes('BUT') ||
+                            libelle.includes('DN') ||
+                            libelle.includes('BMA');
+            
+            if (isDiplome) {
+                const code = this._generateCode(libelle);
+                if (!result.diplomes.has(code)) {
+                    result.diplomes.set(code, {
+                        code: code,
+                        intitule: libelle,
+                        niveau: this._detectNiveau(libelle)
+                    });
+                }
+            } else if (libelle.includes('CPGE') || libelle.includes('2de') || libelle.includes('1re')) {
+                const code = this._generateCode(libelle);
+                if (!result.formations.has(code)) {
+                    result.formations.set(code, {
+                        code: code,
+                        intitule: libelle
+                    });
+                }
+            }
+        }
+        
+        // Langues (LV1, LV2, LV3)
+        const langues_lv = action.langues_vivantes_1_et_2 || '';
+        if (langues_lv) {
+            this._extractLangues(langues_lv, result.langues);
+        }
+        
+        // Langues anciennes / régionales (à implémenter si disponible)
+        // TODO: Chercher dans d'autres champs
+    }
+    
+    /**
+     * Extrait les langues depuis le champ "LV1 : ... / LV2 : ..."
+     */
+    _extractLangues(languesStr, languesMap) {
+        // Format: "LV1 : Anglais / LV2 : Allemand, Espagnol"
+        const parts = languesStr.split('/');
+        
+        for (const part of parts) {
+            const match = part.match(/(LV\d+)\s*:\s*(.+)/);
+            if (match) {
+                const niveau = match[1]; // LV1, LV2, LV3
+                const langues = match[2].split(',').map(l => l.trim());
+                
+                for (const langue of langues) {
+                    if (langue && langue !== '') {
+                        const code = this._generateCode(langue);
+                        if (!languesMap.has(code)) {
+                            languesMap.set(code, {
+                                code: code,
+                                nom: langue,
+                                type: 'Langue vivante étrangère',
+                                niveaux: new Set()
+                            });
+                        }
+                        languesMap.get(code).niveaux.add(niveau);
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * Détecte le niveau d'un diplôme
+     */
+    _detectNiveau(libelle) {
+        if (libelle.includes('CAP')) return 'CAP';
+        if (libelle.includes('Bac pro') || libelle.includes('Bac techno')) return 'Bac';
+        if (libelle.includes('Bac général')) return 'Bac';
+        if (libelle.includes('BTS') || libelle.includes('BUT') || libelle.includes('BMA')) return 'Bac+2';
+        if (libelle.includes('Licence')) return 'Bac+3';
+        if (libelle.includes('Master')) return 'Bac+5';
+        return 'Autre';
+    }
+    
+    /**
+     * Génère un code unique basé sur le libellé
+     */
+    _generateCode(libelle) {
+        return libelle.toLowerCase()
+            .replace(/[^a-z0-9]+/g, '_')
+            .replace(/^_|_$/g, '')
+            .substring(0, 50);
+    }
+    
+    /**
+     * Pause pour respecter le rate limiting
+     */
+    _sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+}
+
+// Rendre disponible globalement
+if (typeof window !== 'undefined') {
+    window.OnisepAPI = OnisepAPI;
+}
+    
+    // Variables globales
+    let db = null;
+    let SQL = null;
+    let onisepAPI = null;
+    let onisepToken = null;
+    let onisepAppId = null;
+    
+    // Initialisation au chargement
+    window.addEventListener('DOMContentLoaded', async () => {
+        try {
+            // Charger SQL.js
+            SQL = await initSqlJs({
+                locateFile: file => `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`
+            });
+            
+            // Créer ou charger la base
+            await initDatabase();
+            
+            // Charger les identifiants sauvegardés
+            loadSavedCredentials();
+            
+            // Charger les données
+            loadStats();
+            loadLycees();
+            
+        } catch (error) {
+            console.error('Erreur initialisation:', error);
+            showAlert('Erreur lors de l\'initialisation de la base de données', 'error');
+        }
+    });
+    
+    /**
+     * Charge les identifiants sauvegardés
+     */
+    function loadSavedCredentials() {
+        onisepToken = localStorage.getItem('onisep_token');
+        onisepAppId = localStorage.getItem('onisep_appid');
+        
+        if (onisepToken) {
+            onisepAPI = new OnisepAPI(onisepToken, onisepAppId);
+            updateAuthUI(true);
+        }
+    }
+    
+    /**
+     * Connexion à l'API Onisep
+     */
+    async function loginOnisep() {
+        const email = document.getElementById('onisep-email').value;
+        const password = document.getElementById('onisep-password').value;
+        const appId = document.getElementById('onisep-appid').value || null;
+        
+        if (!email || !password) {
+            showAlert('Veuillez entrer votre email et mot de passe', 'warning');
+            return;
+        }
+        
+        try {
+            showAlert('🔄 Connexion à l\'API Onisep...', 'info');
+            
+            const api = new OnisepAPI();
+            const token = await api.login(email, password);
+            
+            // Sauvegarder
+            onisepToken = token;
+            onisepAppId = appId;
+            onisepAPI = new OnisepAPI(token, appId);
+            
+            localStorage.setItem('onisep_token', token);
+            if (appId) {
+                localStorage.setItem('onisep_appid', appId);
+            }
+            
+            updateAuthUI(true);
+            showAlert('✅ Connecté à l\'API Onisep ! Vous pouvez maintenant extraire les données.', 'success');
+            
+        } catch (error) {
+            console.error('Erreur login:', error);
+            showAlert(`❌ Erreur de connexion : ${error.message}`, 'error');
+        }
+    }
+    
+    /**
+     * Déconnexion
+     */
+    function logoutOnisep() {
+        onisepToken = null;
+        onisepAppId = null;
+        onisepAPI = null;
+        
+        localStorage.removeItem('onisep_token');
+        localStorage.removeItem('onisep_appid');
+        
+        updateAuthUI(false);
+        showAlert('✅ Déconnecté de l\'API Onisep', 'info');
+    }
+    
+    /**
+     * Met à jour l'interface selon l'état de connexion
+     */
+    function updateAuthUI(connected) {
+        const authStatus = document.getElementById('auth-status');
+        const loginForm = document.getElementById('login-form');
+        const logoutSection = document.getElementById('logout-section');
+        const btnRefresh = document.getElementById('btn-refresh');
+        
+        if (connected) {
+            authStatus.textContent = '✅ Connecté à l\'API Onisep (5000 req/jour)';
+            authStatus.classList.add('connected');
+            loginForm.style.display = 'none';
+            logoutSection.style.display = 'block';
+            btnRefresh.disabled = false;
+        } else {
+            authStatus.textContent = '🔒 Non connecté à l\'API Onisep';
+            authStatus.classList.remove('connected');
+            loginForm.style.display = 'block';
+            logoutSection.style.display = 'none';
+            btnRefresh.disabled = true;
+        }
+    }
+    
+    /**
+     * Initialise la base de données
+     */
+    async function initDatabase() {
+        const savedDb = localStorage.getItem('lycees_database');
+        
+        if (savedDb) {
+            const buffer = Uint8Array.from(atob(savedDb), c => c.charCodeAt(0));
+            db = new SQL.Database(buffer);
+            console.log('✓ Base chargée depuis localStorage');
+        } else {
+            db = new SQL.Database();
+            createTables();
+            console.log('✓ Nouvelle base créée');
+        }
+    }
+    
+    /**
+     * Crée les tables de la base
+     */
+    function createTables() {
+        db.run(`
+            CREATE TABLE IF NOT EXISTS lycees (
+                code INTEGER PRIMARY KEY,
+                nom TEXT NOT NULL,
+                type TEXT,
+                statut TEXT,
+                uai TEXT UNIQUE,
+                adresse_postale TEXT,
+                code_postal TEXT,
+                commune TEXT,
+                telephone TEXT,
+                adresse_mail TEXT,
+                site_web TEXT,
+                effectifs INTEGER,
+                longitude_x REAL,
+                latitude_y REAL,
+                localisation TEXT
+            )
+        `);
+        
+        db.run(`
+            CREATE TABLE IF NOT EXISTS diplomes (
+                code INTEGER PRIMARY KEY,
+                intitule TEXT NOT NULL,
+                niveau TEXT
+            )
+        `);
+        
+        db.run(`
+            CREATE TABLE IF NOT EXISTS formations (
+                code INTEGER PRIMARY KEY,
+                intitule TEXT NOT NULL
+            )
+        `);
+        
+        db.run(`
+            CREATE TABLE IF NOT EXISTS dispositifs (
+                code INTEGER PRIMARY KEY,
+                nom TEXT NOT NULL,
+                information_complementaire TEXT
+            )
+        `);
+        
+        db.run(`
+            CREATE TABLE IF NOT EXISTS langues (
+                code INTEGER PRIMARY KEY,
+                nom TEXT NOT NULL,
+                type TEXT,
+                information_complementaire TEXT
+            )
+        `);
+        
+        db.run(`
+            CREATE TABLE IF NOT EXISTS diplomes_par_lycee (
+                code INTEGER PRIMARY KEY,
+                code_diplome INTEGER,
+                code_lycee INTEGER,
+                options TEXT,
+                FOREIGN KEY (code_diplome) REFERENCES diplomes(code),
+                FOREIGN KEY (code_lycee) REFERENCES lycees(code)
+            )
+        `);
+        
+        db.run(`
+            CREATE TABLE IF NOT EXISTS formations_par_lycee (
+                code INTEGER PRIMARY KEY,
+                code_formation INTEGER,
+                code_lycee INTEGER,
+                FOREIGN KEY (code_formation) REFERENCES formations(code),
+                FOREIGN KEY (code_lycee) REFERENCES lycees(code)
+            )
+        `);
+        
+        db.run(`
+            CREATE TABLE IF NOT EXISTS dispositifs_par_lycee (
+                code INTEGER PRIMARY KEY,
+                code_dispositif INTEGER,
+                code_lycee INTEGER,
+                information_complementaire TEXT,
+                FOREIGN KEY (code_dispositif) REFERENCES dispositifs(code),
+                FOREIGN KEY (code_lycee) REFERENCES lycees(code)
+            )
+        `);
+        
+        db.run(`
+            CREATE TABLE IF NOT EXISTS langues_par_lycee (
+                code INTEGER PRIMARY KEY,
+                code_langue INTEGER,
+                code_lycee INTEGER,
+                niveau TEXT,
+                information_complementaire TEXT,
+                FOREIGN KEY (code_langue) REFERENCES langues(code),
+                FOREIGN KEY (code_lycee) REFERENCES lycees(code)
+            )
+        `);
+    }
+    
+    /**
+     * Charge les statistiques
+     */
+    function loadStats() {
+        try {
+            const stats = {
+                lycees: db.exec('SELECT COUNT(*) as count FROM lycees')[0]?.values[0][0] || 0,
+                diplomes: db.exec('SELECT COUNT(*) as count FROM diplomes')[0]?.values[0][0] || 0,
+                formations: db.exec('SELECT COUNT(*) as count FROM formations')[0]?.values[0][0] || 0,
+                dispositifs: db.exec('SELECT COUNT(*) as count FROM dispositifs')[0]?.values[0][0] || 0
+            };
+            
+            document.getElementById('stat-lycees').textContent = stats.lycees;
+            document.getElementById('stat-diplomes').textContent = stats.diplomes;
+            document.getElementById('stat-formations').textContent = stats.formations;
+            document.getElementById('stat-dispositifs').textContent = stats.dispositifs;
+        } catch (error) {
+            console.error('Erreur loadStats:', error);
+        }
+    }
+    
+    /**
+     * Charge la liste des lycées
+     */
+    function loadLycees() {
+        try {
+            const result = db.exec('SELECT code, nom, type, statut, commune FROM lycees ORDER BY nom');
+            
+            const container = document.getElementById('lycees-container');
+            
+            if (!result.length || !result[0].values.length) {
+                container.innerHTML = `
+                    <div class="loading">
+                        <p style="color: var(--text-light);">Aucun lycée dans la base.</p>
+                        <p style="color: var(--text-light); font-size: 14px; margin-top: 10px;">
+                            Connectez-vous à l'API Onisep puis cliquez sur "Rafraîchir depuis Onisep" pour charger les données.
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const lycees = result[0].values;
+            
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nom</th>
+                            <th>Type</th>
+                            <th>Statut</th>
+                            <th>Commune</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+            
+            for (const lycee of lycees) {
+                const [code, nom, type, statut, commune] = lycee;
+                const badgeClass = statut === 'public' ? 'badge-primary' : 'badge-success';
+                
+                html += `
+                    <tr>
+                        <td><strong>${nom || 'Sans nom'}</strong></td>
+                        <td>${type || '-'}</td>
+                        <td><span class="badge ${badgeClass}">${statut || '-'}</span></td>
+                        <td>${commune || '-'}</td>
+                    </tr>
+                `;
+            }
+            
+            html += `
+                    </tbody>
+                </table>
+            `;
+            
+            container.innerHTML = html;
+            
+        } catch (error) {
+            console.error('Erreur loadLycees:', error);
+        }
+    }
+    
+    /**
+     * Rafraîchit les données depuis l'API Onisep
+     */
+    async function refreshFromOnisep() {
+        if (!onisepAPI) {
+            showAlert('❌ Veuillez vous connecter à l\'API Onisep d\'abord', 'error');
+            return;
+        }
+        
+        const modal = document.getElementById('onisep-modal');
+        modal.classList.add('active');
+        
+        try {
+            // Extraire les données
+            const data = await onisepAPI.extractRennesMetropole(progress => {
+                updateProgress(progress);
+            });
+            
+            // Mettre à jour la base
+            await updateDatabaseFromOnisep(data);
+            
+            // Afficher le résumé
+            showExtractionSummary(data);
+            
+            // Recharger
+            loadStats();
+            loadLycees();
+            
+            showAlert(`
+                ✅ Extraction terminée !
+                ${data.lycees.length} lycées, ${data.diplomes.length} diplômes, 
+                ${data.formations.length} formations, ${data.langues.length} langues
+            `, 'success');
+            
+        } catch (error) {
+            console.error('Erreur extraction:', error);
+            showAlert('❌ Erreur lors de l\'extraction : ' + error.message, 'error');
+            closeOnisepModal();
+        }
+    }
+    
+    /**
+     * Met à jour la barre de progression
+     */
+    function updateProgress(progress) {
+        const fill = document.getElementById('progress-fill');
+        const message = document.getElementById('progress-message');
+        const details = document.getElementById('progress-details');
+        
+        const percent = Math.round(progress.percent || 0);
+        fill.style.width = `${percent}%`;
+        fill.textContent = `${percent}%`;
+        
+        message.textContent = progress.message || '';
+        
+        if (progress.current && progress.total) {
+            details.textContent = `${progress.current} / ${progress.total}`;
+        } else {
+            details.textContent = '';
+        }
+    }
+    
+    /**
+     * Met à jour la base depuis les données Onisep
+     */
+    async function updateDatabaseFromOnisep(data) {
+        try {
+            db.run('BEGIN TRANSACTION');
+            
+            // Vider les tables
+            db.run('DELETE FROM lycees');
+            db.run('DELETE FROM diplomes');
+            db.run('DELETE FROM formations');
+            db.run('DELETE FROM langues');
+            db.run('DELETE FROM diplomes_par_lycee');
+            db.run('DELETE FROM formations_par_lycee');
+            db.run('DELETE FROM langues_par_lycee');
+            
+            // Insérer les lycées
+            const insertLycee = db.prepare(`
+                INSERT INTO lycees (code, nom, type, statut, uai, adresse_postale, 
+                                    code_postal, commune, telephone, adresse_mail, 
+                                    site_web, longitude_x, latitude_y, localisation)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `);
+            
+            for (let i = 0; i < data.lycees.length; i++) {
+                const lycee = data.lycees[i];
+                insertLycee.run([
+                    i + 1,
+                    lycee.nom,
+                    lycee.type,
+                    lycee.statut,
+                    lycee.uai,
+                    lycee.adresse_postale,
+                    lycee.code_postal,
+                    lycee.commune,
+                    lycee.telephone,
+                    lycee.mail,
+                    lycee.site_web,
+                    lycee.longitude_x,
+                    lycee.latitude_y,
+                    lycee.commune
+                ]);
+            }
+            insertLycee.free();
+            
+            // Insérer les diplômes
+            const insertDiplome = db.prepare(`
+                INSERT INTO diplomes (code, intitule, niveau)
+                VALUES (?, ?, ?)
+            `);
+            
+            for (let i = 0; i < data.diplomes.length; i++) {
+                const diplome = data.diplomes[i];
+                insertDiplome.run([i + 1, diplome.intitule, diplome.niveau]);
+            }
+            insertDiplome.free();
+            
+            // Insérer les formations
+            const insertFormation = db.prepare(`
+                INSERT INTO formations (code, intitule)
+                VALUES (?, ?)
+            `);
+            
+            for (let i = 0; i < data.formations.length; i++) {
+                const formation = data.formations[i];
+                insertFormation.run([i + 1, formation.intitule]);
+            }
+            insertFormation.free();
+            
+            // Insérer les langues
+            const insertLangue = db.prepare(`
+                INSERT INTO langues (code, nom, type, information_complementaire)
+                VALUES (?, ?, ?, ?)
+            `);
+            
+            for (let i = 0; i < data.langues.length; i++) {
+                const langue = data.langues[i];
+                const niveaux = Array.from(langue.niveaux).join(', ');
+                insertLangue.run([i + 1, langue.nom, langue.type, niveaux]);
+            }
+            insertLangue.free();
+            
+            db.run('COMMIT');
+            
+            // Sauvegarder dans localStorage
+            saveDatabase();
+            
+            console.log('✅ Base mise à jour');
+            
+        } catch (error) {
+            db.run('ROLLBACK');
+            throw error;
+        }
+    }
+    
+    /**
+     * Affiche le résumé de l'extraction
+     */
+    function showExtractionSummary(data) {
+        const summary = document.getElementById('extraction-summary');
+        summary.style.display = 'block';
+        
+        summary.innerHTML = `
+            <div class="alert alert-success">
+                <strong>✅ Extraction terminée avec succès !</strong>
+                <ul style="margin-top: 10px; margin-left: 20px;">
+                    <li>${data.lycees.length} lycées extraits</li>
+                    <li>${data.diplomes.length} diplômes identifiés</li>
+                    <li>${data.formations.length} formations identifiées</li>
+                    <li>${data.langues.length} langues extraites</li>
+                    <li>${data.stats.actionsTotal} actions de formation analysées</li>
+                    <li>${data.stats.requestCount} requêtes API effectuées</li>
+                </ul>
+            </div>
+            <button class="btn-primary" onclick="closeOnisepModal()" style="margin-top: 20px; width: 100%;">
+                Fermer
+            </button>
+        `;
+    }
+    
+    /**
+     * Ferme le modal Onisep
+     */
+    function closeOnisepModal() {
+        document.getElementById('onisep-modal').classList.remove('active');
+        document.getElementById('extraction-summary').style.display = 'none';
+    }
+    
+    /**
+     * Sauvegarde la base dans localStorage
+     */
+    function saveDatabase() {
+        const data = db.export();
+        const buffer = new Uint8Array(data);
+        const base64 = btoa(String.fromCharCode(...buffer));
+        localStorage.setItem('lycees_database', base64);
+        console.log('✓ Base sauvegardée dans localStorage');
+    }
+    
+    /**
+     * Exporte la base en fichier .db
+     */
+    function exportDatabase() {
+        const data = db.export();
+        const blob = new Blob([data], { type: 'application/x-sqlite3' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `lycees_database_${new Date().toISOString().split('T')[0]}.db`;
+        a.click();
+        
+        URL.revokeObjectURL(url);
+        showAlert('✅ Base de données exportée', 'success');
+    }
+    
+    /**
+     * Import d'une base de données
+     */
+    function importDatabase() {
+        document.getElementById('file-input').click();
+    }
+    
+    /**
+     * Gère l'import de fichier
+     */
+    async function handleFileImport(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        try {
+            const buffer = await file.arrayBuffer();
+            db = new SQL.Database(new Uint8Array(buffer));
+            
+            saveDatabase();
+            loadStats();
+            loadLycees();
+            
+            showAlert('✅ Base de données importée avec succès', 'success');
+        } catch (error) {
+            showAlert('❌ Erreur lors de l\'import : ' + error.message, 'error');
+        }
+    }
+    
+    /**
+     * Génère le document d'orientation
+     */
+    function generateDocument() {
+        showAlert('⚠️  Fonction de génération de document à implémenter', 'warning');
+    }
+    
+    /**
+     * Affiche une alerte
+     */
+    function showAlert(message, type = 'info') {
+        const alertsContainer = document.getElementById('alerts');
+        const alertClass = type === 'success' ? 'alert-success' : 
+                          type === 'error' ? 'alert-error' : 
+                          type === 'warning' ? 'alert-warning' : 'alert-info';
+        
+        const alert = document.createElement('div');
+        alert.className = `alert ${alertClass}`;
+        alert.innerHTML = message;
+        
+        alertsContainer.appendChild(alert);
+        
+        setTimeout(() => {
+            alert.remove();
+        }, 5000);
+    }
+    </script>
+</body>
+</html>

@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Extracteur Bretagne + Apprentissage</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1400px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #2c3e50; }
+        .section { margin: 20px 0; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px; background: #fafafa; }
+        .section h2 { color: #34495e; margin-top: 0; }
+        button { background: #3498db; color: white; border: none; padding: 12px 24px; border-radius: 5px; cursor: pointer; font-size: 14px; margin: 5px; }
+        button:hover { background: #2980b9; }
+        button:disabled { background: #95a5a6; cursor: not-allowed; }
+        .btn-success { background: #2ecc71; }
+        .btn-success:hover { background: #27ae60; }
+        .btn-warning { background: #f39c12; }
+        .btn-warning:hover { background: #e67e22; }
+        .credentials { display: flex; gap: 15px; margin: 20px 0; }
+        .credentials input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        .log { padding: 8px; margin: 5px 0; border-left: 3px solid #3498db; background: #ecf0f1; font-family: monospace; font-size: 12px; }
+        .log.error { border-left-color: #e74c3c; background: #fadbd8; }
+        .log.success { border-left-color: #2ecc71; background: #d5f4e6; }
+        .log.warning { border-left-color: #f39c12; background: #fef5e7; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin: 20px 0; }
+        .stat-card { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px; text-align: center; }
+        .stat-value { font-size: 32px; font-weight: bold; }
+        .stat-label { font-size: 14px; opacity: 0.9; margin-top: 5px; }
+        pre { background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 5px; overflow-x: auto; font-size: 11px; max-height: 400px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background: #3498db; color: white; }
+        tr:hover { background: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏴‍☠️ Extracteur Bretagne + Apprentissage</h1>
+        <p>Extraction des actions de formation et dispositifs en Bretagne, avec intégration du Catalogue de l'Apprentissage.</p>
+        
+        <div class="section">
+            <h2>🔑 Authentification Onisep</h2>
+            <div class="credentials">
+                <input type="email" id="email" placeholder="Email Onisep" />
+                <input type="password" id="password" placeholder="Mot de passe" />
+                <button onclick="authenticate()">🔑 Se connecter</button>
+            </div>
+        </div>
+        
+        <div class="stats" id="stats" style="display: none;">
+            <div class="stat-card">
+                <div class="stat-value" id="stat-actions">0</div>
+                <div class="stat-label">Actions de formation</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <div class="stat-value" id="stat-dispositifs">0</div>
+                <div class="stat-label">Dispositifs</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                <div class="stat-value" id="stat-etablissements">0</div>
+                <div class="stat-label">Établissements uniques</div>
+            </div>
+            <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                <div class="stat-value" id="stat-apprentissage">0</div>
+                <div class="stat-label">Formations apprentissage</div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>📚 Étape 1 : Identifier les Datasets Bretagne</h2>
+            <button onclick="findBretagneDatasets()" id="btn-find" disabled>🔍 Trouver les datasets Bretagne</button>
+            <button onclick="selectBretagneManually()" id="btn-manual" disabled style="background: #f39c12;">
+                ⚡ Sélection Rapide Bretagne
+            </button>
+            <div id="datasets-found" style="margin-top: 15px;"></div>
+        </div>
+        
+        <div class="section" id="section-extract" style="display: none;">
+            <h2>⚙️ Étape 2 : Extraction des Données</h2>
+            <p>Datasets identifiés :</p>
+            <div id="datasets-info"></div>
+            <button onclick="extractBretagneData()" class="btn-success">🚀 Extraire Actions de Formation</button>
+            <button onclick="extractDispositifs()" class="btn-success">🎯 Extraire Dispositifs</button>
+        </div>
+        
+        <div class="section" id="section-apprentissage" style="display: none;">
+            <h2>🎓 Étape 3 : Catalogue de l'Apprentissage</h2>
+            <p>Recherche de formations en apprentissage via l'API Catalogue Intercarif.</p>
+            <div>
+                <label>Rechercher par : </label>
+                <input type="text" id="search-apprentissage" placeholder="Ex: BTS informatique, CAP cuisine..." style="width: 300px; padding: 8px; margin: 10px 5px;">
+                <button onclick="searchApprentissage()" class="btn-warning">🔎 Rechercher</button>
+            </div>
+            <div id="apprentissage-results" style="margin-top: 15px;"></div>
+        </div>
+        
+        <div id="logs"></div>
+        
+        <div class="section" id="section-results" style="display: none;">
+            <h2>📊 Résultats</h2>
+            <div id="results-container"></div>
+        </div>
+    </div>
+    
+    <script src="./onisep_api.js"></script>
+    <script>
+        let api = null;
+        let bretagneDatasets = {
+            actions_formation: null,
+            dispositifs: null
+        };
+        
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : '';
+            const timestamp = new Date().toLocaleTimeString();
+            logs.innerHTML += `<div class="log ${className}">[${timestamp}] ${message}</div>`;
+            logs.scrollTop = logs.scrollHeight;
+            console.log(message);
+        }
+        
+        async function authenticate() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (!email || !password) {
+                log('⚠️ Veuillez entrer vos identifiants', 'warning');
+                return;
+            }
+            
+            try {
+                log('🔐 Authentification en cours...', 'info');
+                api = new OnisepAPI();
+                await api.login(email, password);
+                
+                log('✅ Authentifié avec succès !', 'success');
+                document.getElementById('btn-find').disabled = false;
+                document.getElementById('btn-manual').disabled = false;
+                document.getElementById('stats').style.display = 'grid';
+                
+            } catch (error) {
+                log('❌ Erreur authentification : ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+        
+        async function selectBretagneManually() {
+            log('⚡ Sélection des datasets Bretagne avec IDs connus...', 'info');
+            
+            // IDs trouvés par l'utilisateur
+            bretagneDatasets.actions_formation = "5fa42cb0d2ca5";
+            bretagneDatasets.dispositifs = "5fa52beb23790";
+            
+            log('✅ Datasets Bretagne sélectionnés avec leurs IDs :', 'success');
+            log('   - Actions de Formation : 5fa42cb0d2ca5', 'info');
+            log('   - Dispositifs : 5fa52beb23790', 'info');
+            log('', 'info');
+            log('✅ Prêt pour l\'extraction !', 'success');
+            
+            document.getElementById('section-extract').style.display = 'block';
+            document.getElementById('section-apprentissage').style.display = 'block';
+            updateDatasetsInfo();
+        }
+        
+        async function findBretagneDatasets() {
+            try {
+                log('🔍 Recherche des datasets Bretagne...', 'info');
+                
+                const response = await fetch(`${api.baseURL}/dataset?size=100`, {
+                    headers: api._getHeaders()
+                });
+                
+                const data = await response.json();
+                const allDatasets = data.results || [];
+                
+                log(`📊 ${allDatasets.length} datasets disponibles`, 'info');
+                
+                // Debug : afficher la structure d'un dataset
+                if (allDatasets.length > 0) {
+                    console.log('🔍 Structure d\'un dataset:', allDatasets[0]);
+                    console.log('🔍 Clés disponibles:', Object.keys(allDatasets[0]));
+                }
+                
+                // Afficher TOUS les datasets pour inspection manuelle
+                log('📋 Liste complète des datasets :', 'info');
+                for (const ds of allDatasets) {
+                    // Chercher différents champs possibles pour l'ID
+                    const id = ds.dataset_id || ds.datasetid || ds.id || ds.dataset_uid || 'ID_INCONNU';
+                    const title = ds.title || ds.metas?.title || 'Sans titre';
+                    console.log(`  - ${title} (${id})`);
+                }
+                
+                // Chercher les datasets Bretagne avec différents patterns
+                const bretagneDS = allDatasets.filter(d => {
+                    const title = (d.title || d.metas?.title || '').toLowerCase();
+                    const id = (d.dataset_id || d.datasetid || d.id || '').toLowerCase();
+                    return title.includes('bretagne') || 
+                           title.includes('ideo') ||
+                           title.includes('idéo') ||
+                           id.includes('bretagne') ||
+                           id.includes('ideo');
+                });
+                
+                log(`✅ ${bretagneDS.length} datasets Bretagne/Idéo trouvés`, 'success');
+                
+                const foundDiv = document.getElementById('datasets-found');
+                
+                if (bretagneDS.length === 0) {
+                    foundDiv.innerHTML = `
+                        <div style="background: #fff3cd; padding: 15px; border-radius: 5px; margin-top: 10px;">
+                            <strong>⚠️ Aucun dataset Bretagne trouvé automatiquement</strong>
+                            <p>Recherchez manuellement dans la liste ci-dessous les datasets contenant "Bretagne", "Idéo" ou "Ideo"</p>
+                        </div>
+                        <h4>Tous les datasets disponibles :</h4>
+                        <table><thead><tr><th>Nom</th><th>ID</th><th>Enregistrements</th><th>Action</th></tr></thead><tbody>`;
+                    
+                    for (const ds of allDatasets) {
+                        const title = ds.title || ds.metas?.title || 'Sans titre';
+                        const id = ds.dataset_id || ds.datasetid || ds.id || ds.dataset_uid || 'ID_INCONNU';
+                        const records = ds.metas?.records_count || ds.records_count || '?';
+                        
+                        foundDiv.innerHTML += `<tr>
+                            <td>${title}</td>
+                            <td><code style="font-size: 11px;">${id}</code></td>
+                            <td>${records}</td>
+                            <td>
+                                <button onclick="selectDataset('${id}', '${title.replace(/'/g, "\\'")}', 'actions')" style="padding: 4px 8px; font-size: 11px;">Actions</button>
+                                <button onclick="selectDataset('${id}', '${title.replace(/'/g, "\\'")}', 'dispositifs')" style="padding: 4px 8px; font-size: 11px;">Dispositifs</button>
+                            </td>
+                        </tr>`;
+                    }
+                    
+                    foundDiv.innerHTML += '</tbody></table>';
+                } else {
+                    foundDiv.innerHTML = '<table><thead><tr><th>Nom</th><th>ID</th><th>Enregistrements</th><th>Type probable</th></tr></thead><tbody>';
+                    
+                    for (const ds of bretagneDS) {
+                        const title = ds.title || ds.metas?.title || 'Sans titre';
+                        const id = ds.dataset_id || ds.datasetid || ds.id || ds.dataset_uid || 'ID_INCONNU';
+                        const records = ds.metas?.records_count || ds.records_count || '?';
+                        
+                        foundDiv.innerHTML += `<tr>
+                            <td><strong>${title}</strong></td>
+                            <td><code>${id}</code></td>
+                            <td>${records}</td>
+                            <td>`;
+                        
+                        // Identifier le type automatiquement
+                        const titleLower = title.toLowerCase();
+                        if (titleLower.includes('action') && titleLower.includes('formation')) {
+                            bretagneDatasets.actions_formation = id;
+                            foundDiv.innerHTML += '<span style="background: #2ecc71; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">✓ ACTIONS</span>';
+                            log(`📌 Dataset Actions de Formation : ${id} (${title})`, 'success');
+                        }
+                        if (titleLower.includes('dispositif')) {
+                            bretagneDatasets.dispositifs = id;
+                            foundDiv.innerHTML += '<span style="background: #3498db; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">✓ DISPOSITIFS</span>';
+                            log(`📌 Dataset Dispositifs : ${id} (${title})`, 'success');
+                        }
+                        if (!titleLower.includes('action') && !titleLower.includes('dispositif')) {
+                            foundDiv.innerHTML += '<span style="background: #95a5a6; color: white; padding: 3px 8px; border-radius: 3px; font-size: 11px;">? INCONNU</span>';
+                            foundDiv.innerHTML += `
+                                <button onclick="selectDataset('${id}', '${title.replace(/'/g, "\\'")}', 'actions')" style="padding: 4px 8px; font-size: 11px; margin-left: 5px;">→ Actions</button>
+                                <button onclick="selectDataset('${id}', '${title.replace(/'/g, "\\'")}', 'dispositifs')" style="padding: 4px 8px; font-size: 11px;">→ Dispositifs</button>
+                            `;
+                        }
+                        
+                        foundDiv.innerHTML += '</td></tr>';
+                    }
+                    
+                    foundDiv.innerHTML += '</tbody></table>';
+                }
+                
+                // Préparer l'extraction
+                document.getElementById('section-extract').style.display = 'block';
+                document.getElementById('section-apprentissage').style.display = 'block';
+                
+                updateDatasetsInfo();
+                
+            } catch (error) {
+                log('❌ Erreur : ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+        
+        function selectDataset(id, title, type) {
+            if (type === 'actions') {
+                bretagneDatasets.actions_formation = id;
+                log(`✅ Dataset Actions de Formation sélectionné : ${title} (${id})`, 'success');
+            } else {
+                bretagneDatasets.dispositifs = id;
+                log(`✅ Dataset Dispositifs sélectionné : ${title} (${id})`, 'success');
+            }
+            updateDatasetsInfo();
+        }
+        
+        function updateDatasetsInfo() {
+            const infoDiv = document.getElementById('datasets-info');
+            infoDiv.innerHTML = `
+                <ul>
+                    <li><strong>Actions de Formation :</strong> 
+                        ${bretagneDatasets.actions_formation 
+                            ? `<code>${bretagneDatasets.actions_formation}</code> ✅` 
+                            : '<span style="color: #e74c3c;">Non sélectionné</span>'}
+                    </li>
+                    <li><strong>Dispositifs :</strong> 
+                        ${bretagneDatasets.dispositifs 
+                            ? `<code>${bretagneDatasets.dispositifs}</code> ✅` 
+                            : '<span style="color: #e74c3c;">Non sélectionné</span>'}
+                    </li>
+                </ul>
+            `;
+        }
+        
+        async function extractBretagneData() {
+            const datasetId = bretagneDatasets.actions_formation;
+            
+            if (!datasetId) {
+                log('❌ Dataset Actions de Formation non sélectionné. Cliquez sur "⚡ Sélection Rapide Bretagne"', 'error');
+                return;
+            }
+            
+            try {
+                log('🚀 Extraction des actions de formation Bretagne...', 'info');
+                log(`📡 Dataset ID: ${datasetId}`, 'info');
+                
+                const url = `${api.baseURL}/dataset/${datasetId}/search?size=1000`;
+                log(`📡 URL complète: ${url}`, 'info');
+                
+                const response = await fetch(url, { headers: api._getHeaders() });
+                
+                log(`📥 Réponse HTTP: ${response.status} ${response.statusText}`, 'info');
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log(`❌ Erreur API: ${errorText}`, 'error');
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('🔍 Réponse complète API:', data);
+                
+                const actions = data.results || data.records || data.hits || [];
+                
+                log(`📊 Structure de la réponse: ${Object.keys(data).join(', ')}`, 'info');
+                log(`📊 Nombre de résultats (data.results): ${(data.results || []).length}`, 'info');
+                log(`📊 Nombre total (data.total_count): ${data.total_count || '?'}`, 'info');
+                log(`📊 Nombre total (data.nhits): ${data.nhits || '?'}`, 'info');
+                
+                if (actions.length === 0) {
+                    log('⚠️ Aucun résultat retourné par l\'API', 'warning');
+                    log('💡 Causes possibles:', 'info');
+                    log('   1. Le dataset existe mais est vide', 'info');
+                    log('   2. Il faut utiliser un endpoint différent', 'info');
+                    log('   3. Il faut ajouter des paramètres de filtre', 'info');
+                    log('📖 Consultez la console pour voir la structure complète de la réponse', 'warning');
+                }
+                
+                log(`✅ ${actions.length} actions de formation extraites`, actions.length > 0 ? 'success' : 'warning');
+                document.getElementById('stat-actions').textContent = actions.length;
+                
+                // Compter les établissements uniques
+                const uais = new Set();
+                for (const action of actions) {
+                    const uai = action.ens_code_uai || action.etablissement_uai || action.code_uai;
+                    if (uai) uais.add(uai);
+                }
+                
+                document.getElementById('stat-etablissements').textContent = uais.size;
+                log(`📍 ${uais.size} établissements uniques trouvés`, 'info');
+                
+                // Afficher un échantillon
+                if (actions.length > 0) {
+                    displayResults('Actions de Formation Bretagne', actions.slice(0, 5));
+                    log('💡 Voir la section "Résultats" ci-dessous pour un échantillon', 'info');
+                }
+                
+                // Stocker pour usage ultérieur
+                window.actionsBretagneData = actions;
+                
+            } catch (error) {
+                log('❌ Erreur extraction : ' + error.message, 'error');
+                console.error('Erreur complète:', error);
+            }
+        }
+        
+        async function extractDispositifs() {
+            const datasetId = bretagneDatasets.dispositifs;
+            
+            if (!datasetId) {
+                log('❌ Dataset Dispositifs non sélectionné. Cliquez sur "⚡ Sélection Rapide Bretagne"', 'error');
+                return;
+            }
+            
+            try {
+                log('🚀 Extraction des dispositifs Bretagne...', 'info');
+                log(`📡 Dataset ID: ${datasetId}`, 'info');
+                
+                const url = `${api.baseURL}/dataset/${datasetId}/search?size=1000`;
+                log(`📡 URL complète: ${url}`, 'info');
+                
+                const response = await fetch(url, { headers: api._getHeaders() });
+                
+                log(`📥 Réponse HTTP: ${response.status} ${response.statusText}`, 'info');
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    log(`❌ Erreur API: ${errorText}`, 'error');
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('🔍 Réponse complète API (dispositifs):', data);
+                
+                const dispositifs = data.results || data.records || data.hits || [];
+                
+                log(`📊 Structure de la réponse: ${Object.keys(data).join(', ')}`, 'info');
+                log(`📊 Nombre de résultats (data.results): ${(data.results || []).length}`, 'info');
+                log(`📊 Nombre total (data.total_count): ${data.total_count || '?'}`, 'info');
+                
+                if (dispositifs.length === 0) {
+                    log('⚠️ Aucun résultat retourné par l\'API', 'warning');
+                    log('📖 Consultez la console pour voir la structure de la réponse', 'warning');
+                }
+                
+                log(`✅ ${dispositifs.length} dispositifs extraits`, dispositifs.length > 0 ? 'success' : 'warning');
+                document.getElementById('stat-dispositifs').textContent = dispositifs.length;
+                
+                // Afficher un échantillon
+                if (dispositifs.length > 0) {
+                    displayResults('Dispositifs Bretagne', dispositifs.slice(0, 5));
+                    log('💡 Voir la section "Résultats" ci-dessous pour un échantillon', 'info');
+                }
+                
+                // Stocker pour usage ultérieur
+                window.dispositifsBretagneData = dispositifs;
+                
+            } catch (error) {
+                log('❌ Erreur extraction : ' + error.message, 'error');
+                console.error('Erreur complète:', error);
+            }
+        }
+        
+        async function extractDispositifs() {
+            if (!bretagneDatasets.dispositifs) {
+                log('❌ Dataset Dispositifs non identifié', 'error');
+                return;
+            }
+            
+            try {
+                log('🚀 Extraction des dispositifs Bretagne...', 'info');
+                
+                const response = await fetch(
+                    `${api.baseURL}/dataset/${bretagneDatasets.dispositifs}/search?size=1000`,
+                    { headers: api._getHeaders() }
+                );
+                
+                const data = await response.json();
+                const dispositifs = data.results || [];
+                
+                log(`✅ ${dispositifs.length} dispositifs extraits`, 'success');
+                document.getElementById('stat-dispositifs').textContent = dispositifs.length;
+                
+                // Afficher un échantillon
+                displayResults('Dispositifs', dispositifs.slice(0, 10));
+                
+                // Stocker pour usage ultérieur
+                window.dispositifsBretagneData = dispositifs;
+                
+            } catch (error) {
+                log('❌ Erreur extraction : ' + error.message, 'error');
+                console.error(error);
+            }
+        }
+        
+        async function searchApprentissage() {
+            const query = document.getElementById('search-apprentissage').value;
+            
+            if (!query) {
+                log('⚠️ Veuillez entrer un terme de recherche', 'warning');
+                return;
+            }
+            
+            try {
+                log(`🔎 Recherche apprentissage : "${query}"...`, 'info');
+                
+                // API publique du Catalogue de l'Apprentissage
+                // Documentation: https://catalogue-apprentissage.intercariforef.org/docs
+                const url = `https://catalogue-apprentissage.intercariforef.org/api/v1/entity/formations?query=${encodeURIComponent(query)}&limit=50`;
+                
+                log(`📡 Appel API : ${url}`, 'info');
+                
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    // Essayer une URL alternative
+                    log(`⚠️ Tentative avec URL alternative...`, 'warning');
+                    const altUrl = `https://catalogue-apprentissage.intercariforef.org/api/v1/entity/formations2023?text=${encodeURIComponent(query)}&limit=50`;
+                    const altResponse = await fetch(altUrl);
+                    
+                    if (!altResponse.ok) {
+                        throw new Error(`HTTP ${response.status} - L'API Catalogue Apprentissage a peut-être changé. Consultez https://catalogue-apprentissage.intercariforef.org/docs`);
+                    }
+                    
+                    const altData = await altResponse.json();
+                    handleApprentissageResults(altData.formations || altData.results || []);
+                    return;
+                }
+                
+                const data = await response.json();
+                handleApprentissageResults(data.formations || data.results || []);
+                
+            } catch (error) {
+                log('❌ Erreur recherche apprentissage : ' + error.message, 'error');
+                log('💡 L\'API Catalogue Apprentissage est peut-être temporairement indisponible ou son format a changé', 'warning');
+                log('🔗 Consultez : https://catalogue-apprentissage.intercariforef.org/docs', 'info');
+                console.error(error);
+            }
+        }
+        
+        function handleApprentissageResults(formations) {
+            log(`✅ ${formations.length} formations en apprentissage trouvées`, 'success');
+            document.getElementById('stat-apprentissage').textContent = formations.length;
+            
+            // Afficher les résultats
+            const resultsDiv = document.getElementById('apprentissage-results');
+            resultsDiv.innerHTML = '<h3>Formations en Apprentissage :</h3>';
+            
+            if (formations.length === 0) {
+                resultsDiv.innerHTML += '<p style="color: #e74c3c;">Aucune formation trouvée.</p>';
+                return;
+            }
+            
+            resultsDiv.innerHTML += '<table><thead><tr><th>Intitulé</th><th>Niveau</th><th>Établissement</th><th>Ville</th></tr></thead><tbody>';
+            
+            for (const formation of formations.slice(0, 20)) {
+                const intitule = formation.intitule_long || formation.intitule_court || formation.intitule || 'N/A';
+                const niveau = formation.niveau || formation.niveau_formation_diplome || 'N/A';
+                const etablissement = formation.etablissement_formateur_entreprise_raison_sociale || 
+                                    formation.etablissement_gestionnaire_entreprise_raison_sociale ||
+                                    'N/A';
+                const ville = formation.lieu_formation_adresse_computed?.ville || 
+                            formation.code_postal ||
+                            'N/A';
+                
+                resultsDiv.innerHTML += `<tr>
+                    <td><strong>${intitule}</strong></td>
+                    <td>${niveau}</td>
+                    <td>${etablissement}</td>
+                    <td>${ville}</td>
+                </tr>`;
+            }
+            
+            resultsDiv.innerHTML += '</tbody></table>';
+            
+            if (formations.length > 20) {
+                resultsDiv.innerHTML += `<p style="margin-top: 10px; color: #7f8c8d;">... et ${formations.length - 20} autres formations</p>`;
+            }
+            
+            // Stocker
+            window.apprentissageData = formations;
+        }
+        
+        function displayResults(title, data) {
+            document.getElementById('section-results').style.display = 'block';
+            const container = document.getElementById('results-container');
+            
+            container.innerHTML += `
+                <h3>${title} (échantillon de ${data.length} sur ${data.length})</h3>
+                <pre>${JSON.stringify(data[0], null, 2)}</pre>
+            `;
+        }
+    </script>
+</body>
+</html>
