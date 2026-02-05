@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orientation Post-Collège - v0.18</title>
+    
+    <!-- Bibliothèques externes -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<header>
+        <div class="container">
+            <div class="header-content">
+                <div class="header-left">
+                    <h1>ðŸŽ“ Orientation Post-Collège</h1>
+                    <p>Explorez les établissements et formations</p>
+                </div>
+                <div class="header-right">
+                    <button class="hamburger-btn" onclick="toggleSettings()" id="hamburger-btn">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Panneau de paramètres -->
+    <div class="settings-overlay" id="settings-overlay" onclick="toggleSettings()"></div>
+    <div class="settings-panel" id="settings-panel">
+        <div class="settings-header">
+            <h2>âš™ï¸ Paramètres</h2>
+            <button class="settings-close" onclick="toggleSettings()">Ã—</button>
+        </div>
+        <div class="settings-content">
+            <!-- Section Connexion Onisep -->
+            <div class="settings-section">
+                <div class="settings-section-header" onclick="toggleSection(this)">
+                    <span class="icon">ðŸ”</span>
+                    <span>Connexion Onisep</span>
+                    <span class="chevron">â–¼</span>
+                </div>
+                <div class="settings-section-content">
+                    <div class="setting-item">
+                        <label class="setting-label">Email</label>
+                        <input type="email" class="setting-input" id="settings-email" placeholder="votre.email@example.com">
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label class="setting-label">Mot de passe</label>
+                        <input type="password" class="setting-input" id="settings-password" placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢">
+                        <div class="setting-help">âš ï¸ Le mot de passe est stocké en clair dans le localStorage. N'utilisez pas de mot de passe sensible.</div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label class="setting-label">Application ID</label>
+                        <input type="text" class="setting-input" id="settings-app-id" placeholder="Votre Application ID Onisep">
+                        <div class="setting-help">ðŸ’¡ L'Application ID est fourni par Onisep avec vos identifiants API. Nécessaire pour que les requêtes fonctionnent.</div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <div class="setting-checkbox-group">
+                            <input type="checkbox" id="settings-auto-connect">
+                            <label for="settings-auto-connect">Connexion automatique au démarrage</label>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <button class="setting-button" onclick="saveOnisepCredentials()">ðŸ’¾ Enregistrer les identifiants</button>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <button class="setting-button" id="btn-connect-settings" onclick="connectFromSettings()">ðŸ” Se connecter</button>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <button class="setting-button secondary" id="btn-disconnect-settings" onclick="logoutOnisep()" style="display: none;">ðŸšª Se déconnecter</button>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <div class="connection-status disconnected" id="connection-status">
+                            <span class="dot"></span>
+                            <span>Non connecté</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            
+            <!-- Section Favoris -->
+            <div class="settings-section">
+                <div class="settings-section-header" onclick="toggleSection(this)">
+                    <span class="icon">â­</span>
+                    <span>Favoris</span>
+                    <span class="chevron">â–¼</span>
+                </div>
+                <div class="settings-section-content">
+                    <div class="setting-help" style="margin-bottom: 15px;">
+                        ðŸ’¡ Les favoris permettent de sauvegarder vos recherches pour les relancer rapidement.
+                    </div>
+                    
+                    <div id="favoris-list">
+                        <!-- Liste générée dynamiquement -->
+                    </div>
+                </div>
+            </div>
+                        <!-- Section Import/Export -->
+            <div class="settings-section">
+                <div class="settings-section-header" onclick="toggleSection(this)">
+                    <span class="icon">ðŸ’¾</span>
+                    <span>Import / Export des données</span>
+                    <span class="chevron">â–¼</span>
+                </div>
+                <div class="settings-section-content">
+                    <div class="setting-help" style="margin-bottom: 20px;">
+                        ðŸ’¡ Sauvegardez vos données ou importez une base existante.
+                    </div>
+                    
+                    <!-- Export -->
+                    <div class="setting-item">
+                        <h4 style="margin-bottom: 10px;">ðŸ“¤ Export</h4>
+                        <button class="setting-button" onclick="exporterDonnees()">
+                            ðŸ’¾ Exporter les données
+                        </button>
+                        <div class="setting-help" style="margin-top: 10px;">
+                            Le fichier sera téléchargé. Déplacez-le dans le même répertoire que l'application pour pouvoir l'importer.
+                        </div>
+                    </div>
+                    
+                    <div style="border-top: 1px solid var(--border); margin: 20px 0;"></div>
+                    
+                    <!-- Import -->
+                    <div class="setting-item">
+                        <h4 style="margin-bottom: 10px;">ðŸ“¥ Import</h4>
+                        
+                        <button class="setting-button" onclick="importerFichier()">
+                            ðŸ“‚ Importer un fichier
+                        </button>
+                        
+                        <div class="setting-help" style="margin-top: 10px;">
+                            âš ï¸ L'import écrasera toutes les données actuelles
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Section Préférences -->
+            <div class="settings-section">
+                <div class="settings-section-header" onclick="toggleSection(this)">
+                    <span class="icon">âš™ï¸</span>
+                    <span>Préférences</span>
+                    <span class="chevron">â–¼</span>
+                </div>
+                <div class="settings-section-content">
+                    <div class="setting-item">
+                        <label class="setting-label">ðŸ“Œ Mon établissement</label>
+                        
+                        <label style="font-size: 13px; margin-top: 10px; display: block;">UAI</label>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <input type="text" 
+                                   id="pref-user-uai" 
+                                   class="setting-input" 
+                                   placeholder="Ex: 0350056C"
+                                   maxlength="8"
+                                   value=""
+                                   style="flex: 1; min-width: 120px; font-size: 15px; letter-spacing: 0.5px; font-family: monospace;">
+                            <button class="setting-button" onclick="fetchOnisepEstablishment()" style="white-space: nowrap; margin: 0;">
+                                ðŸ” Rechercher
+                            </button>
+                        </div>
+                        
+                        <label style="font-size: 13px; margin-top: 10px; display: block;">Nom de l'établissement</label>
+                        <input type="text" 
+                               id="pref-user-nom" 
+                               class="setting-input" 
+                               placeholder="Renseigné automatiquement"
+                               value=""
+                               readonly
+                               style="background: #f5f5f5; cursor: not-allowed;">
+                        
+                        <label style="font-size: 13px; margin-top: 10px; display: block;">Latitude (GPS)</label>
+                        <input type="number" 
+                               id="pref-user-lat" 
+                               class="setting-input" 
+                               placeholder="Renseignée automatiquement"
+                               step="0.000001"
+                               value=""
+                               readonly
+                               style="background: #f5f5f5; cursor: not-allowed;">
+                        
+                        <label style="font-size: 13px; margin-top: 10px; display: block;">Longitude (GPS)</label>
+                        <input type="number" 
+                               id="pref-user-lon" 
+                               class="setting-input" 
+                               placeholder="Renseignée automatiquement"
+                               step="0.000001"
+                               value=""
+                               readonly
+                               style="background: #f5f5f5; cursor: not-allowed;">
+                        
+                        <div class="setting-help" style="margin-top: 10px;">
+                            ðŸ’¡ Saisissez l'UAI puis cliquez sur "ðŸ” Rechercher" pour récupérer automatiquement les informations depuis Onisep.
+                            <br>ðŸ“Œ Votre établissement sera affiché avec un marqueur orange pulsant sur la carte.
+                        </div>
+                        
+                        <button class="setting-button" onclick="saveUserEstablishment()" style="margin-top: 10px;">
+                            ðŸ’¾ Sauvegarder
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Section Aide -->
+            <div class="settings-section">
+                <div class="settings-section-header" onclick="toggleSection(this)">
+                    <span class="icon">â“</span>
+                    <span>Aide</span>
+                    <span class="chevron">â–¼</span>
+                </div>
+                <div class="settings-section-content">
+                    <div class="setting-item">
+                        <label class="setting-label">Créer un compte Onisep</label>
+                        <div class="help-content">
+                            <h3>ðŸ“ Comment créer un compte</h3>
+                            <ol>
+                                <li>Rendez-vous sur <strong><a href="https://opendata.onisep.fr/" target="_blank">opendata.onisep.fr</a></strong></li>
+                                <li>Cliquez sur <strong>"S'inscrire"</strong> en haut Ã  droite</li>
+                                <li>Remplissez le formulaire avec :
+                                    <ul>
+                                        <li>Votre email professionnel</li>
+                                        <li>Un mot de passe sécurisé</li>
+                                        <li>Votre nom et prénom</li>
+                                        <li>Votre organisme</li>
+                                    </ul>
+                                </li>
+                                <li>Validez votre email via le lien reçu</li>
+                                <li>Connectez-vous et demandez l'accès Ã  l'API si nécessaire</li>
+                            </ol>
+                        </div>
+                    </div>
+                    
+                    <div class="setting-item">
+                        <label class="setting-label">À propos</label>
+                        <div style="font-size: 13px; color: var(--text-light); line-height: 1.8;">
+                            <p><strong>Orientation Post-Collège v0.15</strong></p>
+                            <p style="margin-top: 10px;"><strong>ðŸ“œ Historique des versions</strong></p>
+                            <div style="font-size: 12px; margin-top: 10px; max-height: 300px; overflow-y: auto;">
+                                                                <p><strong>v0.15</strong> - Carte interactive</p>
+                                <ul style="margin-left: 20px; margin-top: 5px;">
+                                    <li>Carte Leaflet avec tous les établissements</li>
+                                    <li>Auto-zoom sur les résultats</li>
+                                    <li>Info-bulles au survol</li>
+                                    <li>Marqueur spécial pour établissement utilisateur</li>
+                                    <li>Préférences : UAI utilisateur</li>
+                                </ul>
+                                
+                                <p><strong>v0.14</strong> - Système de favoris et import/export amélioré</p>
+                                <ul style="margin-left: 20px; margin-top: 5px;">
+                                    <li>Ajout système de favoris (max 10)</li>
+                                    <li>Re-extraction rapide depuis favoris</li>
+                                    <li>Import/export simplifié</li>
+                                    <li>Suppression extraction du panneau latéral</li>
+                                </ul>
+                                
+                                <p style="margin-top: 10px;"><strong>v0.13</strong> - Refonte interface et correction bugs</p>
+                                <ul style="margin-left: 20px; margin-top: 5px;">
+                                    <li>3 onglets : Recherche, Résultats, Carte</li>
+                                    <li>Recherche géographique et par diplômes</li>
+                                    <li>Enrichissement langues automatique</li>
+                                    <li>Correction filtrage géographique académies</li>
+                                    <li>Tri et filtres uniformisés sur toutes les vues</li>
+                                </ul>
+                                
+                                <p style="margin-top: 10px;"><strong>v0.11-v0.12</strong> - Améliorations techniques</p>
+                                <ul style="margin-left: 20px; margin-top: 5px;">
+                                    <li>Extraction par diplômes (département/académie)</li>
+                                    <li>Filtrage et tri des résultats</li>
+                                    <li>Fiches établissement détaillées</li>
+                                </ul>
+                                
+                                <p style="margin-top: 10px;"><strong>v0.1-v0.10</strong> - Version initiale</p>
+                                <ul style="margin-left: 20px; margin-top: 5px;">
+                                    <li>Connexion API Onisep</li>
+                                    <li>Extraction géographique (commune/EPCI)</li>
+                                    <li>Stockage SQLite local</li>
+                                    <li>Interface de base</li>
+                                </ul>
+                            </div>
+                            <p>Application web pour gérer les données des établissements en France.</p>
+                            <p>Source des données : API Onisep Open Data</p>
+                            <p>Â© 2026 - Développé avec Claude</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+        </div> <!-- Fin settings-content -->
+        
+        <!-- Bouton Vider la base (niveau principal) -->
+        <div style="padding: 20px 25px; border-top: 2px solid var(--border);">
+            <button class="setting-button secondary" onclick="confirmResetDatabase()" style="background: #ff6b6b; color: white; border: none;">
+                ðŸ—‘ï¸ Vider la base locale
+            </button>
+            <div class="setting-help" style="margin-top: 10px;">âš ï¸ Supprime toutes les données stockées localement</div>
+        </div>
+        
+    </div> <!-- Fin settings-panel -->
+    
+    <div class="container">
+        <div id="alerts"></div>
+        
+        <!-- ========================================= -->
+        <!-- SYSTÃˆME D'ONGLETS v0.13 -->
+        <!-- ========================================= -->
+        <div class="tabs-container">
+            <!-- Navigation Onglets -->
+            <div class="tabs-nav">
+                <button class="tab-btn" data-tab="recherche" onclick="switchTab('recherche')">
+                    ðŸ” Recherche
+                </button>
+                <button class="tab-btn active" data-tab="resultats" onclick="switchTab('resultats')">
+                    ðŸ“Š Résultats
+                </button>
+                <button class="tab-btn" data-tab="carte" onclick="switchTab('carte')">
+                    ðŸ—ºï¸ Carte
+                </button>
+            </div>
+            
+            <!-- ========================================= -->
+            <!-- ONGLET 1 : RECHERCHE -->
+            <!-- ========================================= -->
+            <div class="tab-content" id="tab-recherche">
+                <h2 style="margin-bottom: 10px; color: var(--primary);">ðŸ” Recherche d'Établissements</h2>
+                <p style="color: var(--text-light); margin-bottom: 30px;">
+                    Définissez vos critères de recherche pour extraire les établissements depuis l'API Onisep.
+                </p>
+                
+                <!-- Sélecteur de Mode -->
+                <div class="mode-selector" style="display: flex; gap: 15px; margin-bottom: 30px; padding: 20px; background: var(--bg-light); border-radius: 8px;">
+                    <div class="mode-option" style="flex: 1; display: flex; align-items: center; gap: 10px; padding: 15px; border: 2px solid var(--border); border-radius: 8px; background: white; cursor: pointer; transition: all 0.2s;">
+                        <input type="radio" name="tab-extraction-mode" id="tab-mode-geo" value="geo" checked onchange="switchTabExtractionMode()">
+                        <label for="tab-mode-geo" style="cursor: pointer; margin: 0; flex: 1;">
+                            <div style="font-weight: 600; margin-bottom: 5px;">ðŸ“ Extraction Géographique</div>
+                            <div style="font-size: 12px; color: var(--text-light);">Je sais OÃ™ je veux aller</div>
+                        </label>
+                    </div>
+                    
+                    <div class="mode-option" style="flex: 1; display: flex; align-items: center; gap: 10px; padding: 15px; border: 2px solid var(--border); border-radius: 8px; background: white; cursor: pointer; transition: all 0.2s;">
+                        <input type="radio" name="tab-extraction-mode" id="tab-mode-diplomes" value="diplomes" onchange="switchTabExtractionMode()">
+                        <label for="tab-mode-diplomes" style="cursor: pointer; margin: 0; flex: 1;">
+                            <div style="font-weight: 600; margin-bottom: 5px;">ðŸŽ“ Extraction par Diplômes</div>
+                            <div style="font-size: 12px; color: var(--text-light);">Je sais QUEL diplôme je veux</div>
+                        </label>
+                    </div>
+                </div>
+                
+                <!-- Panel Recherche Géographique -->
+                <div id="tab-panel-mode-geo" class="search-panel" style="display: block;">
+                    <div class="search-panel-header">ðŸ“ Extraction Géographique</div>
+                    
+                    <!-- Champ de recherche -->
+                    <div class="form-group">
+                        <label class="setting-label">Rechercher une commune</label>
+                        <input type="text" 
+                               id="tab-smart-search-commune" 
+                               class="setting-input" 
+                               placeholder="Ex: Rennes, Lyon, Marseille..."
+                               oninput="handleTabSmartSearch()"
+                               autocomplete="off"
+                               style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;">
+                        <div class="setting-help" id="tab-smart-search-help" style="margin-top: 8px; font-size: 13px; color: var(--text-light);">
+                            ðŸ’¡ Entrez au moins 3 caractères pour rechercher
+                        </div>
+                    </div>
+                    
+                    <!-- Résultats de recherche -->
+                    <div id="tab-smart-search-results" style="display: none; margin-top: 15px;">
+                        <div style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; background: white;">
+                            <div id="tab-smart-search-results-list"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sélection active -->
+                    <div id="tab-smart-selection-display" style="display: none; margin-top: 15px;">
+                        <div style="padding: 15px; background: var(--bg-light); border-radius: 8px; border: 2px solid var(--primary);">
+                            <div style="display: flex; justify-content: space-between; align-items: start;">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 600; font-size: 16px; color: var(--primary); margin-bottom: 5px;">
+                                        <span id="tab-selection-type-icon">ðŸ“</span>
+                                        <span id="tab-selection-name"></span>
+                                    </div>
+                                    <div style="font-size: 14px; color: var(--text);" id="tab-selection-details"></div>
+                                </div>
+                                <button onclick="clearTabSmartSelection()" 
+                                        style="padding: 5px 10px; background: white; border: 1px solid var(--border); border-radius: 5px; cursor: pointer; font-size: 16px;">
+                                    âœ•
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                                        <!-- Sauvegarder comme favori -->
+                    <div class="setting-item" style="margin-bottom: 15px; padding: 15px; background: var(--bg-light); border-radius: 8px;">
+                        <div class="setting-checkbox-group">
+                            <input type="checkbox" id="save-as-favorite-geo">
+                            <label for="save-as-favorite-geo" style="font-weight: 500;">ðŸ’¾ Sauvegarder comme favori</label>
+                        </div>
+                        <div id="favorite-name-container-geo" style="display: none; margin-top: 10px;">
+                            <input type="text" 
+                                   id="favorite-name-geo" 
+                                   class="setting-input" 
+                                   placeholder="Nom du favori (ex: Lycées Rennes)"
+                                   maxlength="50"
+                                   style="width: 100%;">
+                            <div class="setting-help" style="margin-top: 5px;">
+                                ðŸ’¡ Limite : 10 favoris maximum
+                            </div>
+                        </div>
+                    </div>
+</body>
+
+<!-- Modules JavaScript -->
+<script src="data/academies_data.js"></script>
+<script src="data/epci.js"></script>
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/onisep-api.js"></script>
+<script src="js/main.js"></script>
+
+</html>

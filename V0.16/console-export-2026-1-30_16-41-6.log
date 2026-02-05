@@ -1,0 +1,1349 @@
+💡 Fonctions de test disponibles: lycees_manager_v0.16.html:7163:9
+  - testAcademies() : Liste toutes les académies lycees_manager_v0.16.html:7164:9
+  - testAcademieSpecifique("Normandie") : Teste une académie lycees_manager_v0.16.html:7165:9
+🔧 Installation du listener global sur content-container lycees_manager_v0.16.html:5596:17
+📍 loadGeoCriteria: fonction désactivée (nouvelle interface de recherche) lycees_manager_v0.16.html:4684:13
+📊 Stats chargées: 
+Object { lycees: 0, diplomes: 0, dispositifs: 0, langues: 0 }
+lycees_manager_v0.16.html:5492:17
+📊 Changement de vue : lycees lycees_manager_v0.16.html:6202:13
+🔄 Chargement liste EPCI... lycees_manager_v0.16.html:3760:17
+✅ 1255 EPCI chargés et disponibles lycees_manager_v0.16.html:3776:17
+📍 loadGeoCriteria: fonction désactivée (nouvelle interface de recherche) lycees_manager_v0.16.html:4684:13
+🔄 Connexion automatique en cours... lycees_manager_v0.16.html:5031:17
+✓ Token généré avec succès lycees_manager_v0.16.html:2260:21
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=10&q=0350963G lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 1, first_result: {…} }
+lycees_manager_v0.16.html:2328:21
+🔍 AVANT filtre CFA: 1 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 1 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array [ {…} ]
+lycees_manager_v0.16.html:2394:21
+🏫 Établissement trouvé: 
+Object { code_uai: "0350963G", n_siret: "19350963500010", type_detablissement: "collège", nom: "Collège les Hautes Ourmes", sigle: "", statut: "public", tutelle: "Ministère chargé de l'Éducation nationale", universite_de_rattachement_libelle_et_uai: "", universite_de_rattachement_id_et_url_onisep: "", etablissements_lies_libelles: "", … }
+lycees_manager_v0.16.html:8209:17
+📍 Champs GPS disponibles: 
+Object { latitude: undefined, longitude: undefined, latitude_y: 48.0895, longitude_x: -1.64941, coordonnees: undefined, position: undefined }
+lycees_manager_v0.16.html:8210:17
+📑 Basculement vers onglet: recherche lycees_manager_v0.16.html:3811:13
+🚀 lancerTabExtractionSmartGeo appelée lycees_manager_v0.16.html:4014:13
+   tabSelectedCommune: 
+Object { nom: "Rennes", code: "35238", codesPostaux: (3) […], population: 230890, codeDepartement: "35", codeEpci: "243500139", epci: {…} }
+lycees_manager_v0.16.html:4015:13
+   tabSelectedScope: epci lycees_manager_v0.16.html:4016:13
+✅ Lancement extraction... lycees_manager_v0.16.html:4028:13
+   → Critères sauvegardés: EPCI = 243500139 Rennes Métropole lycees_manager_v0.16.html:4041:17
+   → Appel refreshFromOnisep() lycees_manager_v0.16.html:4074:13
+🌍 Extraction avec critères : intercommunalite = 243500139 lycees_manager_v0.16.html:5906:13
+🔍 Récupération communes pour EPCI: 243500139 lycees_manager_v0.16.html:2104:13
+📡 Requête API geo.gouv.fr pour SIREN: 243500139 lycees_manager_v0.16.html:2118:17
+✅ 43 communes récupérées pour 243500139 lycees_manager_v0.16.html:2137:17
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Acign%C3%A9 lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 0, first_result: undefined }
+lycees_manager_v0.16.html:2328:21
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+Acigné: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=B%C3%A9cherel lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 0, first_result: undefined }
+lycees_manager_v0.16.html:2328:21
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+Bécherel: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Betton lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 1, first_result: {…} }
+lycees_manager_v0.16.html:2328:21
+🔍 Après filtre commune "Betton" (mode: exact): 1 résultats lycees_manager_v0.16.html:2351:25
+🔍 AVANT filtre CFA: 1 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 1 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array [ {…} ]
+lycees_manager_v0.16.html:2394:21
+Betton: 1 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Bourgbarr%C3%A9 lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 0, first_result: undefined }
+lycees_manager_v0.16.html:2328:21
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+Bourgbarré: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Br%C3%A9c%C3%A9 lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 0, first_result: undefined }
+lycees_manager_v0.16.html:2328:21
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+Brécé: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Bruz lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 24, first_result: {…} }
+lycees_manager_v0.16.html:2328:21
+🔍 Après filtre commune "Bruz" (mode: exact): 10 résultats lycees_manager_v0.16.html:2351:25
+🔍 AVANT filtre CFA: 10 établissements lycees_manager_v0.16.html:2355:21
+✅ CFA/MFR détecté: cfa de la propreté de l'inhni ouest (type: ) lycees_manager_v0.16.html:2381:29
+❌ Exclu (supérieur): faculté des métiers - cci ille-et-vilaine (type: ) lycees_manager_v0.16.html:2386:29
+🎓 Après filtre: 9 résultats (1 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array(3) [ {…}, {…}, {…} ]
+lycees_manager_v0.16.html:2394:21
+Bruz: 9 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Cesson-S%C3%A9vign%C3%A9 lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 9, first_result: {…} }
+lycees_manager_v0.16.html:2328:21
+🔍 Après filtre commune "Cesson-Sévigné" (mode: exact): 7 résultats lycees_manager_v0.16.html:2351:25
+🔍 AVANT filtre CFA: 7 établissements lycees_manager_v0.16.html:2355:21
+✅ CFA/MFR détecté: cfa en transport et logistique - aftral cesson-sévigné (type: ) lycees_manager_v0.16.html:2381:29
+✅ CFA/MFR détecté: institut coopératif de l'apprentissage de la recherche et de l'enseignement (type: ) lycees_manager_v0.16.html:2381:29
+🎓 Après filtre: 7 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array(3) [ {…}, {…}, {…} ]
+lycees_manager_v0.16.html:2394:21
+Cesson-Sévigné: 7 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Chantepie lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 0, first_result: undefined }
+lycees_manager_v0.16.html:2328:21
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+Chantepie: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=La+Chapelle-Chauss%C3%A9e lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 0, first_result: undefined }
+lycees_manager_v0.16.html:2328:21
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+La Chapelle-Chaussée: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=La+Chapelle-des-Fougeretz lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 0, first_result: undefined }
+lycees_manager_v0.16.html:2328:21
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+La Chapelle-des-Fougeretz: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=La+Chapelle-Thouarault lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 0, first_result: undefined }
+lycees_manager_v0.16.html:2328:21
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+La Chapelle-Thouarault: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Chartres-de-Bretagne lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 2, first_result: {…} }
+lycees_manager_v0.16.html:2328:21
+🔍 Après filtre commune "Chartres-de-Bretagne" (mode: exact): 2 résultats lycees_manager_v0.16.html:2351:25
+🔍 AVANT filtre CFA: 2 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 2 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array [ {…}, {…} ]
+lycees_manager_v0.16.html:2394:21
+Chartres-de-Bretagne: 2 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Chavagne lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 10, first_result: {…} }
+lycees_manager_v0.16.html:2328:21
+🔍 Après filtre commune "Chavagne" (mode: exact): 0 résultats lycees_manager_v0.16.html:2351:25
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+Chavagne: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Chevaign%C3%A9 lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 0, first_result: undefined }
+lycees_manager_v0.16.html:2328:21
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+Chevaigné: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Cintr%C3%A9 lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 0, first_result: undefined }
+lycees_manager_v0.16.html:2328:21
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+Cintré: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Clayes lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 7, first_result: {…} }
+lycees_manager_v0.16.html:2328:21
+🔍 Après filtre commune "Clayes" (mode: exact): 0 résultats lycees_manager_v0.16.html:2351:25
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+Clayes: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Corps-Nuds lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 0, first_result: undefined }
+lycees_manager_v0.16.html:2328:21
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+Corps-Nuds: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=G%C3%A9vez%C3%A9 lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 0, first_result: undefined }
+lycees_manager_v0.16.html:2328:21
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+Gévezé: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=L%27Hermitage lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 24, first_result: {…} }
+lycees_manager_v0.16.html:2328:21
+🔍 Après filtre commune "L'Hermitage" (mode: exact): 0 résultats lycees_manager_v0.16.html:2351:25
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+L'Hermitage: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Laill%C3%A9 lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 1, first_result: {…} }
+lycees_manager_v0.16.html:2328:21
+🔍 Après filtre commune "Laillé" (mode: exact): 0 résultats lycees_manager_v0.16.html:2351:25
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+Laillé: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Langan lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 0, first_result: undefined }
+lycees_manager_v0.16.html:2328:21
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+Langan: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Miniac-sous-B%C3%A9cherel lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 0, first_result: undefined }
+lycees_manager_v0.16.html:2328:21
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+Miniac-sous-Bécherel: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Montgermont lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 4, first_result: {…} }
+lycees_manager_v0.16.html:2328:21
+🔍 Après filtre commune "Montgermont" (mode: exact): 1 résultats lycees_manager_v0.16.html:2351:25
+🔍 AVANT filtre CFA: 1 établissements lycees_manager_v0.16.html:2355:21
+✅ CFA/MFR détecté: bâtiment cfa ille-et-vilaine (type: ) lycees_manager_v0.16.html:2381:29
+🎓 Après filtre: 1 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array [ {…} ]
+lycees_manager_v0.16.html:2394:21
+Montgermont: 1 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Mordelles lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 2, first_result: {…} }
+lycees_manager_v0.16.html:2328:21
+🔍 Après filtre commune "Mordelles" (mode: exact): 2 résultats lycees_manager_v0.16.html:2351:25
+🔍 AVANT filtre CFA: 2 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 2 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array [ {…}, {…} ]
+lycees_manager_v0.16.html:2394:21
+Mordelles: 2 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Nouvoitou lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 0, first_result: undefined }
+lycees_manager_v0.16.html:2328:21
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+Nouvoitou: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Noyal-Ch%C3%A2tillon-sur-Seiche lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 1, first_result: {…} }
+lycees_manager_v0.16.html:2328:21
+🔍 Après filtre commune "Noyal-Châtillon-sur-Seiche" (mode: exact): 1 résultats lycees_manager_v0.16.html:2351:25
+🔍 AVANT filtre CFA: 1 établissements lycees_manager_v0.16.html:2355:21
+✅ CFA/MFR détecté: cfa promotrans rennes (type: ) lycees_manager_v0.16.html:2381:29
+🎓 Après filtre: 1 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array [ {…} ]
+lycees_manager_v0.16.html:2394:21
+Noyal-Châtillon-sur-Seiche: 1 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Org%C3%A8res lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 1, first_result: {…} }
+lycees_manager_v0.16.html:2328:21
+🔍 Après filtre commune "Orgères" (mode: exact): 1 résultats lycees_manager_v0.16.html:2351:25
+🔍 AVANT filtre CFA: 1 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 1 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array [ {…} ]
+lycees_manager_v0.16.html:2394:21
+Orgères: 1 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Pac%C3%A9 lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 2, first_result: {…} }
+lycees_manager_v0.16.html:2328:21
+🔍 Après filtre commune "Pacé" (mode: exact): 2 résultats lycees_manager_v0.16.html:2351:25
+🔍 AVANT filtre CFA: 2 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 2 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array [ {…}, {…} ]
+lycees_manager_v0.16.html:2394:21
+Pacé: 2 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Parthenay-de-Bretagne lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 0, first_result: undefined }
+lycees_manager_v0.16.html:2328:21
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+Parthenay-de-Bretagne: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Rennes lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 200, first_result: {…} }
+lycees_manager_v0.16.html:2328:21
+🔍 Après filtre commune "Rennes" (mode: exact): 60 résultats lycees_manager_v0.16.html:2351:25
+🔍 AVANT filtre CFA: 60 établissements lycees_manager_v0.16.html:2355:21
+❌ Exclu (supérieur): faculté de droit et science politique (type: ) lycees_manager_v0.16.html:2386:29
+✅ CFA/MFR détecté: cfa de l'enseignement catholique de bretagne (type: ) lycees_manager_v0.16.html:2381:29
+✅ CFA/MFR détecté: centre de formation ligue bretagne handball - antenne du campus de l'excellence sportive de dinard (type: ) lycees_manager_v0.16.html:2381:29
+✅ CFA/MFR détecté: greta-cfa est bretagne (type: ) lycees_manager_v0.16.html:2381:29
+🎓 Après filtre: 59 résultats (1 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array(3) [ {…}, {…}, {…} ]
+lycees_manager_v0.16.html:2394:21
+Rennes: 59 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Le+Rheu lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 9, first_result: {…} }
+lycees_manager_v0.16.html:2328:21
+🔍 Après filtre commune "Le Rheu" (mode: exact): 4 résultats lycees_manager_v0.16.html:2351:25
+🔍 AVANT filtre CFA: 4 établissements lycees_manager_v0.16.html:2355:21
+✅ CFA/MFR détecté: centre de formation et de promotion professionnelle agricole (type: ) lycees_manager_v0.16.html:2381:29
+🎓 Après filtre: 4 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array(3) [ {…}, {…}, {…} ]
+lycees_manager_v0.16.html:2394:21
+Le Rheu: 4 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Romill%C3%A9 lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 1, first_result: {…} }
+lycees_manager_v0.16.html:2328:21
+🔍 Après filtre commune "Romillé" (mode: exact): 1 résultats lycees_manager_v0.16.html:2351:25
+🔍 AVANT filtre CFA: 1 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 1 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array [ {…} ]
+lycees_manager_v0.16.html:2394:21
+Romillé: 1 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Saint-Armel lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 0, first_result: undefined }
+lycees_manager_v0.16.html:2328:21
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+Saint-Armel: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Saint-Erblon lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 2, first_result: {…} }
+lycees_manager_v0.16.html:2328:21
+🔍 Après filtre commune "Saint-Erblon" (mode: exact): 1 résultats lycees_manager_v0.16.html:2351:25
+🔍 AVANT filtre CFA: 1 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 1 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array [ {…} ]
+lycees_manager_v0.16.html:2394:21
+Saint-Erblon: 1 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Saint-Gilles lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 15, first_result: {…} }
+lycees_manager_v0.16.html:2328:21
+🔍 Après filtre commune "Saint-Gilles" (mode: exact): 1 résultats lycees_manager_v0.16.html:2351:25
+🔍 AVANT filtre CFA: 1 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 1 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array [ {…} ]
+lycees_manager_v0.16.html:2394:21
+Saint-Gilles: 1 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Saint-Gr%C3%A9goire lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 37, first_result: {…} }
+lycees_manager_v0.16.html:2328:21
+🔍 Après filtre commune "Saint-Grégoire" (mode: exact): 4 résultats lycees_manager_v0.16.html:2351:25
+🔍 AVANT filtre CFA: 4 établissements lycees_manager_v0.16.html:2355:21
+✅ CFA/MFR détecté: maison familiale rurale horticole (type: ) lycees_manager_v0.16.html:2381:29
+✅ CFA/MFR détecté: maison familiale urbaine (type: ) lycees_manager_v0.16.html:2381:29
+🎓 Après filtre: 4 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array(3) [ {…}, {…}, {…} ]
+lycees_manager_v0.16.html:2394:21
+Saint-Grégoire: 4 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Saint-Jacques-de-la-Lande lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 4, first_result: {…} }
+lycees_manager_v0.16.html:2328:21
+🔍 Après filtre commune "Saint-Jacques-de-la-Lande" (mode: exact): 2 résultats lycees_manager_v0.16.html:2351:25
+🔍 AVANT filtre CFA: 2 établissements lycees_manager_v0.16.html:2355:21
+✅ CFA/MFR détecté: cfa des compagnons du devoir et du tour de france (type: ) lycees_manager_v0.16.html:2381:29
+🎓 Après filtre: 2 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array [ {…}, {…} ]
+lycees_manager_v0.16.html:2394:21
+Saint-Jacques-de-la-Lande: 2 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Saint-Sulpice-la-For%C3%AAt lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 0, first_result: undefined }
+lycees_manager_v0.16.html:2328:21
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+Saint-Sulpice-la-Forêt: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Thorign%C3%A9-Fouillard lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 0, first_result: undefined }
+lycees_manager_v0.16.html:2328:21
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+Thorigné-Fouillard: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Le+Verger lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 17, first_result: {…} }
+lycees_manager_v0.16.html:2328:21
+🔍 Après filtre commune "Le Verger" (mode: exact): 0 résultats lycees_manager_v0.16.html:2351:25
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+Le Verger: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Vern-sur-Seiche lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 1, first_result: {…} }
+lycees_manager_v0.16.html:2328:21
+🔍 Après filtre commune "Vern-sur-Seiche" (mode: exact): 1 résultats lycees_manager_v0.16.html:2351:25
+🔍 AVANT filtre CFA: 1 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 1 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array [ {…} ]
+lycees_manager_v0.16.html:2394:21
+Vern-sur-Seiche: 1 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Vezin-le-Coquet lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 0, first_result: undefined }
+lycees_manager_v0.16.html:2328:21
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+Vezin-le-Coquet: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+🌐 API Request URL: https://api.opendata.onisep.fr/api/1.0/dataset/5fa5816ac6a6e/search?size=200&q=Pont-P%C3%A9an lycees_manager_v0.16.html:2311:17
+📡 API Response Status: 200 OK lycees_manager_v0.16.html:2319:21
+📦 API Response Data: 
+Object { total: 1, first_result: {…} }
+lycees_manager_v0.16.html:2328:21
+🔍 Après filtre commune "Pont-Péan" (mode: exact): 0 résultats lycees_manager_v0.16.html:2351:25
+🔍 AVANT filtre CFA: 0 établissements lycees_manager_v0.16.html:2355:21
+🎓 Après filtre: 0 résultats (0 exclus) lycees_manager_v0.16.html:2393:21
+📋 Échantillon des établissements conservés: 
+Array []
+lycees_manager_v0.16.html:2394:21
+Pont-Péan: 0 établissements trouvés lycees_manager_v0.16.html:3038:25
+Actions établissement 0352260S: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352260S: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352260S: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350852L: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350852L: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350852L: 2 trouvés lycees_manager_v0.16.html:2511:21
+🔍 Structure dispositif brut: 
+Object { action_de_dispositif_ad_identifiant_onisep: "AD.9194", type_de_dispositif_typdisp_libelle: "section sportive de collège", typdisp_id_et_url_onisep: "https://www.onisep.fr/http/redirection/formation/slug/TYPDISP.2", typdisp_indexation_onisep: "santé, social, sport/sport", structure_denseignement_ens_libelle: "Collège Saint-Joseph", ens_url_et_id_onisep: "https://www.onisep.fr/http/redirection/etablissement/slug/ENS.11318", ens_type: "collège", ens_code_uai: "0350852L", ens_statut: "privé sous contrat", ens_adresse: "3 avenue Alphonse Legault, CS 77118", … }
+lycees_manager_v0.16.html:3620:21
+🔍 Champs disponibles: 
+Array(27) [ "action_de_dispositif_ad_identifiant_onisep", "type_de_dispositif_typdisp_libelle", "typdisp_id_et_url_onisep", "typdisp_indexation_onisep", "structure_denseignement_ens_libelle", "ens_url_et_id_onisep", "ens_type", "ens_code_uai", "ens_statut", "ens_adresse", … ]
+lycees_manager_v0.16.html:3621:21
+Actions établissement 0352341E: 6 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352341E: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352341E: 1 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352579N: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352579N: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352579N: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352449X: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352449X: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352449X: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350002M: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350002M: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350002M: 2 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352686E: 7 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352686E: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352686E: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352952U: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352952U: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352952U: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350998V: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350998V: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350998V: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352503F: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352503F: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352503F: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352496Y: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352496Y: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352496Y: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350793X: 29 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350793X: 4 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350793X: 3 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0353006C: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0353006C: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0353006C: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352304P: 6 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352304P: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352304P: 2 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352972R: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352972R: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352972R: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0351906G: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0351906G: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0351906G: 4 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352989J: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352989J: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352989J: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352904S: 1 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352904S: 1 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352904S: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0351852Y: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0351852Y: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0351852Y: 3 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0351002Z: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0351002Z: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0351002Z: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352030S: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352030S: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352030S: 2 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350874K: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350874K: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350874K: 2 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352997T: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352997T: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352997T: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352691K: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352691K: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352691K: 1 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352319F: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352319F: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352319F: 2 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352274G: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352274G: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352274G: 2 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350692M: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350692M: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350692M: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350098S: 2 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350098S: 4 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350098S: 0 trouvés lycees_manager_v0.16.html:2511:21
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605340ddc19a9/search?q=0352817X&size=100
+[HTTP/1.1 429 Too Many Requests 130ms]
+
+Erreur HTTP 429 pour établissement 0352817X lycees_manager_v0.16.html:2429:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605344579a7d7/search?q=0352817X&size=100
+[HTTP/1.1 429 Too Many Requests 116ms]
+
+Erreur HTTP 429 pour sup 0352817X lycees_manager_v0.16.html:2465:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/60867458bb600/search?q=0352817X&size=100
+[HTTP/1.1 429 Too Many Requests 111ms]
+
+Erreur HTTP 429 pour dispositifs 0352817X lycees_manager_v0.16.html:2500:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605340ddc19a9/search?q=0350895H&size=100
+[HTTP/1.1 429 Too Many Requests 127ms]
+
+Erreur HTTP 429 pour établissement 0350895H lycees_manager_v0.16.html:2429:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605344579a7d7/search?q=0350895H&size=100
+[HTTP/1.1 429 Too Many Requests 127ms]
+
+Erreur HTTP 429 pour sup 0350895H lycees_manager_v0.16.html:2465:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/60867458bb600/search?q=0350895H&size=100
+[HTTP/1.1 429 Too Many Requests 114ms]
+
+Erreur HTTP 429 pour dispositifs 0350895H lycees_manager_v0.16.html:2500:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605340ddc19a9/search?q=&size=100
+[HTTP/1.1 429 Too Many Requests 111ms]
+
+Erreur HTTP 429 pour établissement lycees_manager_v0.16.html:2429:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605344579a7d7/search?q=&size=100
+[HTTP/1.1 429 Too Many Requests 127ms]
+
+Erreur HTTP 429 pour sup lycees_manager_v0.16.html:2465:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/60867458bb600/search?q=&size=100
+[HTTP/1.1 429 Too Many Requests 122ms]
+
+Erreur HTTP 429 pour dispositifs lycees_manager_v0.16.html:2500:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605340ddc19a9/search?q=0352089F&size=100
+[HTTP/1.1 429 Too Many Requests 116ms]
+
+Erreur HTTP 429 pour établissement 0352089F lycees_manager_v0.16.html:2429:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605344579a7d7/search?q=0352089F&size=100
+[HTTP/1.1 429 Too Many Requests 122ms]
+
+Erreur HTTP 429 pour sup 0352089F lycees_manager_v0.16.html:2465:25
+Dispositifs 0352089F: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0351926D: 9 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0351926D: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0351926D: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352009U: 9 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352009U: 6 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352009U: 2 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350805K: 3 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350805K: 2 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350805K: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352267Z: 3 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352267Z: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352267Z: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350028R: 17 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350028R: 11 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350028R: 3 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0351796M: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0351796M: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0351796M: 1 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350059Z: 5 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350059Z: 1 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350059Z: 1 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0351047Y: 12 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0351047Y: 5 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0351047Y: 1 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352070K: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352070K: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352070K: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350836U: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350836U: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350836U: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350963G: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350963G: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350963G: 5 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350031U: 14 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350031U: 3 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350031U: 3 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352715L: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352715L: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352715L: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350027P: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350027P: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350027P: 5 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350747X: 5 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350747X: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350747X: 1 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350760L: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350760L: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350760L: 4 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350033W: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350033W: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350033W: 2 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350710G: 3 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350710G: 29 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350710G: 2 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350783L: 5 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350783L: 1 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350783L: 2 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350024L: 4 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350024L: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350024L: 3 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350776D: 6 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350776D: 2 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350776D: 5 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352069J: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352069J: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352069J: 3 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350777E: 5 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350777E: 1 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350777E: 3 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350730D: 4 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350730D: 9 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350730D: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350778F: 6 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350778F: 3 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350778F: 2 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350797B: 9 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350797B: 10 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350797B: 2 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352821B: 3 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352821B: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352821B: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352849G: 2 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352849G: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352849G: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350835T: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350835T: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350835T: 2 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350734H: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350734H: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350734H: 3 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0351054F: 11 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0351054F: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0351054F: 2 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0351851X: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0351851X: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0351851X: 4 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350965J: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350965J: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350965J: 4 trouvés lycees_manager_v0.16.html:2511:21
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605340ddc19a9/search?q=0350032V&size=100
+[HTTP/1.1 429 Too Many Requests 142ms]
+
+Erreur HTTP 429 pour établissement 0350032V lycees_manager_v0.16.html:2429:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605344579a7d7/search?q=0350032V&size=100
+[HTTP/1.1 429 Too Many Requests 123ms]
+
+Erreur HTTP 429 pour sup 0350032V lycees_manager_v0.16.html:2465:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/60867458bb600/search?q=0350032V&size=100
+[HTTP/1.1 429 Too Many Requests 119ms]
+
+Erreur HTTP 429 pour dispositifs 0350032V lycees_manager_v0.16.html:2500:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605340ddc19a9/search?q=0350781J&size=100
+[HTTP/1.1 429 Too Many Requests 134ms]
+
+Erreur HTTP 429 pour établissement 0350781J lycees_manager_v0.16.html:2429:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605344579a7d7/search?q=0350781J&size=100
+[HTTP/1.1 429 Too Many Requests 125ms]
+
+Erreur HTTP 429 pour sup 0350781J lycees_manager_v0.16.html:2465:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/60867458bb600/search?q=0350781J&size=100
+[HTTP/1.1 429 Too Many Requests 112ms]
+
+Erreur HTTP 429 pour dispositifs 0350781J lycees_manager_v0.16.html:2500:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605340ddc19a9/search?q=0350759K&size=100
+[HTTP/1.1 429 Too Many Requests 129ms]
+
+Erreur HTTP 429 pour établissement 0350759K lycees_manager_v0.16.html:2429:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605344579a7d7/search?q=0350759K&size=100
+[HTTP/1.1 429 Too Many Requests 128ms]
+
+Erreur HTTP 429 pour sup 0350759K lycees_manager_v0.16.html:2465:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/60867458bb600/search?q=0350759K&size=100
+[HTTP/1.1 429 Too Many Requests 143ms]
+
+Erreur HTTP 429 pour dispositifs 0350759K lycees_manager_v0.16.html:2500:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605340ddc19a9/search?q=0352087D&size=100
+[HTTP/1.1 429 Too Many Requests 129ms]
+
+Erreur HTTP 429 pour établissement 0352087D lycees_manager_v0.16.html:2429:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605344579a7d7/search?q=0352087D&size=100
+[HTTP/1.1 429 Too Many Requests 142ms]
+
+Erreur HTTP 429 pour sup 0352087D lycees_manager_v0.16.html:2465:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/60867458bb600/search?q=0352087D&size=100
+[HTTP/1.1 429 Too Many Requests 141ms]
+
+Erreur HTTP 429 pour dispositifs 0352087D lycees_manager_v0.16.html:2500:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605340ddc19a9/search?q=0350029S&size=100
+[HTTP/1.1 429 Too Many Requests 119ms]
+
+Erreur HTTP 429 pour établissement 0350029S lycees_manager_v0.16.html:2429:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605344579a7d7/search?q=0350029S&size=100
+[HTTP/1.1 429 Too Many Requests 118ms]
+
+Erreur HTTP 429 pour sup 0350029S lycees_manager_v0.16.html:2465:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/60867458bb600/search?q=0350029S&size=100
+[HTTP/1.1 429 Too Many Requests 135ms]
+
+Erreur HTTP 429 pour dispositifs 0350029S lycees_manager_v0.16.html:2500:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605340ddc19a9/search?q=0351878B&size=100
+[HTTP/1.1 429 Too Many Requests 206ms]
+
+Erreur HTTP 429 pour établissement 0351878B lycees_manager_v0.16.html:2429:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605344579a7d7/search?q=0351878B&size=100
+[HTTP/1.1 429 Too Many Requests 143ms]
+
+Erreur HTTP 429 pour sup 0351878B lycees_manager_v0.16.html:2465:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/60867458bb600/search?q=0351878B&size=100
+[HTTP/1.1 429 Too Many Requests 126ms]
+
+Erreur HTTP 429 pour dispositifs 0351878B lycees_manager_v0.16.html:2500:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605340ddc19a9/search?q=0351907H&size=100
+[HTTP/1.1 429 Too Many Requests 127ms]
+
+Erreur HTTP 429 pour établissement 0351907H lycees_manager_v0.16.html:2429:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605344579a7d7/search?q=0351907H&size=100
+[HTTP/1.1 429 Too Many Requests 118ms]
+
+Erreur HTTP 429 pour sup 0351907H lycees_manager_v0.16.html:2465:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/60867458bb600/search?q=0351907H&size=100
+[HTTP/1.1 429 Too Many Requests 119ms]
+
+Erreur HTTP 429 pour dispositifs 0351907H lycees_manager_v0.16.html:2500:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605340ddc19a9/search?q=0350839X&size=100
+[HTTP/1.1 429 Too Many Requests 111ms]
+
+Erreur HTTP 429 pour établissement 0350839X lycees_manager_v0.16.html:2429:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605344579a7d7/search?q=0350839X&size=100
+[HTTP/1.1 429 Too Many Requests 128ms]
+
+Erreur HTTP 429 pour sup 0350839X lycees_manager_v0.16.html:2465:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/60867458bb600/search?q=0350839X&size=100
+[HTTP/1.1 429 Too Many Requests 123ms]
+
+Erreur HTTP 429 pour dispositifs 0350839X lycees_manager_v0.16.html:2500:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605340ddc19a9/search?q=0351638R&size=100
+[HTTP/1.1 429 Too Many Requests 127ms]
+
+Erreur HTTP 429 pour établissement 0351638R lycees_manager_v0.16.html:2429:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605344579a7d7/search?q=0351638R&size=100
+[HTTP/1.1 429 Too Many Requests 131ms]
+
+Erreur HTTP 429 pour sup 0351638R lycees_manager_v0.16.html:2465:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/60867458bb600/search?q=0351638R&size=100
+[HTTP/1.1 429 Too Many Requests 127ms]
+
+Erreur HTTP 429 pour dispositifs 0351638R lycees_manager_v0.16.html:2500:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605340ddc19a9/search?q=0350913C&size=100
+[HTTP/1.1 429 Too Many Requests 117ms]
+
+Erreur HTTP 429 pour établissement 0350913C lycees_manager_v0.16.html:2429:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605344579a7d7/search?q=0350913C&size=100
+[HTTP/1.1 429 Too Many Requests 127ms]
+
+Erreur HTTP 429 pour sup 0350913C lycees_manager_v0.16.html:2465:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/60867458bb600/search?q=0350913C&size=100
+[HTTP/1.1 429 Too Many Requests 124ms]
+
+Erreur HTTP 429 pour dispositifs 0350913C lycees_manager_v0.16.html:2500:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605340ddc19a9/search?q=0350030T&size=100
+[HTTP/1.1 429 Too Many Requests 115ms]
+
+Erreur HTTP 429 pour établissement 0350030T lycees_manager_v0.16.html:2429:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605344579a7d7/search?q=0350030T&size=100
+[HTTP/1.1 429 Too Many Requests 133ms]
+
+Erreur HTTP 429 pour sup 0350030T lycees_manager_v0.16.html:2465:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/60867458bb600/search?q=0350030T&size=100
+[HTTP/1.1 429 Too Many Requests 114ms]
+
+Erreur HTTP 429 pour dispositifs 0350030T lycees_manager_v0.16.html:2500:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605340ddc19a9/search?q=0352875K&size=100
+[HTTP/1.1 429 Too Many Requests 121ms]
+
+Erreur HTTP 429 pour établissement 0352875K lycees_manager_v0.16.html:2429:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605344579a7d7/search?q=0352875K&size=100
+[HTTP/1.1 429 Too Many Requests 121ms]
+
+Erreur HTTP 429 pour sup 0352875K lycees_manager_v0.16.html:2465:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/60867458bb600/search?q=0352875K&size=100
+[HTTP/1.1 429 Too Many Requests 127ms]
+
+Erreur HTTP 429 pour dispositifs 0352875K lycees_manager_v0.16.html:2500:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605340ddc19a9/search?q=0350026N&size=100
+[HTTP/1.1 429 Too Many Requests 128ms]
+
+Erreur HTTP 429 pour établissement 0350026N lycees_manager_v0.16.html:2429:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605344579a7d7/search?q=0350026N&size=100
+[HTTP/1.1 429 Too Many Requests 143ms]
+
+Erreur HTTP 429 pour sup 0350026N lycees_manager_v0.16.html:2465:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/60867458bb600/search?q=0350026N&size=100
+[HTTP/1.1 429 Too Many Requests 128ms]
+
+Erreur HTTP 429 pour dispositifs 0350026N lycees_manager_v0.16.html:2500:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605340ddc19a9/search?q=0352071L&size=100
+[HTTP/1.1 429 Too Many Requests 125ms]
+
+Erreur HTTP 429 pour établissement 0352071L lycees_manager_v0.16.html:2429:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605344579a7d7/search?q=0352071L&size=100
+[HTTP/1.1 429 Too Many Requests 141ms]
+
+Erreur HTTP 429 pour sup 0352071L lycees_manager_v0.16.html:2465:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/60867458bb600/search?q=0352071L&size=100
+[HTTP/1.1 429 Too Many Requests 127ms]
+
+Erreur HTTP 429 pour dispositifs 0352071L lycees_manager_v0.16.html:2500:25
+XHRGET
+https://api.opendata.onisep.fr/api/1.0/dataset/605340ddc19a9/search?q=0352856P&size=100
+[HTTP/1.1 429 Too Many Requests 129ms]
+
+Erreur HTTP 429 pour établissement 0352856P lycees_manager_v0.16.html:2429:25
+Actions sup 0352856P: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352856P: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350795Z: 11 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350795Z: 11 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350795Z: 2 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350700W: 5 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350700W: 7 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350700W: 1 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352494W: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352494W: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352494W: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0351847T: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0351847T: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0351847T: 1 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352867B: 3 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352867B: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352867B: 1 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350057X: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350057X: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350057X: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0353083L: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0353083L: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0353083L: 1 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0300037C: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0300037C: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0300037C: 4 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350780H: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350780H: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350780H: 1 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0350801F: 3 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0350801F: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0350801F: 1 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0351976H: 6 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0351976H: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0351976H: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352475A: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352475A: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352475A: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352589Z: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352589Z: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352589Z: 2 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352356W: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352356W: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352356W: 0 trouvés lycees_manager_v0.16.html:2511:21
+Actions établissement 0352541X: 0 trouvées lycees_manager_v0.16.html:2440:21
+Actions sup 0352541X: 0 trouvées lycees_manager_v0.16.html:2476:21
+Dispositifs 0352541X: 3 trouvés lycees_manager_v0.16.html:2511:21
+🗑️ Filtrage: 64 établissement(s) supprimé(s) (aucun diplôme/formation) lycees_manager_v0.16.html:2776:21
+🗑️ Filtrage: 65 relation(s) dispositif supprimée(s) lycees_manager_v0.16.html:2778:25
+🗑️ Filtrage: 11 dispositif(s) unique(s) supprimé(s) lycees_manager_v0.16.html:2781:25
+📊 Insertion des données dans la base... lycees_manager_v0.16.html:6076:17
+- 31 établissements lycees_manager_v0.16.html:6077:17
+- 121 diplômes lycees_manager_v0.16.html:6078:17
+✅ Toutes les données insérées lycees_manager_v0.16.html:6156:17
+🌍 Lancement enrichissement automatique des langues... lycees_manager_v0.16.html:5970:17
+🌍 Enrichissement automatique: 31 établissements lycees_manager_v0.16.html:5089:21
+🔍 Enrichissement Askoria - Campus des solidarités de Rennes (0350730D) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0350730D'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 0 lycees_manager_v0.16.html:5124:33
+   📍 Tentative 2: fr-en-annuaire-education lycees_manager_v0.16.html:5151:33
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=identifiant_de_l_etablissement='0350730D'&limit=1 lycees_manager_v0.16.html:5152:33
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5155:33
+   ⚠️ Aucune langue trouvée (ni dataset 1, ni dataset 2) lycees_manager_v0.16.html:5222:29
+🔍 Enrichissement Centre médical et pédagogique (0351926D) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0351926D'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 5 lycees_manager_v0.16.html:5124:33
+   ✅ Trouvé dans fr-en-offre-langues-2d lycees_manager_v0.16.html:5128:37
+   ✅ 5 langue(s) ajoutée(s) lycees_manager_v0.16.html:5220:29
+🔍 Enrichissement Conservatoire à rayonnement régional (0352821B) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0352821B'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 0 lycees_manager_v0.16.html:5124:33
+   📍 Tentative 2: fr-en-annuaire-education lycees_manager_v0.16.html:5151:33
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=identifiant_de_l_etablissement='0352821B'&limit=1 lycees_manager_v0.16.html:5152:33
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5155:33
+   ⚠️ Aucune langue trouvée (ni dataset 1, ni dataset 2) lycees_manager_v0.16.html:5222:29
+🔍 Enrichissement Institut de formation d'aides-soignants - CHU de Rennes (0350098S) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0350098S'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 0 lycees_manager_v0.16.html:5124:33
+   📍 Tentative 2: fr-en-annuaire-education lycees_manager_v0.16.html:5151:33
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=identifiant_de_l_etablissement='0350098S'&limit=1 lycees_manager_v0.16.html:5152:33
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5155:33
+   ⚠️ Aucune langue trouvée (ni dataset 1, ni dataset 2) lycees_manager_v0.16.html:5222:29
+🔍 Enrichissement Ligue de Bretagne Natation (0352904S) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0352904S'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 0 lycees_manager_v0.16.html:5124:33
+   📍 Tentative 2: fr-en-annuaire-education lycees_manager_v0.16.html:5151:33
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=identifiant_de_l_etablissement='0352904S'&limit=1 lycees_manager_v0.16.html:5152:33
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5155:33
+   ⚠️ Aucune langue trouvée (ni dataset 1, ni dataset 2) lycees_manager_v0.16.html:5222:29
+🔍 Enrichissement Lycée Anita Conti (0352686E) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0352686E'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 7 lycees_manager_v0.16.html:5124:33
+   ✅ Trouvé dans fr-en-offre-langues-2d lycees_manager_v0.16.html:5128:37
+   ✅ 7 langue(s) ajoutée(s) lycees_manager_v0.16.html:5220:29
+🔍 Enrichissement Lycée Assomption (0350778F) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0350778F'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 7 lycees_manager_v0.16.html:5124:33
+   ✅ Trouvé dans fr-en-offre-langues-2d lycees_manager_v0.16.html:5128:37
+   ✅ 7 langue(s) ajoutée(s) lycees_manager_v0.16.html:5220:29
+🔍 Enrichissement Lycée Bréquigny (0350028R) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0350028R'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 7 lycees_manager_v0.16.html:5124:33
+   ✅ Trouvé dans fr-en-offre-langues-2d lycees_manager_v0.16.html:5128:37
+   ✅ 7 langue(s) ajoutée(s) lycees_manager_v0.16.html:5220:29
+🔍 Enrichissement Lycée Chateaubriand (0350710G) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0350710G'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 9 lycees_manager_v0.16.html:5124:33
+   ✅ Trouvé dans fr-en-offre-langues-2d lycees_manager_v0.16.html:5128:37
+   ✅ 9 langue(s) ajoutée(s) lycees_manager_v0.16.html:5220:29
+🔍 Enrichissement Lycée Jean-Paul II (0350801F) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0350801F'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 7 lycees_manager_v0.16.html:5124:33
+   ✅ Trouvé dans fr-en-offre-langues-2d lycees_manager_v0.16.html:5128:37
+   ✅ 7 langue(s) ajoutée(s) lycees_manager_v0.16.html:5220:29
+🔍 Enrichissement Lycée Saint-Exupéry - Rennes (0351047Y) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0351047Y'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 2 lycees_manager_v0.16.html:5124:33
+   ✅ Trouvé dans fr-en-offre-langues-2d lycees_manager_v0.16.html:5128:37
+   ✅ 2 langue(s) ajoutée(s) lycees_manager_v0.16.html:5220:29
+🔍 Enrichissement Lycée Saint-Joseph (0352341E) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0352341E'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 7 lycees_manager_v0.16.html:5124:33
+   ✅ Trouvé dans fr-en-offre-langues-2d lycees_manager_v0.16.html:5128:37
+   ✅ 7 langue(s) ajoutée(s) lycees_manager_v0.16.html:5220:29
+🔍 Enrichissement Lycée Saint-Martin - quartier Sainte-Anne (0350777E) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0350777E'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 8 lycees_manager_v0.16.html:5124:33
+   ✅ Trouvé dans fr-en-offre-langues-2d lycees_manager_v0.16.html:5128:37
+   ✅ 8 langue(s) ajoutée(s) lycees_manager_v0.16.html:5220:29
+🔍 Enrichissement Lycée Saint-Martin - quartier Sainte-Geneviève (0350783L) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0350783L'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 6 lycees_manager_v0.16.html:5124:33
+   ✅ Trouvé dans fr-en-offre-langues-2d lycees_manager_v0.16.html:5128:37
+   ✅ 6 langue(s) ajoutée(s) lycees_manager_v0.16.html:5220:29
+🔍 Enrichissement Lycée Sévigné (0352304P) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0352304P'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 8 lycees_manager_v0.16.html:5124:33
+   ✅ Trouvé dans fr-en-offre-langues-2d lycees_manager_v0.16.html:5128:37
+   ✅ 8 langue(s) ajoutée(s) lycees_manager_v0.16.html:5220:29
+🔍 Enrichissement Lycée agricole Théodore Monod (0350700W) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0350700W'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 6 lycees_manager_v0.16.html:5124:33
+   ✅ Trouvé dans fr-en-offre-langues-2d lycees_manager_v0.16.html:5128:37
+   ✅ 6 langue(s) ajoutée(s) lycees_manager_v0.16.html:5220:29
+🔍 Enrichissement Lycée de La Salle (0350795Z) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0350795Z'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 4 lycees_manager_v0.16.html:5124:33
+   ✅ Trouvé dans fr-en-offre-langues-2d lycees_manager_v0.16.html:5128:37
+   ✅ 4 langue(s) ajoutée(s) lycees_manager_v0.16.html:5220:29
+🔍 Enrichissement Lycée général Théodore Monod (0352867B) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0352867B'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 6 lycees_manager_v0.16.html:5124:33
+   ✅ Trouvé dans fr-en-offre-langues-2d lycees_manager_v0.16.html:5128:37
+   ✅ 6 langue(s) ajoutée(s) lycees_manager_v0.16.html:5220:29
+🔍 Enrichissement Lycée polyvalent Frédéric Ozanam (0350793X) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0350793X'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 5 lycees_manager_v0.16.html:5124:33
+   ✅ Trouvé dans fr-en-offre-langues-2d lycees_manager_v0.16.html:5128:37
+   ✅ 5 langue(s) ajoutée(s) lycees_manager_v0.16.html:5220:29
+🔍 Enrichissement Lycée polyvalent Jeanne d'Arc (0350797B) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0350797B'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 7 lycees_manager_v0.16.html:5124:33
+   ✅ Trouvé dans fr-en-offre-langues-2d lycees_manager_v0.16.html:5128:37
+   ✅ 7 langue(s) ajoutée(s) lycees_manager_v0.16.html:5220:29
+🔍 Enrichissement Lycée polyvalent Saint-Vincent Providence (0350776D) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0350776D'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 8 lycees_manager_v0.16.html:5124:33
+   ✅ Trouvé dans fr-en-offre-langues-2d lycees_manager_v0.16.html:5128:37
+   ✅ 8 langue(s) ajoutée(s) lycees_manager_v0.16.html:5220:29
+🔍 Enrichissement Lycée professionnel Bréquigny (0350059Z) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0350059Z'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 0 lycees_manager_v0.16.html:5124:33
+   📍 Tentative 2: fr-en-annuaire-education lycees_manager_v0.16.html:5151:33
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=identifiant_de_l_etablissement='0350059Z'&limit=1 lycees_manager_v0.16.html:5152:33
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5155:33
+   📋 Établissement trouvé lycees_manager_v0.16.html:5162:41
+   🌍 LV1: "" lycees_manager_v0.16.html:5169:41
+   🌍 LV2: "" lycees_manager_v0.16.html:5170:41
+   🌍 LV3: "" lycees_manager_v0.16.html:5171:41
+   ⚠️ Aucune langue trouvée (ni dataset 1, ni dataset 2) lycees_manager_v0.16.html:5222:29
+🔍 Enrichissement Lycée professionnel Charles Tillon (0351054F) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0351054F'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 0 lycees_manager_v0.16.html:5124:33
+   📍 Tentative 2: fr-en-annuaire-education lycees_manager_v0.16.html:5151:33
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=identifiant_de_l_etablissement='0351054F'&limit=1 lycees_manager_v0.16.html:5152:33
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5155:33
+   📋 Établissement trouvé lycees_manager_v0.16.html:5162:41
+   🌍 LV1: "" lycees_manager_v0.16.html:5169:41
+   🌍 LV2: "" lycees_manager_v0.16.html:5170:41
+   🌍 LV3: "" lycees_manager_v0.16.html:5171:41
+   ⚠️ Aucune langue trouvée (ni dataset 1, ni dataset 2) lycees_manager_v0.16.html:5222:29
+🔍 Enrichissement Lycée professionnel Jean Jaurès (0350031U) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0350031U'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 0 lycees_manager_v0.16.html:5124:33
+   📍 Tentative 2: fr-en-annuaire-education lycees_manager_v0.16.html:5151:33
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=identifiant_de_l_etablissement='0350031U'&limit=1 lycees_manager_v0.16.html:5152:33
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5155:33
+   📋 Établissement trouvé lycees_manager_v0.16.html:5162:41
+   🌍 LV1: "" lycees_manager_v0.16.html:5169:41
+   🌍 LV2: "" lycees_manager_v0.16.html:5170:41
+   🌍 LV3: "" lycees_manager_v0.16.html:5171:41
+   ⚠️ Aucune langue trouvée (ni dataset 1, ni dataset 2) lycees_manager_v0.16.html:5222:29
+🔍 Enrichissement Lycée Émile Zola (0350024L) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0350024L'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 9 lycees_manager_v0.16.html:5124:33
+   ✅ Trouvé dans fr-en-offre-langues-2d lycees_manager_v0.16.html:5128:37
+   ✅ 9 langue(s) ajoutée(s) lycees_manager_v0.16.html:5220:29
+🔍 Enrichissement Maison familiale rurale horticole (0351976H) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0351976H'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 0 lycees_manager_v0.16.html:5124:33
+   📍 Tentative 2: fr-en-annuaire-education lycees_manager_v0.16.html:5151:33
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=identifiant_de_l_etablissement='0351976H'&limit=1 lycees_manager_v0.16.html:5152:33
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5155:33
+   📋 Établissement trouvé lycees_manager_v0.16.html:5162:41
+   🌍 LV1: "" lycees_manager_v0.16.html:5169:41
+   🌍 LV2: "" lycees_manager_v0.16.html:5170:41
+   🌍 LV3: "" lycees_manager_v0.16.html:5171:41
+   ⚠️ Aucune langue trouvée (ni dataset 1, ni dataset 2) lycees_manager_v0.16.html:5222:29
+🔍 Enrichissement Micro-lycée Victor et Hélène Basch (0352009U) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0352009U'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 5 lycees_manager_v0.16.html:5124:33
+   ✅ Trouvé dans fr-en-offre-langues-2d lycees_manager_v0.16.html:5128:37
+   ✅ 5 langue(s) ajoutée(s) lycees_manager_v0.16.html:5220:29
+🔍 Enrichissement École Terrade Rennes - Oberthür (0350805K) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0350805K'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 0 lycees_manager_v0.16.html:5124:33
+   📍 Tentative 2: fr-en-annuaire-education lycees_manager_v0.16.html:5151:33
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=identifiant_de_l_etablissement='0350805K'&limit=1 lycees_manager_v0.16.html:5152:33
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5155:33
+   📋 Établissement trouvé lycees_manager_v0.16.html:5162:41
+   🌍 LV1: "" lycees_manager_v0.16.html:5169:41
+   🌍 LV2: "" lycees_manager_v0.16.html:5170:41
+   🌍 LV3: "" lycees_manager_v0.16.html:5171:41
+   ⚠️ Aucune langue trouvée (ni dataset 1, ni dataset 2) lycees_manager_v0.16.html:5222:29
+🔍 Enrichissement École Terrade Rennes - Solferino (0352267Z) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0352267Z'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 0 lycees_manager_v0.16.html:5124:33
+   📍 Tentative 2: fr-en-annuaire-education lycees_manager_v0.16.html:5151:33
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=identifiant_de_l_etablissement='0352267Z'&limit=1 lycees_manager_v0.16.html:5152:33
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5155:33
+   📋 Établissement trouvé lycees_manager_v0.16.html:5162:41
+   🌍 LV1: "" lycees_manager_v0.16.html:5169:41
+   🌍 LV2: "" lycees_manager_v0.16.html:5170:41
+   🌍 LV3: "" lycees_manager_v0.16.html:5171:41
+   ⚠️ Aucune langue trouvée (ni dataset 1, ni dataset 2) lycees_manager_v0.16.html:5222:29
+🔍 Enrichissement École nationale de culture physique (0352849G) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0352849G'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 0 lycees_manager_v0.16.html:5124:33
+   📍 Tentative 2: fr-en-annuaire-education lycees_manager_v0.16.html:5151:33
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=identifiant_de_l_etablissement='0352849G'&limit=1 lycees_manager_v0.16.html:5152:33
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5155:33
+   ⚠️ Aucune langue trouvée (ni dataset 1, ni dataset 2) lycees_manager_v0.16.html:5222:29
+🔍 Enrichissement Établissement régional d'enseignement adapté Magda Hollander-Lafon (0350747X) lycees_manager_v0.16.html:5108:25
+   📍 Tentative 1: fr-en-offre-langues-2d lycees_manager_v0.16.html:5116:29
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-offre-langues-2d/records?where=uai='0350747X'&limit=100 lycees_manager_v0.16.html:5117:29
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5120:29
+   📊 Résultats: 0 lycees_manager_v0.16.html:5124:33
+   📍 Tentative 2: fr-en-annuaire-education lycees_manager_v0.16.html:5151:33
+   URL: https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/fr-en-annuaire-education/records?where=identifiant_de_l_etablissement='0350747X'&limit=1 lycees_manager_v0.16.html:5152:33
+   📡 HTTP Status: 200 lycees_manager_v0.16.html:5155:33
+   📋 Établissement trouvé lycees_manager_v0.16.html:5162:41
+   🌍 LV1: "" lycees_manager_v0.16.html:5169:41
+   🌍 LV2: "" lycees_manager_v0.16.html:5170:41
+   🌍 LV3: "" lycees_manager_v0.16.html:5171:41
+   ⚠️ Aucune langue trouvée (ni dataset 1, ni dataset 2) lycees_manager_v0.16.html:5222:29
+📊 Stats chargées: 
+Object { lycees: 31, diplomes: 121, dispositifs: 13, langues: 11 }
+lycees_manager_v0.16.html:5492:17
+✅ Tableau rendu avec 31 établissements lycees_manager_v0.16.html:5589:13
+✅ Enrichissement terminé: 19/31 établissements, 123 langues lycees_manager_v0.16.html:5251:17
+📊 Stats chargées: 
+Object { lycees: 31, diplomes: 121, dispositifs: 13, langues: 11 }
+lycees_manager_v0.16.html:5492:17
+✅ Tableau rendu avec 31 établissements lycees_manager_v0.16.html:5589:13
+📑 Basculement vers onglet: resultats lycees_manager_v0.16.html:3811:13
+✅ Tableau rendu avec 31 établissements lycees_manager_v0.16.html:5589:13
