@@ -27,7 +27,6 @@ const DEPARTEMENTS = [
     {code:'17',nom:'Charente-Maritime'},
     {code:'18',nom:'Cher'},
     {code:'19',nom:'Corrèze'},
-    {code:'20',nom:'Corse'},
     {code:'2A',nom:'Corse-du-Sud'},
     {code:'2B',nom:'Haute-Corse'},
     {code:'21',nom:'Côte-d\'Or'},

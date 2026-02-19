@@ -1137,14 +1137,4 @@ const PARCOURS_BAC_PRO = [
 // Export pour utilisation dans l'application
 if (typeof window !== 'undefined') {
     window.PARCOURS_BAC_PRO = PARCOURS_BAC_PRO;
-    
-    // Compter le total de diplômes
-    let totalDiplomes = 0;
-    PARCOURS_BAC_PRO.forEach(famille => {
-        totalDiplomes += famille.parcours.length;
-    });
-    
-    console.log('[PARCOURS DATA] Fichier chargé:');
-    console.log('  - ' + PARCOURS_BAC_PRO.length + ' familles/groupes');
-    console.log('  - ' + totalDiplomes + ' diplômes Bac Pro au total');
 }
