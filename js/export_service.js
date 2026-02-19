@@ -1,105 +1,34 @@
 /**
  * Service d'export des données en PDF et CSV
- * v0.30
+ * v0.35 — Page de titre, sommaire, pagination, sans emojis, CEDEX, nommage
  */
 
 class ExportService {
-    /**
-     * Exporte les données en CSV
-     * @param {string} viewName - Vue courante ('etablissements', 'diplomes', 'dispositifs')
-     * @param {Array} data - Données à exporter
-     */
+
+    // =========================================================================
+    // EXPORT CSV
+    // =========================================================================
+
     static exportToCSV(viewName, data) {
-        if (!data || data.length === 0) {
-            alert('❌ Aucune donnée à exporter');
-            return;
-        }
+        if (!data || data.length === 0) { alert('Aucune donnée à exporter'); return; }
 
-        let csv = '';
-        let filename = '';
-
+        let csv = '', filename = '';
         switch (viewName) {
-            case 'etablissements':
-                csv = this.#generateEtablissementsCSV(data);
-                filename = 'etablissements.csv';
-                break;
-            case 'diplomes':
-                csv = this.#generateDiplomesCSV(data);
-                filename = 'diplomes.csv';
-                break;
-            case 'dispositifs':
-                csv = this.#generateDispositifsCSV(data);
-                filename = 'dispositifs.csv';
-                break;
-            default:
-                alert('❌ Type d\'export non supporté');
-                return;
+            case 'etablissements': csv = this.#generateEtablissementsCSV(data); filename = 'etablissements.csv'; break;
+            case 'diplomes':       csv = this.#generateDiplomesCSV(data);       filename = 'diplomes.csv'; break;
+            case 'dispositifs':    csv = this.#generateDispositifsCSV(data);    filename = 'dispositifs.csv'; break;
+            default: alert('Type d\'export non supporté'); return;
         }
-
-        // Ajouter BOM UTF-8 pour compatibilité Excel
         const BOM = '\uFEFF';
         const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
         this.#downloadFile(blob, filename);
     }
 
-    /**
-     * Exporte les données en PDF
-     * @param {string} viewName - Vue courante
-     * @param {Array} data - Données à exporter
-     */
-    static async exportToPDF(viewName, data) {
-        if (!data || data.length === 0) {
-            alert('❌ Aucune donnée à exporter');
-            return;
-        }
-
-        // Vérifier que jsPDF est chargé
-        if (typeof window.jspdf === 'undefined') {
-            alert('❌ Bibliothèque PDF non chargée');
-            return;
-        }
-
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-
-        const titre = {
-            'etablissements': 'Liste des Établissements',
-            'diplomes': 'Liste des Diplômes',
-            'dispositifs': 'Liste des Dispositifs',
-            'options': 'Liste des Options de 2nde GT'
-        }[viewName] || 'Export';
-
-        // Page de garde
-        doc.setFontSize(16);
-        doc.text(titre, 14, 15);
-        doc.setFontSize(10);
-        doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')}`, 14, 22);
-        doc.text(`${data.length} résultat(s)`, 14, 27);
-
-        let yPos = 35;
-
-        // Export enrichi selon le type
-        if (viewName === 'etablissements') {
-            await this.#generateEnrichedEtablissementsPDF(doc, data, yPos);
-        } else if (viewName === 'diplomes') {
-            await this.#generateEnrichedDiplomesPDF(doc, data, yPos);
-        } else if (viewName === 'dispositifs') {
-            await this.#generateEnrichedDispositifsPDF(doc, data, yPos);
-        }
-
-        doc.save(`${viewName}_enrichi.pdf`);
-    }
-
-    // =========================================================================
-    // GÉNÉRATEURS CSV
-    // =========================================================================
-
     static #generateEtablissementsCSV(data) {
         const headers = ['Nom', 'UAI', 'Type', 'Statut', 'Commune', 'Code Postal', 'Département', 'Académie'];
         let csv = headers.join(';') + '\n';
-
         data.forEach(etab => {
-            const row = [
+            csv += [
                 this.#escapeCSV(etab.nom || ''),
                 this.#escapeCSV(etab.uai || ''),
                 this.#escapeCSV(etab.type || ''),
@@ -108,50 +37,40 @@ class ExportService {
                 this.#escapeCSV(etab.codePostal || ''),
                 this.#escapeCSV(etab.departement || ''),
                 this.#escapeCSV(etab.academie || '')
-            ];
-            csv += row.join(';') + '\n';
+            ].join(';') + '\n';
         });
-
         return csv;
     }
 
     static #generateDiplomesCSV(data) {
         const headers = ['Libellé', 'Type', 'Niveau', 'Nb Établissements'];
         let csv = headers.join(';') + '\n';
-
         data.forEach(diplome => {
-            const row = [
+            csv += [
                 this.#escapeCSV(diplome.libelle || ''),
                 this.#escapeCSV(diplome.type || ''),
                 this.#escapeCSV(diplome.niveauSortie || ''),
                 this.#escapeCSV(String(diplome.nbEtablissements || 0))
-            ];
-            csv += row.join(';') + '\n';
+            ].join(';') + '\n';
         });
-
         return csv;
     }
 
     static #generateDispositifsCSV(data) {
         const headers = ['Libellé', 'Type', 'Nb Établissements'];
         let csv = headers.join(';') + '\n';
-
         data.forEach(dispositif => {
-            const row = [
+            csv += [
                 this.#escapeCSV(dispositif.libelle || ''),
                 this.#escapeCSV(dispositif.typeDispositif || ''),
                 this.#escapeCSV(String(dispositif.nbEtablissements || 0))
-            ];
-            csv += row.join(';') + '\n';
+            ].join(';') + '\n';
         });
-
         return csv;
     }
 
     static #escapeCSV(value) {
-        if (value === null || value === undefined) return '';
-        const str = String(value);
-        // Échapper les guillemets et entourer de guillemets si nécessaire
+        const str = String(value ?? '');
         if (str.includes(';') || str.includes('"') || str.includes('\n')) {
             return '"' + str.replace(/"/g, '""') + '"';
         }
@@ -159,265 +78,420 @@ class ExportService {
     }
 
     // =========================================================================
-    // GÉNÉRATEURS PDF ENRICHIS
+    // EXPORT PDF
     // =========================================================================
 
-    /**
-     * Génère un PDF enrichi pour les établissements (avec tous leurs liens)
-     */
-    static async #generateEnrichedEtablissementsPDF(doc, data, yPos) {
+    static async exportToPDF(viewName, data) {
+        if (!data || data.length === 0) { alert('Aucune donnée à exporter'); return; }
+        if (typeof window.jspdf === 'undefined') { alert('Bibliothèque PDF non chargée'); return; }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+        const dateStr = new Date().toLocaleDateString('fr-FR');
+        const viewLabels = {
+            'etablissements': 'Liste des Établissements',
+            'diplomes':       'Liste des Diplômes',
+            'dispositifs':    'Liste des Dispositifs',
+            'options':        'Liste des Options de 2nde GT'
+        };
+        const viewLabel = viewLabels[viewName] || 'Export';
+
+        // ── Page de titre ──────────────────────────────────────────────────
+        this.#drawTitlePage(doc, 'Orientation post-college', viewLabel, dateStr, data.length);
+
+        // ── Sommaire ───────────────────────────────────────────────────────
+        const tocEntries = [];
+        if (viewName === 'etablissements') {
+            // On collecte les noms pour le sommaire (numéros de page calculés après)
+            data.forEach((etab, i) => tocEntries.push({ label: etab.nom || 'Sans nom', page: i + 3 }));
+        }
+        doc.addPage();
+        this.#drawTOC(doc, tocEntries, viewLabel, dateStr);
+
+        // ── Contenu ────────────────────────────────────────────────────────
+        if (viewName === 'etablissements') {
+            await this.#generateEnrichedEtablissementsPDF(doc, data, dateStr);
+        } else if (viewName === 'diplomes') {
+            await this.#generateEnrichedDiplomesPDF(doc, data, dateStr);
+        } else if (viewName === 'dispositifs') {
+            await this.#generateEnrichedDispositifsPDF(doc, data, dateStr);
+        }
+
+        // Nom de fichier avec date
+        const dateFile = new Date().toISOString().slice(0, 10);
+        doc.save(`export_${viewName}_${dateFile}.pdf`);
+    }
+
+    // =========================================================================
+    // PAGE DE TITRE
+    // =========================================================================
+
+    static #drawTitlePage(doc, mainTitle, subTitle, dateStr, count) {
+        const W = doc.internal.pageSize.getWidth();
+        const H = doc.internal.pageSize.getHeight();
+
+        // Fond bleu foncé sur toute la page
+        doc.setFillColor(46, 80, 144);
+        doc.rect(0, 0, W, H, 'F');
+
+        // Titre principal centré verticalement
+        doc.setTextColor(255, 255, 255);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(36);
+        doc.text(mainTitle, W / 2, H / 2 - 15, { align: 'center' });
+
+        // Sous-titre
+        doc.setFontSize(16);
+        doc.setFont('helvetica', 'normal');
+        doc.text(subTitle, W / 2, H / 2 + 5, { align: 'center' });
+
+        // Nb résultats
+        doc.setFontSize(12);
+        doc.text(`${count} resultat(s)`, W / 2, H / 2 + 18, { align: 'center' });
+
+        // Date en bas à droite (pas de pagination sur la page de titre)
         doc.setFontSize(10);
-        
+        doc.text(`Genere le ${dateStr}`, W - 14, H - 12, { align: 'right' });
+
+        // Reset couleur texte
+        doc.setTextColor(0, 0, 0);
+    }
+
+    // =========================================================================
+    // SOMMAIRE
+    // =========================================================================
+
+    static #drawTOC(doc, entries, title, dateStr) {
+        const W = doc.internal.pageSize.getWidth();
+        let y = 20;
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(18);
+        doc.text('Sommaire', 14, y);
+        y += 10;
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text(title, 14, y);
+        y += 10;
+        doc.setTextColor(0, 0, 0);
+
+        // Ligne séparatrice
+        doc.setDrawColor(46, 80, 144);
+        doc.setLineWidth(0.5);
+        doc.line(14, y, W - 14, y);
+        y += 6;
+
+        doc.setFontSize(10);
+        entries.forEach((entry, idx) => {
+            if (y > 270) {
+                this.#addPageWithFooter(doc, dateStr);
+                y = 20;
+            }
+            const label = this.#sanitize(entry.label);
+            const pageStr = String(entry.page);
+
+            // Libellé tronqué si trop long
+            const maxW = W - 14 - 14 - 20;
+            const labelLines = doc.splitTextToSize(label, maxW);
+            doc.text(labelLines[0] + (labelLines.length > 1 ? '...' : ''), 14, y);
+
+            // Numéro de page à droite
+            doc.text(pageStr, W - 14, y, { align: 'right' });
+
+            // Points de conduite
+            const labelW = doc.getTextWidth(labelLines[0] + (labelLines.length > 1 ? '...' : ''));
+            const pageW  = doc.getTextWidth(pageStr);
+            let dotX = 14 + labelW + 2;
+            const dotEndX = W - 14 - pageW - 2;
+            doc.setTextColor(180, 180, 180);
+            while (dotX < dotEndX) {
+                doc.text('.', dotX, y);
+                dotX += 2.5;
+            }
+            doc.setTextColor(0, 0, 0);
+
+            y += 6;
+        });
+
+        // Pied de page du sommaire (page 2)
+        this.#drawFooter(doc, 2, dateStr);
+    }
+
+    // =========================================================================
+    // PIED DE PAGE
+    // =========================================================================
+
+    static #drawFooter(doc, pageNum, dateStr) {
+        const W = doc.internal.pageSize.getWidth();
+        const H = doc.internal.pageSize.getHeight();
+
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(120, 120, 120);
+
+        // Date en bas à gauche
+        doc.text(`Genere le ${dateStr}`, 14, H - 8);
+
+        // Numéro de page en bas à droite
+        doc.text(`Page ${pageNum}`, W - 14, H - 8, { align: 'right' });
+
+        doc.setTextColor(0, 0, 0);
+    }
+
+    static #addPageWithFooter(doc, dateStr) {
+        doc.addPage();
+        const pageNum = doc.internal.getNumberOfPages();
+        // Le footer sera ajouté en fin de traitement pour avoir le bon numéro
+        // Pour l'instant on marque la page — on dessine en fin
+        return pageNum;
+    }
+
+    /**
+     * Ajoute les pieds de page sur toutes les pages sauf la 1 (titre)
+     */
+    static #finalizeFooters(doc, dateStr) {
+        const total = doc.internal.getNumberOfPages();
+        for (let p = 2; p <= total; p++) {
+            doc.setPage(p);
+            this.#drawFooter(doc, p, dateStr);
+        }
+    }
+
+    // =========================================================================
+    // SANITISATION (supprime les emojis et caractères non-Latin1)
+    // =========================================================================
+
+    static #sanitize(str) {
+        if (!str) return '';
+        // Supprimer les emojis et caractères hors BMP (> U+FFFF)
+        return str
+            .replace(/[\u{1F000}-\u{1FFFF}]/gu, '')   // emojis supplementaires
+            .replace(/[\u{2600}-\u{27BF}]/gu, '')       // symboles divers
+            .replace(/[\u{1F300}-\u{1F9FF}]/gu, '')     // emojis classiques
+            .trim();
+    }
+
+    // =========================================================================
+    // HELPERS D'ÉCRITURE PDF
+    // =========================================================================
+
+    static #sectionTitle(doc, text, y) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(11);
+        doc.setTextColor(46, 80, 144);
+        doc.text(this.#sanitize(text), 14, y);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        return y + 5;
+    }
+
+    static #bulletLine(doc, text, y, indent = 18, maxW = 170) {
+        const lines = doc.splitTextToSize('- ' + this.#sanitize(text), maxW);
+        doc.text(lines, indent, y);
+        return y + 4 * lines.length;
+    }
+
+    static #subLine(doc, label, value, y, indent = 22) {
+        if (!value) return y;
+        const lines = doc.splitTextToSize(`${label}: ${this.#sanitize(value)}`, 165);
+        doc.setFontSize(9);
+        doc.setTextColor(80, 80, 80);
+        doc.text(lines, indent, y);
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        return y + 3.5 * lines.length;
+    }
+
+    static #checkPage(doc, y, dateStr, threshold = 270) {
+        if (y > threshold) {
+            doc.addPage();
+            return 20;
+        }
+        return y;
+    }
+
+    // Formate l'adresse avec CEDEX
+    static #formatAdresse(etab) {
+        if (!etab.adresse) return '';
+        let adr = etab.adresse;
+        if (etab.codePostal) adr += ', ' + etab.codePostal;
+        if (etab.cedex)      adr += ' CEDEX ' + etab.cedex;
+        if (etab.commune)    adr += ' ' + etab.commune;
+        return adr;
+    }
+
+    // =========================================================================
+    // ÉTABLISSEMENTS — PDF ENRICHI
+    // =========================================================================
+
+    static async #generateEnrichedEtablissementsPDF(doc, data, dateStr) {
         for (let i = 0; i < data.length; i++) {
             const etab = data[i];
-            
-            // Charger les données enrichies
+            doc.addPage();
+            let y = 20;
+
             const enrichi = await window.databaseService.getEtablissementEnrichi(etab.uai);
             if (!enrichi) continue;
-            
-            // Nouvelle page pour chaque établissement (sauf le premier)
-            if (i > 0) {
-                doc.addPage();
-                yPos = 15;
-            }
-            
-            // === EN-TÊTE ÉTABLISSEMENT ===
-            doc.setFont(undefined, 'bold');
+            const e = enrichi.etablissement;
+
+            // ── EN-TÊTE ──
+            doc.setFont('helvetica', 'bold');
             doc.setFontSize(14);
-            const nomLines = doc.splitTextToSize(enrichi.etablissement.nom || 'Sans nom', 180);
-            doc.text(nomLines, 14, yPos);
-            yPos += 6 * nomLines.length;
-            
+            const nomLines = doc.splitTextToSize(this.#sanitize(e.nom || 'Sans nom'), 180);
+            doc.text(nomLines, 14, y);
+            y += 6 * nomLines.length;
+
             doc.setFontSize(10);
-            doc.setFont(undefined, 'normal');
-            doc.text(`UAI: ${enrichi.etablissement.uai || '-'} | ${enrichi.etablissement.type || '-'} | ${enrichi.etablissement.statut || '-'}`, 14, yPos);
-            yPos += 5;
-            if (enrichi.etablissement.adresse) {
-                doc.text(`${enrichi.etablissement.adresse}, ${enrichi.etablissement.codePostal} ${enrichi.etablissement.commune}`, 14, yPos);
-                yPos += 5;
+            doc.setFont('helvetica', 'normal');
+            doc.text(`UAI: ${e.uai || '-'} | ${this.#sanitize(e.type || '-')} | ${this.#sanitize(e.statut || '-')}`, 14, y);
+            y += 5;
+
+            const adr = this.#formatAdresse(e);
+            if (adr) {
+                const adrLines = doc.splitTextToSize(adr, 180);
+                doc.text(adrLines, 14, y);
+                y += 4.5 * adrLines.length;
             }
-            yPos += 3;
-            
-            // === DIPLÔMES ===
+
+            // Ligne séparatrice
+            doc.setDrawColor(46, 80, 144);
+            doc.setLineWidth(0.3);
+            doc.line(14, y, 196, y);
+            y += 5;
+
+            // ── DIPLÔMES ──
             if (enrichi.diplomes && enrichi.diplomes.length > 0) {
-                doc.setFont(undefined, 'bold');
-                doc.text(`🎓 Diplômes (${enrichi.diplomes.length})`, 14, yPos);
-                yPos += 5;
-                doc.setFont(undefined, 'normal');
-                
-                enrichi.diplomes.forEach(diplome => {
-                    if (yPos > 270) { doc.addPage(); yPos = 15; }
-                    
-                    const libelle = doc.splitTextToSize(`• ${diplome.libelle}`, 170);
-                    doc.text(libelle, 18, yPos);
-                    yPos += 4 * libelle.length;
-                    
-                    // Modalités spécifiques (apprentissage, temps plein, etc.)
+                y = this.#sectionTitle(doc, `Diplomes (${enrichi.diplomes.length})`, y);
+                for (const diplome of enrichi.diplomes) {
+                    y = this.#checkPage(doc, y, dateStr);
+                    y = this.#bulletLine(doc, diplome.libelle, y);
                     if (diplome.modalites && diplome.modalites.length > 0) {
-                        doc.setFontSize(9);
-                        doc.text(`  Modalités: ${diplome.modalites.join(', ')}`, 20, yPos);
-                        yPos += 4;
-                        doc.setFontSize(10);
+                        y = this.#subLine(doc, 'Modalites', diplome.modalites.join(', '), y);
                     }
-                });
-                yPos += 3;
+                }
+                y += 3;
             }
-            
-            // === DISPOSITIFS ===
+
+            // ── DISPOSITIFS ──
             if (enrichi.dispositifs && enrichi.dispositifs.length > 0) {
-                if (yPos > 250) { doc.addPage(); yPos = 15; }
-                
-                doc.setFont(undefined, 'bold');
-                doc.text(`🎯 Dispositifs (${enrichi.dispositifs.length})`, 14, yPos);
-                yPos += 5;
-                doc.setFont(undefined, 'normal');
-                
-                enrichi.dispositifs.forEach(dispositif => {
-                    if (yPos > 270) { doc.addPage(); yPos = 15; }
-                    
-                    doc.text(`• ${dispositif.libelle}`, 18, yPos);
-                    yPos += 4;
-                    
-                    // DONNÉES SPÉCIFIQUES DES RELATIONS
-                    doc.setFontSize(9);
-                    if (dispositif.elementsDenseignement) {
-                        const elemLines = doc.splitTextToSize(`  Éléments: ${dispositif.elementsDenseignement}`, 170);
-                        doc.text(elemLines, 20, yPos);
-                        yPos += 3.5 * elemLines.length;
-                    }
-                    if (dispositif.modalitesAccueil) {
-                        const modLines = doc.splitTextToSize(`  Modalités: ${dispositif.modalitesAccueil}`, 170);
-                        doc.text(modLines, 20, yPos);
-                        yPos += 3.5 * modLines.length;
-                    }
-                    if (dispositif.sports) {
-                        const sportLines = doc.splitTextToSize(`  Sports: ${dispositif.sports}`, 170);
-                        doc.text(sportLines, 20, yPos);
-                        yPos += 3.5 * sportLines.length;
-                    }
-                    doc.setFontSize(10);
-                });
-                yPos += 3;
+                y = this.#checkPage(doc, y, dateStr, 250);
+                y = this.#sectionTitle(doc, `Dispositifs (${enrichi.dispositifs.length})`, y);
+                for (const dispositif of enrichi.dispositifs) {
+                    y = this.#checkPage(doc, y, dateStr);
+                    y = this.#bulletLine(doc, dispositif.libelle, y);
+                    y = this.#subLine(doc, 'Elements', dispositif.elementsDenseignement, y);
+                    y = this.#subLine(doc, 'Modalites', dispositif.modalitesAccueil, y);
+                    y = this.#subLine(doc, 'Sports', dispositif.sports, y);
+                }
+                y += 3;
             }
-            
-            // === OPTIONS 2NDE GT ===
+
+            // ── OPTIONS 2NDE GT ──
             if (enrichi.options2ndeGT && enrichi.options2ndeGT.length > 0) {
-                if (yPos > 250) { doc.addPage(); yPos = 15; }
-                
-                doc.setFont(undefined, 'bold');
-                doc.text(`📚 Options 2nde GT (${enrichi.options2ndeGT.length})`, 14, yPos);
-                yPos += 5;
-                doc.setFont(undefined, 'normal');
-                
-                enrichi.options2ndeGT.forEach(option => {
-                    if (yPos > 275) { doc.addPage(); yPos = 15; }
-                    doc.text(`• ${option.libelle || 'Option inconnue'}`, 18, yPos);
-                    yPos += 4;
-                });
-                yPos += 3;
+                y = this.#checkPage(doc, y, dateStr, 250);
+                y = this.#sectionTitle(doc, `Options 2nde GT (${enrichi.options2ndeGT.length})`, y);
+                for (const option of enrichi.options2ndeGT) {
+                    y = this.#checkPage(doc, y, dateStr);
+                    y = this.#bulletLine(doc, option.libelle || '', y);
+                }
+                y += 3;
             }
-            
-            // === SPÉCIALITÉS 1ÈRE G ===
+
+            // ── SPÉCIALITÉS 1ÈRE G ──
             if (enrichi.specialites1ereG && enrichi.specialites1ereG.length > 0) {
-                if (yPos > 250) { doc.addPage(); yPos = 15; }
-                
-                doc.setFont(undefined, 'bold');
-                doc.text(`🔬 Spécialités 1ère G (${enrichi.specialites1ereG.length})`, 14, yPos);
-                yPos += 5;
-                doc.setFont(undefined, 'normal');
-                
-                enrichi.specialites1ereG.forEach(specialite => {
-                    if (yPos > 275) { doc.addPage(); yPos = 15; }
-                    doc.text(`• ${specialite.libelle || 'Spécialité inconnue'}`, 18, yPos);
-                    yPos += 4;
-                });
+                y = this.#checkPage(doc, y, dateStr, 250);
+                y = this.#sectionTitle(doc, `Specialites 1ere G (${enrichi.specialites1ereG.length})`, y);
+                for (const spe of enrichi.specialites1ereG) {
+                    y = this.#checkPage(doc, y, dateStr);
+                    y = this.#bulletLine(doc, spe.libelle || '', y);
+                }
             }
         }
+
+        // Pieds de page sur toutes les pages sauf titre
+        this.#finalizeFooters(doc, dateStr);
     }
 
-    /**
-     * Génère un PDF enrichi pour les diplômes (avec établissements et relations)
-     */
-    static async #generateEnrichedDiplomesPDF(doc, data, yPos) {
-        doc.setFontSize(10);
-        
+    // =========================================================================
+    // DIPLÔMES — PDF ENRICHI
+    // =========================================================================
+
+    static async #generateEnrichedDiplomesPDF(doc, data, dateStr) {
         for (let i = 0; i < data.length; i++) {
             const diplome = data[i];
-            
-            // Charger les données enrichies
+            doc.addPage();
+            let y = 20;
+
             const enrichi = await window.databaseService.getDiplomeEnrichi(diplome.libelle);
             if (!enrichi) continue;
-            
-            // Nouvelle page pour chaque diplôme (sauf le premier)
-            if (i > 0) {
-                doc.addPage();
-                yPos = 15;
-            }
-            
-            // === EN-TÊTE DIPLÔME ===
-            doc.setFont(undefined, 'bold');
+
+            doc.setFont('helvetica', 'bold');
             doc.setFontSize(14);
-            const nomLines = doc.splitTextToSize(enrichi.diplome.libelle || 'Sans nom', 180);
-            doc.text(nomLines, 14, yPos);
-            yPos += 6 * nomLines.length;
-            
+            const nomLines = doc.splitTextToSize(this.#sanitize(enrichi.diplome.libelle || 'Sans nom'), 180);
+            doc.text(nomLines, 14, y);
+            y += 6 * nomLines.length;
+
             doc.setFontSize(10);
-            doc.setFont(undefined, 'normal');
-            doc.text(`${enrichi.diplome.niveauSortie || '-'} | ${enrichi.diplome.type || '-'}`, 14, yPos);
-            yPos += 8;
-            
-            // === ÉTABLISSEMENTS PROPOSANT CE DIPLÔME ===
+            doc.setFont('helvetica', 'normal');
+            doc.text(`${this.#sanitize(enrichi.diplome.niveauSortie || '-')} | ${this.#sanitize(enrichi.diplome.type || '-')}`, 14, y);
+            y += 8;
+
             if (enrichi.etablissements && enrichi.etablissements.length > 0) {
-                doc.setFont(undefined, 'bold');
-                doc.text(`🏫 Établissements (${enrichi.etablissements.length})`, 14, yPos);
-                yPos += 5;
-                doc.setFont(undefined, 'normal');
-                
-                enrichi.etablissements.forEach(etab => {
-                    if (yPos > 270) { doc.addPage(); yPos = 15; }
-                    
-                    doc.text(`• ${etab.nom} - ${etab.commune}`, 18, yPos);
-                    yPos += 4;
-                    
-                    // DONNÉES SPÉCIFIQUES : modalités de la relation diplôme-établissement
+                y = this.#sectionTitle(doc, `Etablissements (${enrichi.etablissements.length})`, y);
+                for (const etab of enrichi.etablissements) {
+                    y = this.#checkPage(doc, y, dateStr);
+                    y = this.#bulletLine(doc, `${etab.nom} - ${etab.commune}`, y);
                     if (etab.modalites && etab.modalites.length > 0) {
-                        doc.setFontSize(9);
-                        doc.text(`  Modalités: ${etab.modalites.join(', ')}`, 20, yPos);
-                        yPos += 4;
-                        doc.setFontSize(10);
+                        y = this.#subLine(doc, 'Modalites', etab.modalites.join(', '), y);
                     }
-                });
+                }
             }
         }
+        this.#finalizeFooters(doc, dateStr);
     }
 
-    /**
-     * Génère un PDF enrichi pour les dispositifs (avec établissements et relations)
-     */
-    static async #generateEnrichedDispositifsPDF(doc, data, yPos) {
-        doc.setFontSize(10);
-        
+    // =========================================================================
+    // DISPOSITIFS — PDF ENRICHI
+    // =========================================================================
+
+    static async #generateEnrichedDispositifsPDF(doc, data, dateStr) {
         for (let i = 0; i < data.length; i++) {
             const dispositif = data[i];
-            
-            // Charger les données enrichies
+            doc.addPage();
+            let y = 20;
+
             const enrichi = await window.databaseService.getDispositifEnrichi(dispositif.libelle);
             if (!enrichi) continue;
-            
-            // Nouvelle page pour chaque dispositif (sauf le premier)
-            if (i > 0) {
-                doc.addPage();
-                yPos = 15;
-            }
-            
-            // === EN-TÊTE DISPOSITIF ===
-            doc.setFont(undefined, 'bold');
+
+            doc.setFont('helvetica', 'bold');
             doc.setFontSize(14);
-            const nomLines = doc.splitTextToSize(enrichi.dispositif.libelle || 'Sans nom', 180);
-            doc.text(nomLines, 14, yPos);
-            yPos += 6 * nomLines.length;
-            
+            const nomLines = doc.splitTextToSize(this.#sanitize(enrichi.dispositif.libelle || 'Sans nom'), 180);
+            doc.text(nomLines, 14, y);
+            y += 6 * nomLines.length;
+
             doc.setFontSize(10);
-            doc.setFont(undefined, 'normal');
+            doc.setFont('helvetica', 'normal');
             if (enrichi.dispositif.typeDispositif) {
-                doc.text(enrichi.dispositif.typeDispositif, 14, yPos);
-                yPos += 8;
+                doc.text(this.#sanitize(enrichi.dispositif.typeDispositif), 14, y);
+                y += 8;
             }
-            
-            // === ÉTABLISSEMENTS PROPOSANT CE DISPOSITIF ===
+
             if (enrichi.etablissements && enrichi.etablissements.length > 0) {
-                doc.setFont(undefined, 'bold');
-                doc.text(`🏫 Établissements (${enrichi.etablissements.length})`, 14, yPos);
-                yPos += 5;
-                doc.setFont(undefined, 'normal');
-                
-                enrichi.etablissements.forEach(etab => {
-                    if (yPos > 265) { doc.addPage(); yPos = 15; }
-                    
-                    doc.text(`• ${etab.nom} - ${etab.commune}`, 18, yPos);
-                    yPos += 4;
-                    
-                    // DONNÉES SPÉCIFIQUES : infos de la relation dispositif-établissement
-                    doc.setFontSize(9);
-                    if (etab.elementsDenseignement) {
-                        const elemLines = doc.splitTextToSize(`  Éléments: ${etab.elementsDenseignement}`, 170);
-                        doc.text(elemLines, 20, yPos);
-                        yPos += 3.5 * elemLines.length;
-                    }
-                    if (etab.modalitesAccueil) {
-                        const modLines = doc.splitTextToSize(`  Modalités: ${etab.modalitesAccueil}`, 170);
-                        doc.text(modLines, 20, yPos);
-                        yPos += 3.5 * modLines.length;
-                    }
-                    if (etab.sports) {
-                        const sportLines = doc.splitTextToSize(`  Sports: ${etab.sports}`, 170);
-                        doc.text(sportLines, 20, yPos);
-                        yPos += 3.5 * sportLines.length;
-                    }
-                    doc.setFontSize(10);
-                });
+                y = this.#sectionTitle(doc, `Etablissements (${enrichi.etablissements.length})`, y);
+                for (const etab of enrichi.etablissements) {
+                    y = this.#checkPage(doc, y, dateStr);
+                    y = this.#bulletLine(doc, `${etab.nom} - ${etab.commune}`, y);
+                    y = this.#subLine(doc, 'Elements',  etab.elementsDenseignement, y);
+                    y = this.#subLine(doc, 'Modalites', etab.modalitesAccueil, y);
+                    y = this.#subLine(doc, 'Sports',    etab.sports, y);
+                }
             }
         }
+        this.#finalizeFooters(doc, dateStr);
     }
 
     // =========================================================================
@@ -425,9 +499,9 @@ class ExportService {
     // =========================================================================
 
     static #downloadFile(blob, filename) {
-        const url = URL.createObjectURL(blob);
+        const url  = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.href = url;
+        link.href     = url;
         link.download = filename;
         document.body.appendChild(link);
         link.click();
@@ -436,7 +510,6 @@ class ExportService {
     }
 }
 
-// Exposition globale
 if (typeof window !== 'undefined') {
     window.ExportService = ExportService;
 }
