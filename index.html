@@ -466,7 +466,7 @@
                     <div class="mode-option">
                         <input type="radio" name="tab-extraction-mode" id="tab-mode-geo" value="geo" checked onchange="switchExtractionMode()">
                         <label for="tab-mode-geo">
-                            <div class="mode-option-title">📍 Par Communes</div>
+                            <div class="mode-option-title">📍 Géographique</div>
                             <div class="mode-option-subtitle">Je sais OÙ je veux aller</div>
                         </label>
                     </div>
@@ -577,7 +577,7 @@
                                 onclick="lancerExtractionGeo()"
                                 disabled
                                >
-                            🚀 Lancer l'Extraction
+                            🌐 Lancer l'Extraction
                         </button>
                     </div>
                 </div>
@@ -835,27 +835,15 @@
                         <input type="text" id="filter-search" placeholder="🔍 Rechercher un établissement..." 
                             style="flex: 1; min-width: 250px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;">
                 
-                        <select id="filter-type" class="card">
-                            <option value="">🏫 Tous les types</option>
-                        </select>
+                        <select id="filter-type" class="card" multiple title="Ctrl+clic pour sélection multiple"></select>
                 
-                        <select id="filter-commune" class="card">
-                            <option value="">📍 Toutes les communes</option>
-                        </select>
+                        <select id="filter-commune" class="card" multiple title="Ctrl+clic pour sélection multiple"></select>
                 
-                        <select id="filter-statut" class="card">
-                            <option value="">🏛️ Tous les statuts</option>
-                            <option value="public">Public</option>
-                            <option value="privé sous contrat">Privé sous contrat</option>
-                        </select>
+                        <select id="filter-statut" class="card" multiple title="Ctrl+clic pour sélection multiple"></select>
                         
-                        <select id="filter-niveau" class="card u-hidden">
-                            <option value="">🎓 Tous les niveaux</option>
-                        </select>
+                        <select id="filter-niveau" class="card u-hidden" multiple title="Ctrl+clic pour sélection multiple"></select>
                         
-                        <select id="filter-categorie" class="card u-hidden">
-                            <option value="">🏷️ Toutes les catégories</option>
-                        </select>
+                        <select id="filter-categorie" class="card u-hidden" multiple title="Ctrl+clic pour sélection multiple"></select>
                 
                         <button class="btn btn--secondary" onclick="resetFilters()" style="padding: 10px 20px;">
                             🔄 Réinitialiser
