@@ -904,7 +904,7 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
         ${buildInfoRow('Type', etablissement.type)}
         ${buildInfoRow('Statut', etablissement.statut)}
         ${etablissement.tutelle ? buildInfoRow('Tutelle', etablissement.tutelle) : ''}
-        ${etablissement.adresse ? buildInfoRow('Adresse', `${etablissement.adresse}, ${etablissement.codePostal} ${etablissement.commune}`) : ''}
+        ${etablissement.adresse ? buildInfoRow('Adresse', `${etablissement.adresse}, ${etablissement.codePostal}${etablissement.cedex ? ' CEDEX ' + etablissement.cedex : ''} ${etablissement.commune}`) : ''}
         ${etablissement.telephone ? buildInfoRow('Téléphone', formatTelephone(etablissement.telephone)) : ''}
         ${etablissement.email ? buildInfoRow('Email', `<a href="mailto:${etablissement.email}">${etablissement.email}</a>`) : ''}
         ${etablissement.siteWeb ? buildInfoRow('Site web', `<a href="${etablissement.siteWeb}" target="_blank">${etablissement.siteWeb}</a>`) : ''}
