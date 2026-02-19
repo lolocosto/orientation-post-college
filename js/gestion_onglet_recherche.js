@@ -312,7 +312,7 @@ async function chooseExtractionScope(scope) {
     // Activer le bouton d'extraction
     const extractBtn = document.getElementById('tab-btn-extract-geo');
     extractBtn.disabled = false;
-    extractBtn.innerHTML = `🚀 Lancer l'extraction (${scope})`;
+//    extractBtn.innerHTML = `🚀 Lancer l'extraction (${scope})`;
 }
 
 
