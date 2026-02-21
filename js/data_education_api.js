@@ -3,7 +3,7 @@
  * Description : Classe pour interagir avec l'API Data.Education.gouv.fr
  * Auteur : Laurent COSTE
  * Date : 2026-02-03
- * Version : 1.0 - Phase 1
+ * Version : 1.1 - Utilise HttpClient
  ************************************************/
 
 /**
@@ -16,6 +16,7 @@ class DataEducationAPI {
     // =====================================
     
     #baseURL = 'https://data.education.gouv.fr/api/explore/v2.1';
+    #http;
     
     #datasets = {
         langues: 'fr-en-offre-langues-2d',  // ✅ Confirmé fonctionnel
@@ -24,14 +25,12 @@ class DataEducationAPI {
         effectifs_lycees_pro: 'fr-en-lycee_pro-effectifs-niveau-sexe-lv'  // ✅ LV (comme GT)
     };
     
-    // Compteur de requêtes
-    _requestCount = 0;
-    
     // =====================================
     // CONSTRUCTEUR
     // =====================================
     
     constructor() {
+        this.#http = new HttpClient({ label: 'DataEducationAPI' });
         console.log('[DataEducationAPI] Instance créée');
     }
     
@@ -39,9 +38,8 @@ class DataEducationAPI {
     // GETTERS
     // =====================================
     
-    get requestCount() {
-        return this._requestCount;
-    }
+    get requestCount() { return this.#http.requestCount; }
+    get _requestCount() { return this.#http.requestCount; }
     
     /**
      * Vérifie si l'API est accessible (pas d'authentification)
@@ -349,69 +347,12 @@ class DataEducationAPI {
         
         const fullUrl = `${url}?${params.toString()}`;
         
-        this._requestCount++;
-        
-        let lastError = null;
-        
-        for (let attempt = 0; attempt < maxRetries; attempt++) {
-            try {
-                const response = await fetch(fullUrl, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
-                
-                // Succès
-                if (response.ok) {
-                    const data = await response.json();
-                    // L'API retourne { total_count, results }
-                    return data.results || [];
-                }
-                
-                // Erreur 429 (Too Many Requests)
-                if (response.status === 429) {
-                    const retryAfter = response.headers.get('Retry-After');
-                    const delay = retryAfter ? parseInt(retryAfter) * 1000 : initialDelay * Math.pow(2, attempt);
-                    
-                    console.warn(`[DataEducationAPI] ⚠️ Erreur 429 - Tentative ${attempt + 1}/${maxRetries} - Attente ${delay}ms`);
-                    
-                    if (attempt < maxRetries - 1) {
-                        await this._sleep(delay);
-                        continue;
-                    }
-                }
-                
-                // Autres erreurs HTTP
-                throw new Error(`Erreur HTTP ${response.status}: ${response.statusText}`);
-                
-            } catch (error) {
-                lastError = error;
-                
-                // Si ce n'est pas la dernière tentative, attendre avant de réessayer
-                if (attempt < maxRetries - 1) {
-                    const delay = initialDelay * Math.pow(2, attempt);
-                    console.warn(`[DataEducationAPI] ⚠️ Erreur - Tentative ${attempt + 1}/${maxRetries} - Attente ${delay}ms`);
-                    await this._sleep(delay);
-                } else {
-                    console.error(`[DataEducationAPI] ❌ Échec après ${maxRetries} tentatives`);
-                }
-            }
-        }
-        
-        // Si on arrive ici, toutes les tentatives ont échoué
-        throw lastError;
+        const data = await this.#http.getJSON(fullUrl);
+        // L'API retourne { total_count, results }
+        return data.results || [];
     }
     
-    /**
-     * Attendre un délai
-     * @private
-     * @param {number} ms - Délai en millisecondes
-     * @returns {Promise<void>}
-     */
-    async _sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
+    _sleep(ms) { return this.#http.sleep(ms); }
 }
 
 // =====================================

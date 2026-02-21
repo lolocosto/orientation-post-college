@@ -32,6 +32,7 @@
 	<script src="data/academies_data.js"></script>
 
 	<!-- 2. Classes database, API et parser -->
+    <script src="js/http_client.js?v=1771596491"></script>
     <script src="js/database_service.js?v=1771596491"></script>
     <script src="js/systeme_filtres.js?v=1771596491"></script>
     <script src="js/geo_api.js?v=1771596491"></script>
@@ -149,7 +150,7 @@
                     </div>
                     
                     <div class="form-group">
-                        <button class="secondary setting-button u-hidden" id="btn-disconnect-settings" onclick="logoutOnisep()">🚪 Se déconnecter</button>
+                        <button class="setting-button secondary u-hidden" id="btn-disconnect-settings" onclick="logoutOnisep()">🚪 Se déconnecter</button>
                     </div>
                     
                     <div class="form-group">
@@ -202,7 +203,7 @@
                         </div>
                     </div>
                     
-                    <div style="border-top: 1px solid var(--border); margin: 20px 0;"></div>
+                    <div class="settings-separator"></div>
                     
                     <!-- Import -->
                     <div class="form-group">
@@ -230,20 +231,20 @@
                     <!-- Mon établissement -->
                     <div class="form-group">
                         <label class="setting-label">📒 Mon établissement</label>
-                        <div style="display: flex; gap: 10px; align-items: center;">
-                            <label class="u-text-sm u-mt-3 d-block">UAI</label>
+                        <div class="search-input-group">
+                            <label class="u-text-sm u-mt-3 u-block">UAI</label>
                             <input type="text" 
                                    id="pref-user-uai" 
                                    class="setting-input" 
                                    placeholder="0350056C"
                                    maxlength="8"
                                    value=""
-                                   style="flex: 1; min-width: 120px; font-size: 15px; letter-spacing: 0.5px; font-family: monospace;">
-                            <button class="setting-button" onclick="fetchOnisepEstablishment()" style="white-space: nowrap; margin: 0;">
+                                   class="setting-input setting-input--mono">
+                            <button class="setting-button setting-button--nowrap" onclick="fetchOnisepEstablishment()">
                                 🔍 Rechercher
                             </button>
                         </div>
-                        <label class="u-text-sm u-mt-3 d-block">Nom de l'établissement</label>
+                        <label class="u-text-sm u-mt-3 u-block">Nom de l'établissement</label>
                         <input type="text" 
                                id="pref-user-nom" 
                                class="setting-input" 
@@ -252,7 +253,7 @@
                                readonly
                                class="bg-light cursor-not-allowed">
                         
-                        <label class="u-text-sm u-mt-3 d-block">Latitude (GPS)</label>
+                        <label class="u-text-sm u-mt-3 u-block">Latitude (GPS)</label>
                         <input type="number" 
                                id="pref-user-lat" 
                                class="setting-input" 
@@ -262,7 +263,7 @@
                                readonly
                                class="bg-light cursor-not-allowed">
                         
-                        <label class="u-text-sm u-mt-3 d-block">Longitude (GPS)</label>
+                        <label class="u-text-sm u-mt-3 u-block">Longitude (GPS)</label>
                         <input type="number" 
                                id="pref-user-lon" 
                                class="setting-input" 
@@ -316,10 +317,17 @@
                     
                     <div class="form-group">
                         <label class="setting-label">À propos</label>
-                        <div style="font-size: 13px; color: var(--text-light); line-height: 1.8;">
-                            <p><strong>Orientation Post-Collège v0.41</strong></p>
+                        <div class="about-text">
+                            <p><strong>Orientation Post-Collège v0.42</strong></p>
                             <p class="u-mt-3"><strong>📓 Historique des versions</strong></p>
-                            <div style="font-size: 12px; margin-top: 10px; max-height: 300px; overflow-y: auto;">
+                            <div class="changelog-scroll">
+                                <p><strong>v0.42</strong> (21 février 2026) - Factorisation HTTP & détails extraction</p>
+                                <ul class="u-ml-4 u-mt-1">
+                                    <li>Nouveau : classe <code>HttpClient</code> — retry, rate limiting 429, backoff exponentiel centralisés</li>
+                                    <li>Refactoring : toutes les APIs (Onisep, CARIF-OREF, Geo, DataEducation) délèguent les requêtes HTTP à HttpClient</li>
+                                    <li>Amélioration : throttle de 2s supprimé sur les détails d'extraction CARIF-OREF — une ligne par page requêtée</li>
+                                    <li>100 tests (3 suites) — tous verts</li>
+                                </ul>
                                 <p><strong>v0.41</strong> (21 février 2026) - IDs internes, alertes, robustesse</p>
                                 <ul class="u-ml-4 u-mt-1">
                                     <li>Amélioration : stat-card de la vue active mise en évidence (fond bleu pâle)</li>
@@ -471,8 +479,8 @@
         </div> <!-- Fin settings-content -->
         
         <!-- Bouton Vider la base (niveau principal) -->
-        <div style="padding: 20px 25px; border-top: 2px solid var(--border);">
-            <button class="setting-button secondary" onclick="confirmResetDatabase()" style="background: #ff6b6b; color: white; border: none;">
+        <div class="settings-danger-zone">
+            <button class="setting-button setting-button--danger" onclick="confirmResetDatabase()">
                 🗑️ Vider la base locale
             </button>
             <div class="setting-help u-mt-3">⚠️ Supprime toutes les données stockées localement</div>
@@ -503,8 +511,8 @@
             <!-- ONGLET 1 : RECHERCHE                       -->
             <!-- =========================================  -->
             <div class="tabs__panel tabs__panel--hidden" id="tab-recherche">
-                <h2 style="margin-bottom: 10px; color: var(--primary);">🔍 Recherche d'Établissements</h2>
-                <p style="color: var(--text-light); margin-bottom: 30px;">
+                <h2 class="tab-panel-title">🔍 Recherche d'Établissements</h2>
+                <p class="tab-panel-subtitle">
                     Définissez vos critères de recherche pour extraire les établissements depuis l'API Onisep.
                 </p>
                 
@@ -548,15 +556,15 @@
                                placeholder="Ex: Rennes, Lyon, Marseille..."
                                oninput="handleSmartSearch()"
                                autocomplete="off"
-                               style="width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;">
-                        <div class="setting-help" id="tab-smart-search-help" style="margin-top: 8px; font-size: 13px; color: var(--text-light);">
+                               class="search-commune-input">
+                        <div class="setting-help u-mt-2" id="tab-smart-search-help">
                             💡 Entrez au moins 3 caractères pour rechercher
                         </div>
                     </div>
                     
                     <!-- Résultats de recherche -->
                     <div id="tab-smart-search-results" class="u-mt-3 u-hidden">
-                        <div style="max-height: 300px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; background: white;">
+                        <div class="search-results-scroll">
                             <div id="tab-smart-search-results-list"></div>
                         </div>
                     </div>
@@ -564,17 +572,16 @@
 
                     <!-- Sélection active -->
                     <div id="tab-smart-selection-display" class="u-mt-3 u-hidden">
-                        <div style="padding: 15px; background: var(--bg-light); border-radius: 8px; border: 2px solid var(--primary);">
-                            <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div class="selection-card">
+                            <div class="selection-card__header">
                                 <div class="u-flex-1">
-                                    <div style="font-weight: 600; font-size: 16px; color: var(--primary); margin-bottom: 5px;">
+                                    <div class="selection-card__name">
                                         <span id="tab-selection-type-icon">📍</span>
                                         <span id="tab-selection-name"></span>
                                     </div>
-                                    <div style="font-size: 14px; color: var(--text);" id="tab-selection-details"></div>
+                                    <div class="selection-card__details" id="tab-selection-details"></div>
                                 </div>
-                                <button onclick="clearSelection()" 
-                                        style="padding: 5px 10px; background: white; border: 1px solid var(--border); border-radius: 5px; cursor: pointer; font-size: 16px;">
+                                <button onclick="clearSelection()" class="btn-clear--sm">
                                     ✕
                                 </button>
                             </div>
@@ -582,19 +589,18 @@
                     </div>
                     
                     <!-- Sauvegarder comme favori -->
-                    <div class="setting-item custom-style-7">
+                    <div class="setting-item setting-favorite-box">
                         <div class="setting-checkbox-group">
                             <input type="checkbox" id="save-as-favorite-geo">
-                            <label for="save-as-favorite-geo" class="font-medium">💾 Sauvegarder comme favori</label>
+                            <label for="save-as-favorite-geo" class="u-font-medium">💾 Sauvegarder comme favori</label>
                         </div>
                         <div id="favorite-name-container-geo" class="u-mt-2 u-hidden">
                             <input type="text" 
                                    id="favorite-name-geo" 
                                    class="setting-input" 
                                    placeholder="Nom du favori (ex: Lycées Rennes)"
-                                   maxlength="50"
-                                   class="w-full">
-                            <div class="setting-help custom-style-11">
+                                   maxlength="50">
+                            <div class="setting-help u-mt-1">
                                 💡 Limite : 10 favoris maximum
                             </div>
                         </div>
@@ -699,7 +705,7 @@
                         <!-- Recherche diplôme -->
                         <div class="form-group">
                             <label class="setting-label">🔍 Rechercher un diplôme</label>
-                            <input type="text" id="tab-search-diplome" class="setting-input" 
+                            <input type="text" id="tab-search-diplomes" class="setting-input" 
                                    placeholder="ex: cuisine, commerce, électricité..." 
                                    onkeyup="filtrerItemsParRecherche('diplomes')">
                         </div>
@@ -721,19 +727,18 @@
                         </div>
                             
                         <!-- Sauvegarder comme favori -->
-                        <div class="setting-item custom-style-7">
+                        <div class="setting-item setting-favorite-box">
                             <div class="setting-checkbox-group">
                                 <input type="checkbox" id="save-as-favorite-diplomes">
-                                <label for="save-as-favorite-diplomes" class="font-medium">💾 Sauvegarder comme favori</label>
+                                <label for="save-as-favorite-diplomes" class="u-font-medium">💾 Sauvegarder comme favori</label>
                             </div>
                             <div id="favorite-name-container-diplomes" class="u-mt-2 u-hidden">
                                 <input type="text" 
                                        id="favorite-name-diplomes" 
                                        class="setting-input" 
                                        placeholder="Nom du favori (ex: CAP Cuisine Normandie)"
-                                       maxlength="50"
-                                       class="w-full">
-                                <div class="setting-help custom-style-11">
+                                       maxlength="50">
+                                <div class="setting-help u-mt-1">
                                     💡 Limite : 10 favoris maximum
                                 </div>
                             </div>
@@ -749,23 +754,8 @@
                             });
                         </script>
                             
-                        <!-- Sélection voie(s) de formation -->
-                        <div class="form-group voie-selector">
-                            <label class="setting-label">📚 Voie(s) de formation à extraire</label>
-                            <div class="voie-checkboxes">
-                                <label class="voie-checkbox-label">
-                                    <input type="checkbox" id="tab-diplomes-voie-scolaire" class="voie-checkbox" value="scolaire" checked>
-                                    <span class="voie-badge voie-badge--scolaire">🏫 Voie scolaire</span>
-                                </label>
-                                <label class="voie-checkbox-label">
-                                    <input type="checkbox" id="tab-diplomes-voie-apprentissage" class="voie-checkbox" value="apprentissage">
-                                    <span class="voie-badge voie-badge--apprentissage">🎓 Apprentissage</span>
-                                </label>
-                            </div>
-                        </div>
-
                         <!-- Boutons d'action -->
-                        <div class="etape-navigation custom-style-12">
+                        <div class="etape-navigation u-flex u-gap-md">
                             <button class="btn btn--secondary u-flex-1" onclick="resetItemsSearch('diplomes')">
                                 🗑️ Effacer les critères
                             </button>
@@ -871,7 +861,7 @@
                             </div>
 
                             <!-- Boutons d'action -->
-                            <div class="etape-navigation custom-style-12">
+                            <div class="etape-navigation u-flex u-gap-md">
                                 <button class="btn btn--secondary u-flex-1" onclick="resetItemsSearch('options')">
                                     🗑️ Effacer les critères
                                 </button>
@@ -913,9 +903,9 @@
                     </div>
                 </div>
                 <div class="card">
-                    <div class="view-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <h2 class="card__title" id="view-title" style="margin: 0;">📚 Liste des Établissements</h2>
-                        <div class="export-buttons" style="display: flex; gap: 10px;">
+                    <div class="view-header view-controls">
+                        <h2 class="card__title view-controls__title" id="view-title">📚 Liste des Établissements</h2>
+                        <div class="export-buttons">
                             <button class="btn btn--secondary" onclick="exportData('csv')" title="Exporter la vue courante en CSV">
                                 📊 CSV
                             </button>
@@ -924,12 +914,12 @@
                             </button>
                         </div>
                     </div>
-                    <p style="margin-bottom: 15px; color: var(--text-light); font-size: 14px;" id="view-subtitle">💡 Cliquez sur un établissement pour voir ses diplômes et formations</p>
+                    <p class="view-subtitle" id="view-subtitle">💡 Cliquez sur un établissement pour voir ses diplômes et formations</p>
             
                     <!-- Filtres (visibles uniquement en vue établissements) -->
-                    <div id="filters-container" style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <div id="filters-container" class="filters-bar">
                         <input type="text" id="filter-search" placeholder="🔍 Rechercher un établissement..." 
-                            style="flex: 1; min-width: 250px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px;">
+                            class="filter-text-input">
                 
                         <select id="filter-type" class="card" multiple title="Ctrl+clic pour sélection multiple"></select>
                 
@@ -941,7 +931,7 @@
                         
                         <select id="filter-categorie" class="card u-hidden" multiple title="Ctrl+clic pour sélection multiple"></select>
                 
-                        <button class="btn btn--secondary" onclick="resetFilters()" style="padding: 10px 20px;">
+                        <button class="btn btn--secondary" onclick="resetFilters()">
                             🔄 Réinitialiser
                         </button>
                     </div>
@@ -1021,23 +1011,23 @@
     <!-- Confirmation de supression des données -->
     <div id="reset-confirm-modal" class="modal" style="display:none;">
         <div class="modal__backdrop" onclick="closeResetConfirmModal()"></div>
-        <div class="modal__container" style="max-width:420px;">
+        <div class="modal__container">
             <div class="modal__header">
                 <h2 class="modal__title">🗑️ Vider la base locale</h2>
                 <button class="modal__close" onclick="closeResetConfirmModal()">✕</button>
             </div>
-            <div class="modal__body" style="padding:20px 24px;">
-                <p style="margin-bottom:12px;">Cette action supprimera <strong>toutes les données</strong> stockées localement :</p>
-                <ul style="margin:0 0 16px 20px; line-height:1.8; color:var(--text-light);">
+            <div class="modal__body">
+                <p class="u-mb-2">Cette action supprimera <strong>toutes les données</strong> stockées localement :</p>
+                <ul class="modal-reset-list">
                     <li>Établissements et diplômes extraits</li>
                     <li>Données ONISEP et CARIF-OREF</li>
                     <li>Historique de connexion API</li>
                 </ul>
-                <p style="color:#e74c3c; font-weight:600;">⚠️ Cette action est irréversible.</p>
+                <p class="modal-reset-warning">⚠️ Cette action est irréversible.</p>
             </div>
-            <div class="modal__footer" style="display:flex; gap:12px; justify-content:flex-end; padding:16px 24px;">
+            <div class="modal__footer">
                 <button class="btn btn--secondary" onclick="closeResetConfirmModal()">Annuler</button>
-                <button class="btn" onclick="executeResetDatabase()" style="background:#e74c3c; color:white; border:none;">🗑️ Confirmer la suppression</button>
+                <button class="btn btn--danger-solid" onclick="executeResetDatabase()">🗑️ Confirmer la suppression</button>
             </div>
         </div>
     </div>

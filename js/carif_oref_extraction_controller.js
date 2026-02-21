@@ -339,6 +339,7 @@ class CARIFOREFExtractionController {
             }
         }
         this.#detail(`${etablissements.length} établissements → ${nbEtabStockes} fusionnés${nbEtabRefuses > 0 ? ` (${nbEtabRefuses} refusés)` : ''}`);
+        this.#databaseService.flush(); // 💾 batch save établissements
 
         if (uais.length === 0) {
             this.#detail('⚠️ Aucun UAI valide, arrêt de l\'extraction');
@@ -412,6 +413,7 @@ class CARIFOREFExtractionController {
             }
         }
         this.#detail(`${etablissements.length} établissements → ${nbEtabStockes} fusionnés${nbEtabRefuses > 0 ? ` (${nbEtabRefuses} refusés)` : ''}`);
+        this.#databaseService.flush(); // 💾 batch save établissements
 
         // ── ÉTAPE 2 : Formations → Diplômes ────────────────────────────
         const statsStep2 = await this.#extractDiplomesByUAIs(uais, mid2 + 5, endPercent);
@@ -496,6 +498,7 @@ class CARIFOREFExtractionController {
             if (key) nbDiplomes++;
         }
         this.#detail(`${parsed.diplomesApprentissage.length} diplômes → ${nbDiplomes} stockés`);
+        this.#databaseService.flush(); // 💾 batch save diplômes apprentissage
 
         // ── Dédupliquer et stocker les relations ─────────────────────────
         const relationsMap = new Map();
@@ -514,6 +517,7 @@ class CARIFOREFExtractionController {
             if (key) nbRelations++;
         }
         this.#detail(`${parsed.diplomesApprentissage_par_etablissement.length} relations → ${nbRelations} stockées`);
+        this.#databaseService.flush(); // 💾 batch save relations apprentissage
 
         // ── Supprimer les établissements CARIF sans aucune relation (niveaux 5/6/7 exclus) ──
         const uaisAvecRelations = new Set(relationsMap.values() ? [...relationsMap.values()].map(r => r.uai) : []);

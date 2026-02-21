@@ -14,6 +14,18 @@ let searchMode = 'geo'; // 'geo' | 'diplomes' | 'options'
 // Gestion de l'arrêt de l'extraction par l'utilisateur
 let extractionStopped = false;
 
+/**
+ * Utilitaire : applique une classe de couleur sur un élément d'aide
+ * en supprimant les autres. Evite les .style.color inline.
+ * @param {HTMLElement} el
+ * @param {'help'|'error'|'success'|'warn'} state
+ */
+function setHelpState(el, state) {
+    el.classList.remove('u-text-help', 'u-text-error', 'u-text-ok', 'u-text-warn');
+    const map = { help: 'u-text-help', error: 'u-text-error', success: 'u-text-ok', warn: 'u-text-warn' };
+    if (map[state]) el.classList.add(map[state]);
+}
+
 // Instance de la modale d'extraction
 // let extractionModal = null;  // ← Supprimée v0.27.2 - Le controller gère sa propre ProgressModal
 
@@ -24,6 +36,8 @@ let searchTimeout = null;
 
 // État recherche par items (diplômes et options de 2nde GT)
 let ItemsDisponibles = null;
+let availableItems   = [];  // Items disponibles chargés à l'étape 1 (avec nbEtablissements/nbEtablissementsApprentissage)
+let selectedItems    = [];  // Libellés des items cochés en étape 2
 let itemsGeoType = 'departement';
 let itemsGeoValue = null;
 let itemsGeoDisplay = null;
@@ -112,13 +126,13 @@ async function handleSmartSearch() {
         resultsContainer.classList.add('u-hidden');
         resultsContainer.style.display = 'none';  // Force hide
         helpDiv.innerHTML = '💡 Entrez au moins 3 caractères pour rechercher';
-        helpDiv.style.color = 'var(--text-light)';
+        setHelpState(helpDiv, 'help');
         return;
     }
     
     // Afficher un loader
     helpDiv.innerHTML = '🔄 Recherche en cours...';
-    helpDiv.style.color = 'var(--text-light)';
+    setHelpState(helpDiv, 'help');
     
     // Débounce de 300ms
     searchTimeout = setTimeout(async () => {
@@ -128,7 +142,7 @@ async function handleSmartSearch() {
         } catch (error) {
             console.error('[Recherche] Erreur recherche commune:', error);
             helpDiv.innerHTML = '❌ Erreur lors de la recherche';
-            helpDiv.style.color = 'var(--danger)';
+            setHelpState(helpDiv, 'error');
         }
     }, 300);
 }
@@ -150,7 +164,7 @@ async function searchCommunes(query) {
     catch {
             console.error('[Recherche] Erreur recherche commune:', error);
             helpDiv.innerHTML = '❌ Erreur lors de la recherche';
-            helpDiv.style.color = 'var(--danger)';
+            setHelpState(helpDiv, 'error');
     }
 }
 
@@ -168,7 +182,7 @@ async function displaySearchResults(communes) {
         resultsContainer.classList.add('u-hidden');
         resultsContainer.style.display = 'none';  // Force hide
         helpDiv.innerHTML = '🔍 Aucune commune trouvée';
-        helpDiv.style.color = 'var(--text-light)';
+        setHelpState(helpDiv, 'help');
         return;
     }
     
@@ -176,7 +190,7 @@ async function displaySearchResults(communes) {
     resultsContainer.classList.remove('u-hidden');
     resultsContainer.style.display = 'block';
     helpDiv.innerHTML = `📍 ${communes.length} commune(s) trouvée(s)`;
-    helpDiv.style.color = 'var(--success)';
+    setHelpState(helpDiv, 'success');
     
     // Construire la liste des résultats
     let html = '';
@@ -205,7 +219,7 @@ async function displaySearchResults(communes) {
     }
     
     helpDiv.innerHTML = message;
-    helpDiv.style.color = couleur;
+    setHelpState(helpDiv, couleur === 'var(--warning)' ? 'warn' : 'success');
 }
 
 /**
@@ -477,7 +491,7 @@ function clearSelection() {
     const resultsContainer = document.getElementById('tab-smart-search-results');
     if (helpDiv) {
         helpDiv.innerHTML = '💡 Entrez au moins 3 caractères pour rechercher';
-        helpDiv.style.color = 'var(--text-light)';
+        setHelpState(helpDiv, 'help');
     }
     if (resultsContainer) {
         resultsContainer.classList.add('u-hidden');
@@ -623,7 +637,10 @@ async function lancerExtractionItems(type) {
         // Appeler le bon CONTROLLER - il gère toute la modale
         let result = null;
         if (type === 'diplomes') {
-            const voies = getVoiesSelectionnees('diplomes');
+            // Les voies sont déduites des diplômes cochés (pas d'un sélecteur manuel) :
+            // si au moins un diplôme sélectionné a des étab scolaires → on extrait la voie scolaire
+            // si au moins un diplôme sélectionné a des étab apprentissage → on extrait l'apprentissage
+            const voies = getVoiesDiplomesSelectionnes(selectedItems);
 
             // ── VOIE SCOLAIRE (ONISEP) ────────────────────────────────────
             if (voies.includes('scolaire')) {
@@ -1014,6 +1031,37 @@ function getVoiesSelectionnees(panel) {
         if (cb && cb.checked) voies.push(voie);
     });
     return voies;  // Peut retourner [] si aucune voie cochée
+}
+
+/**
+ * Déduit les voies à extraire depuis les libellés de diplômes cochés.
+ * Interroge `availableItems` (liste chargée à l'étape 1) pour chaque libellé :
+ *   - si l'item a nbEtablissements > 0         → voie scolaire
+ *   - si l'item a nbEtablissementsApprentissage > 0 → apprentissage
+ * Cela remplace le sélecteur manuel en étape 2 diplômes.
+ * @param {string[]} libelles - Libellés des diplômes sélectionnés
+ * @returns {string[]} Tableau des voies nécessaires (ex: ['scolaire'], ['apprentissage'], ['scolaire','apprentissage'])
+ */
+function getVoiesDiplomesSelectionnes(libelles) {
+    if (!availableItems || availableItems.length === 0) {
+        // Fallback : si pas de données, on extrait les deux voies
+        return ['scolaire', 'apprentissage'];
+    }
+    let hasScolaire = false;
+    let hasApprentissage = false;
+    for (const libelle of libelles) {
+        const item = availableItems.find(i => i.libelle === libelle);
+        if (item) {
+            if ((item.nbEtablissements || 0) > 0)              hasScolaire = true;
+            if ((item.nbEtablissementsApprentissage || 0) > 0) hasApprentissage = true;
+        }
+        if (hasScolaire && hasApprentissage) break; // Court-circuit
+    }
+    const voies = [];
+    if (hasScolaire)      voies.push('scolaire');
+    if (hasApprentissage) voies.push('apprentissage');
+    // Si rien trouvé (diplômes sans étab dans la zone), on tente scolaire par défaut
+    return voies.length > 0 ? voies : ['scolaire'];
 }
 
 // =====================================

@@ -26,7 +26,7 @@ class CARIFOREFApi {
 
     #baseURL = 'https://catalogue-apprentissage.intercariforef.org/api/v1/entity';
     #defaultLimit = 100;
-    _requestCount = 0;
+    #http;
 
     // Niveaux toujours extraits (3 = CAP, 4 = BAC) — niveaux 5/6/7 exclus (post-bac)
     static NIVEAUX_APPRENTISSAGE = ['3 (CAP...)', '4 (BAC...)'];
@@ -35,8 +35,12 @@ class CARIFOREFApi {
     static NIVEAUX_EXCLUS = ['5 (', '6 (', '7 ('];
 
     constructor() {
+        this.#http = new HttpClient({ label: 'CARIFOREFApi' });
         console.log('[CARIFOREFApi] Instance créée');
     }
+
+    get _requestCount() { return this.#http.requestCount; }
+    get requestCount()  { return this.#http.requestCount; }
 
     // =====================================
     // ÉTABLISSEMENTS
@@ -221,8 +225,7 @@ class CARIFOREFApi {
             const url = this.#buildUrl('etablissements', queryParams, page, this.#defaultLimit);
             console.log(`[CARIFOREFApi] Étab. page ${page}/${totalPages}`);
 
-            const data = await this.#fetchWithRetry(url);
-            this._requestCount++;
+            const data = await this.#http.getJSON(url);
 
             const results = data.etablissements || [];
             const pagination = data.pagination || {};
@@ -242,7 +245,7 @@ class CARIFOREFApi {
             }
 
             page++;
-            if (page <= totalPages) await this._sleep(200);
+            if (page <= totalPages) await this.#http.sleep(200);
         }
 
         return allResults;
@@ -251,22 +254,19 @@ class CARIFOREFApi {
     /**
      * Requête générique sur /formations avec pagination automatique.
      * Exclut les formations fermées (date_fermeture non nulle).
-     * progressCallback est appelé à chaque page (throttlé à 1 appel/2s max).
+     * progressCallback est appelé à chaque page.
      * @private
      */
     async #queryFormations(queryParams, progressCallback = null, select = null) {
         const allResults = [];
         let page = 1;
         let totalPages = 1;
-        let lastCallbackTime = 0;
-        const THROTTLE_MS = 2000;
 
         while (page <= totalPages) {
             const url = this.#buildUrl('formations', queryParams, page, this.#defaultLimit, select);
             console.log(`[CARIFOREFApi] Form. page ${page}/${totalPages}`);
 
-            const data = await this.#fetchWithRetry(url);
-            this._requestCount++;
+            const data = await this.#http.getJSON(url);
 
             const results = data.formations || [];
             const pagination = data.pagination || {};
@@ -282,20 +282,17 @@ class CARIFOREFApi {
             const actives = results.filter(f => !f.date_fermeture);
             allResults.push(...actives);
 
-            // Appeler le callback si pagination et throttle dépassé (toutes les 2s)
+            // Callback à chaque page — sans throttle pour que l'utilisateur voit chaque requête
             if (progressCallback && totalPages > 1) {
-                const now = Date.now();
-                if (page === 1 || now - lastCallbackTime >= THROTTLE_MS || page === totalPages) {
-                    progressCallback(`📄 ${allResults.length} formations — page ${page}/${totalPages}...`);
-                    lastCallbackTime = now;
-                }
+                progressCallback(`📄 ${allResults.length} formations — page ${page}/${totalPages}...`);
             }
 
             page++;
-            if (page <= totalPages) await this._sleep(200);
+            if (page <= totalPages) await this.#http.sleep(200);
         }
 
         return allResults;
+
     }
 
     // =====================================
@@ -319,44 +316,6 @@ class CARIFOREFApi {
     // HTTP AVEC RETRY
     // =====================================
 
-    async #fetchWithRetry(url) {
-        const maxRetries = 5;
-        let delay = 1000;
-
-        for (let attempt = 1; attempt <= maxRetries; attempt++) {
-            try {
-                if (attempt > 1) {
-                    console.log(`[CARIFOREFApi] Attente ${delay}ms avant retry ${attempt}/${maxRetries}...`);
-                    await this._sleep(delay);
-                }
-
-                const response = await fetch(url, {
-                    headers: { 'Accept': 'application/json' }
-                });
-
-                if (response.status === 429) {
-                    const retryAfter = response.headers.get('Retry-After');
-                    delay = retryAfter ? parseInt(retryAfter) * 1000 : delay * 2;
-                    console.warn(`[CARIFOREFApi] ⚠️ Rate limit (429) - retry ${attempt}/${maxRetries}`);
-                    if (attempt === maxRetries) throw new Error('Rate limit CARIF-OREF : 5 tentatives échouées');
-                    continue;
-                }
-
-                if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-
-                return await response.json();
-
-            } catch (error) {
-                if (attempt === maxRetries) {
-                    console.error(`[CARIFOREFApi] ❌ Échec après ${maxRetries} tentative(s) :`, error.message);
-                    throw error;
-                }
-                delay *= 2;
-                console.warn(`[CARIFOREFApi] Tentative ${attempt} échouée, retry...`, error.message);
-            }
-        }
-    }
-
     // =====================================
     // UTILITAIRES PRIVÉS
     // =====================================
@@ -370,13 +329,7 @@ class CARIFOREFApi {
         return Array.from(map.values());
     }
 
-    _sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
-
-    get requestCount() {
-        return this._requestCount;
-    }
+    _sleep(ms) { return this.#http.sleep(ms); }
 }
 
 if (typeof window !== 'undefined') {

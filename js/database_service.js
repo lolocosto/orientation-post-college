@@ -75,6 +75,15 @@ class DatabaseService {
             console.warn('[DatabaseService] ⚠️ Impossible de sauver dans localStorage:', error);
         }
     }
+
+    /**
+     * Persiste l'état courant dans localStorage.
+     * À appeler explicitement après une série d'insertions en batch,
+     * plutôt qu'après chaque insert individuel.
+     */
+    flush() {
+        this.#saveToLocalStorage();
+    }
     
     async init() {
         console.log('[DatabaseService] ✅ Base de données initialisée');
@@ -116,7 +125,6 @@ class DatabaseService {
         }
 
         this.#storage.etablissements[etablissement._id] = etablissement;
-        this.#saveToLocalStorage();
         return etablissement._id;
     }
     
@@ -128,7 +136,6 @@ class DatabaseService {
     async updateEtablissement(id, updates) {
         if (this.#storage.etablissements[id]) {
             Object.assign(this.#storage.etablissements[id], updates);
-            this.#saveToLocalStorage();
         } else {
             console.warn(`[DatabaseService] ⚠️ Impossible de mettre à jour établissement: _id ${id} non trouvé`);
         }
@@ -184,14 +191,12 @@ class DatabaseService {
             return null;
         }
         this.#storage.diplomes[diplome.libelle] = diplome;
-        this.#saveToLocalStorage();
         return diplome.libelle;
     }
     
     async updateDiplome(libelle, updates) {
         if (this.#storage.diplomes[libelle]) {
             Object.assign(this.#storage.diplomes[libelle], updates);
-            this.#saveToLocalStorage();
         }
         else {
             console.warn(`[DatabaseService] ⚠️ Impossible de mettre à jour diplôme: libellé ${libelle} non trouvé`);
@@ -209,7 +214,6 @@ class DatabaseService {
             console.warn(`[DatabaseService] ⚠️ Relation diplôme-établissement sans ID API → ID généré: ${relation.id}`);
         }
         this.#storage.diplomes_par_etablissement[relation.id] = relation;
-        this.#saveToLocalStorage();
         return relation.id;
     }
     
@@ -235,14 +239,12 @@ class DatabaseService {
             return null;
         }
         this.#storage.dispositifs[dispositif.libelle] = dispositif;
-        this.#saveToLocalStorage();
         return dispositif.libelle;
     }
     
     async updateDispositif(libelle, updates) {
         if (this.#storage.dispositifs[libelle]) {
             Object.assign(this.#storage.dispositifs[libelle], updates);
-            this.#saveToLocalStorage();
         }
         else {
             console.warn(`[DatabaseService] ⚠️ Impossible de mettre à jour dispositif: libellé ${libelle} non trouvé`);
@@ -255,7 +257,6 @@ class DatabaseService {
             console.warn(`[DatabaseService] ⚠️ Relation dispositif-établissement sans ID API → ID généré: ${relation.id}`);
         }
         this.#storage.dispositifs_par_etablissement[relation.id] = relation;
-        this.#saveToLocalStorage();
         return relation.id;
     }
     
@@ -281,7 +282,6 @@ class DatabaseService {
             return null;
         }
         this.#storage.options_2nde_gt[option.libelle] = option;
-        this.#saveToLocalStorage();
         return option.libelle;
     }
     
@@ -291,7 +291,6 @@ class DatabaseService {
             console.warn(`[DatabaseService] ⚠️ Relation option 2nde GT-établissement sans ID API → ID généré: ${relation.id}`);
         }
         this.#storage.options_2nde_gt_par_etablissement[relation.id] = relation;
-        this.#saveToLocalStorage();
         return relation.id;
     }
 
@@ -385,7 +384,6 @@ class DatabaseService {
             return null;
         }
         this.#storage.specialites_1ereG[specialite.libelle] = specialite;
-        this.#saveToLocalStorage();
         return specialite.libelle;
     }
     
@@ -395,7 +393,6 @@ class DatabaseService {
             console.warn(`[DatabaseService] ⚠️ Relation spécialité 1ère G-établissement sans ID API → ID généré: ${relation.id}`);
         }
         this.#storage.specialites_1ereG_par_etablissement[relation.id] = relation;
-        this.#saveToLocalStorage();
         return relation.id;
     }
 
@@ -636,7 +633,6 @@ class DatabaseService {
             return null;
         }
         this.#storage.diplomes_apprentissage[diplome.id] = diplome;
-        this.#saveToLocalStorage();
         return diplome.id;
     }
 
@@ -694,7 +690,6 @@ class DatabaseService {
             console.warn(`[DatabaseService] ⚠️ Relation diplôme-apprentissage sans ID API → ID généré: ${relation.id}`);
         }
         this.#storage.diplomes_apprentissage_par_etablissement[relation.id] = relation;
-        this.#saveToLocalStorage();
         return relation.id;
     }
 
@@ -752,7 +747,6 @@ class DatabaseService {
             if (!existant.voies.includes('apprentissage')) {
                 existant.voies.push('apprentissage');
             }
-            this.#saveToLocalStorage();
             return existant._id;
         } else {
             // Nouvel établissement
@@ -917,14 +911,12 @@ class DatabaseService {
         // Essai direct par _id
         if (this.#storage.etablissements[idOrUai]) {
             Object.assign(this.#storage.etablissements[idOrUai], updates);
-            this.#saveToLocalStorage();
             return;
         }
         // Fallback : chercher par UAI
         const etab = this.getEtablissementByUaiSync(idOrUai);
         if (etab) {
             Object.assign(etab, updates);
-            this.#saveToLocalStorage();
         } else {
             console.warn(`[DatabaseService] ⚠️ updateEtablissement: ${idOrUai} non trouvé`);
         }

@@ -137,20 +137,9 @@ class ExtractionModal extends Modal {
         const detailElement = document.createElement('p');
         detailElement.textContent = message;
         
-        // Appliquer un style selon le type
-        switch(type) {
-            case 'success':
-                detailElement.style.color = '#28a745';
-                break;
-            case 'warning':
-                detailElement.style.color = '#ffc107';
-                break;
-            case 'error':
-                detailElement.style.color = '#dc3545';
-                break;
-            default: // 'info'
-                detailElement.style.color = '#666';
-        }
+        // Appliquer une classe CSS selon le type (évite les styles inline)
+        const typeClass = `progress-detail-${type}`;
+        detailElement.classList.add('progress-detail', typeClass);
         
         // Ajouter au conteneur
         this.#detailsElement.appendChild(detailElement);

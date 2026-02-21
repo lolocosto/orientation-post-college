@@ -23,6 +23,7 @@ class OnisepAPI {
     
     // Configuration
     #baseURL = 'https://api.opendata.onisep.fr/api/1.0';
+    #http;
     
     #datasets = {
         structures: '5fa5816ac6a6e',                    // Structures d'enseignement secondaire
@@ -34,8 +35,8 @@ class OnisepAPI {
         enseignements_specialite_1ere: '60113f395cce6'  // Spécialités 1ère G
     };
     
-    // Compteur de requêtes
-    _requestCount = 0;
+    // Compteur de requêtes — délégué à HttpClient
+    get _requestCount() { return this.#http?.requestCount ?? 0; }
     
     // =====================================
     // CONSTRUCTEUR
@@ -49,6 +50,12 @@ class OnisepAPI {
         
         // Essayer de récupérer depuis localStorage si non fourni
         this._loadFromLocalStorage();
+        
+        // Headers dynamiques : le token et l'appId peuvent changer après construction
+        this.#http = new HttpClient({
+            label: 'OnisepAPI',
+            headers: () => this._getHeaders()
+        });
         
         console.log('[OnisepAPI] Instance créée');
     }
@@ -74,7 +81,7 @@ class OnisepAPI {
     }
     
     get requestCount() {
-        return this._requestCount;
+        return this.#http.requestCount;
     }
     
     get isConnected() {
@@ -319,77 +326,23 @@ class OnisepAPI {
             params.set('from', offset);
             
             const url = `${this.#baseURL}/dataset/${datasetId}/search?${params}`;
-			console.log(`[OnisepAPI] Requête envoyée : `, url);
-            
+            console.log(`[OnisepAPI] Requête : ${datasetName} [offset=${offset}]`);
 
-            // Configuration retry pour rate limiting
-            const maxRetries = 5;
-            let delay = 1000; // Délai initial 1s
-            
+            const data = await this.#http.getJSON(url);
             let pageResults = null;
             
-            for (let attempt = 1; attempt <= maxRetries; attempt++) {
-                try {
-                    console.log(`[OnisepAPI] Requête ${this._requestCount + 1} (tentative ${attempt}/${maxRetries}): ${datasetName} [offset=${offset}]`);
-                    
-                    // Attendre avant la requête (sauf première tentative)
-                    if (attempt > 1) {
-                        console.log(`[OnisepAPI] Attente ${delay}ms avant retry...`);
-                        await this._sleep(delay);
+            {
+                pageResults = data.results || [];
+                const pageTotal = data.total || data.total_count || data.nhits || pageResults.length;
+                
+                // Mise à jour du total (première page)
+                if (total === Infinity) {
+                    total = pageTotal;
+                    if (total > pageSize) {
+                        console.log(`[OnisepAPI] 📊 Pagination: ${total} résultats au total, récupération par pages de ${pageSize}`);
                     }
-                    
-                    const response = await fetch(url, {
-                        headers: this._getHeaders()
-                    });
-                    
-                    // Gestion erreur 429 (rate limiting)
-                    if (response.status === 429) {
-                        const retryAfter = response.headers.get('Retry-After');
-                        const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : delay * 2;
-                        
-                        console.warn(`[OnisepAPI] ⚠️ Rate limit (429) - Retry ${attempt}/${maxRetries}`);
-                        
-                        if (attempt === maxRetries) {
-                            throw new Error('Rate limit atteint après 5 tentatives');
-                        }
-                        
-                        delay = waitTime;
-                        continue; // Retry
-                    }
-                    
-                    // Autres erreurs HTTP
-                    if (!response.ok) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                    }
-                    
-                    // Parse la réponse
-                    const data = await response.json();
-                    this._requestCount++;
-                    
-                    pageResults = data.results || [];
-                    const pageTotal = data.total || data.total_count || data.nhits || pageResults.length;
-                    
-                    // Mise à jour du total (première page)
-                    if (total === Infinity) {
-                        total = pageTotal;
-                        if (total > pageSize) {
-                            console.log(`[OnisepAPI] 📊 Pagination: ${total} résultats au total, récupération par pages de ${pageSize}`);
-                        }
-                    }
-                    console.log(`[OnisepAPI] ✅ ${pageResults.length} résultat(s) récupéré(s) - Page ${Math.floor(offset/pageSize) + 1}/${Math.ceil(total/pageSize)}`);
-                    break; // Succès, sortir de la boucle retry
-                    
-                } catch (error) {
-                    // Si dernière tentative ou erreur non-429, on lance l'erreur
-                    if (attempt === maxRetries || error.message.includes('HTTP')) {
-                        console.error(`[OnisepAPI] ❌ Échec après ${attempt} tentative(s):`, error.message);
-                        throw error;
-                    }
-                    
-                    // Sinon on continue avec un délai exponentiel
-                    console.warn(`[OnisepAPI] Erreur tentative ${attempt}, retry...`, error.message);
-                    delay *= 2; // Backoff exponentiel
                 }
+                console.log(`[OnisepAPI] ✅ ${pageResults.length} résultat(s) — Page ${Math.floor(offset/pageSize) + 1}/${Math.ceil(total/pageSize)}`);
             }
             
             // Ajouter les résultats de la page
@@ -445,9 +398,7 @@ class OnisepAPI {
      * @param {number} ms - Délai en millisecondes
      * @returns {Promise<void>}
      */
-    _sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
+    _sleep(ms) { return this.#http.sleep(ms); }
     
     // =====================================
     // MÉTHODES UTILITAIRES PUBLIQUES

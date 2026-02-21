@@ -929,6 +929,7 @@ class OnisepExtractionController {
             stats.stored.diplomes = diplomesUniquesMap.size;
             stats.cascade.diplomes = stats.input.diplomes - stats.stored.diplomes;
             this.#addProgressDetail(`${stats.input.diplomes} diplômes → ${stats.stored.diplomes} stockés`);
+            this.#databaseService.flush(); // 💾 1 save au lieu de N
 
             // ÉTAPE 2 : Construire la map des relations etablissement-diplômes valides,
             // puis les stocker dans la base
@@ -937,6 +938,7 @@ class OnisepExtractionController {
             stats.stored.relationsDiplomesEtablissements = diplomesParEtablissementMap.size;
             stats.cascade.relationsDiplomesEtablissements = stats.input.relationsDiplomesEtablissements - stats.stored.relationsDiplomesEtablissements;
             this.#addProgressDetail(`${stats.input.relationsDiplomesEtablissements} relations diplômes-établissements → ${stats.stored.relationsDiplomesEtablissements} stockées`);
+            this.#databaseService.flush(); // 💾 1 save au lieu de N
 
             // ÉTAPE 3 : Construire la map des établissements uniques,
             // puis les stocker dans la base
@@ -947,6 +949,7 @@ class OnisepExtractionController {
             this.#addProgressDetail(`${stats.input.etablissements} établissements → ${stats.stored.etablissements} stockés`);
             // Enrichir les relations avec etabId (_id interne) maintenant que les étabs sont en base
             await this.#enrichirRelationsAvecEtabId(uaiToId);
+            this.#databaseService.flush(); // 💾 1 save après étabs + enrichissement
 
             // ÉTAPE 4 : Construire la map des relation dispositifs-etablissements valides,
             // puis les stocker dans la base
@@ -955,6 +958,7 @@ class OnisepExtractionController {
             stats.stored.relationsDispositifsEtablissements = dispositifsParEtablissementMap.size;
             stats.cascade.relationsDispositifsEtablissements = stats.input.relationsDispositifsEtablissements - stats.stored.relationsDispositifsEtablissements;
             this.#addProgressDetail(`${stats.input.relationsDispositifsEtablissements} relations dispositifs-établissements → ${stats.stored.relationsDispositifsEtablissements} stockées`);
+            this.#databaseService.flush(); // 💾 1 save au lieu de N
 
             // ÉTAPE 5 : Construire la map des dispositifs uniques,
             // puis les stocker dans la base
@@ -963,6 +967,7 @@ class OnisepExtractionController {
             stats.stored.dispositifs = dispositifsUniquesMap.size;
             stats.cascade.dispositifs = stats.input.dispositifs - stats.stored.dispositifs;
             this.#addProgressDetail(`${stats.input.dispositifs} dispositifs → ${stats.stored.dispositifs} stockés`);
+            this.#databaseService.flush(); // 💾 1 save au lieu de N
 
             // ÉTAPE 6 : Construire la map des relations options 2nde GT - établissements valides,
             // puis les stocker dans la base
@@ -971,6 +976,7 @@ class OnisepExtractionController {
             stats.stored.relationsOptions2ndeGTEtablissements = options2ndeGTParEtablissementMap.size;
             stats.cascade.relationsOptions2ndeGTEtablissements = stats.input.relationsOptions2ndeGTEtablissements - stats.stored.relationsOptions2ndeGTEtablissements;
             this.#addProgressDetail(`${stats.input.relationsOptions2ndeGTEtablissements} relations options 2nde GT-établissements → ${stats.stored.relationsOptions2ndeGTEtablissements} stockées`);
+            this.#databaseService.flush(); // 💾 1 save au lieu de N
 
             // ÉTAPE 7 : Construire la map des options 2nde GT uniques,
             // puis les stocker dans la base
@@ -979,6 +985,7 @@ class OnisepExtractionController {
             stats.stored.options2ndeGT = options2ndeGTUniquesMap.size;
             stats.cascade.options2ndeGT = stats.input.options2ndeGT - stats.stored.options2ndeGT;
             this.#addProgressDetail(`${stats.input.options2ndeGT} options 2nde GT → ${stats.stored.options2ndeGT} stockées`);
+            this.#databaseService.flush(); // 💾 1 save au lieu de N
 
             // ÉTAPE 8 : Construire la map des relations spécialités 1ère G - établissements valides,
             // puis les stocker dans la base
@@ -987,6 +994,7 @@ class OnisepExtractionController {
             stats.stored.relationsSpecialites1ereGEtablissements = specialites1ereGParEtablissementMap.size;
             stats.cascade.relationsSpecialites1ereGEtablissements = stats.input.relationsSpecialites1ereGEtablissements - stats.stored.relationsSpecialites1ereGEtablissements;
             this.#addProgressDetail(`${stats.input.relationsSpecialites1ereGEtablissements} relations spécialités 1ère G-établissements → ${stats.stored.relationsSpecialites1ereGEtablissements} stockées`);
+            this.#databaseService.flush(); // 💾 1 save au lieu de N
 
             // ÉTAPE 9 : Construire la map des spécialités 1ère G uniques,
             // puis les stocker dans la base
@@ -995,6 +1003,7 @@ class OnisepExtractionController {
             stats.stored.specialites1ereG = specialites1ereGUniquesMap.size;
             stats.cascade.specialites1ereG = stats.input.specialites1ereG - stats.stored.specialites1ereG;
             this.#addProgressDetail(`${stats.input.specialites1ereG} spécialités 1ère G → ${stats.stored.specialites1ereG} stockées`);
+            this.#databaseService.flush(); // 💾 save final
             
             // Calcul durée
             stats.duree = Date.now() - startTime;
@@ -1465,6 +1474,7 @@ class OnisepExtractionController {
                 }
             }
 
+            if (nbEnrichis > 0) this.#databaseService.flush(); // 💾 batch save enrichissements
             console.log(`[OnisepExtractionController] ✅ ${nbEnrichis} établissements enrichis (type/statut)`);
             return nbEnrichis;
 

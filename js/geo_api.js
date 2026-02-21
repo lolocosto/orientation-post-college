@@ -3,7 +3,7 @@
  * Description : Classe pour interagir avec l'API Géo (geo.api.gouv.fr)
  * Auteur : Laurent COSTE
  * Date : 2026-02-03
- * Version : 1.0 - Phase 1
+ * Version : 1.1 - Utilise HttpClient
  ************************************************/
 
 /**
@@ -16,25 +16,22 @@ class GeoAPI {
     // =====================================
     
     #baseURL = 'https://geo.api.gouv.fr';
-    
-    // Compteur de requêtes
-    _requestCount = 0;
+    #http;
     
     // =====================================
     // CONSTRUCTEUR
     // =====================================
     
     constructor() {
+        this.#http = new HttpClient({ label: 'GeoAPI', maxRetries: 3 });
         console.log('[GeoAPI] Instance créée');
     }
+    
+    get _requestCount() { return this.#http.requestCount; }
     
     // =====================================
     // GETTERS
     // =====================================
-    
-    get requestCount() {
-        return this._requestCount;
-    }
     
     /**
      * Vérifie si l'API est accessible (pas d'authentification pour API Géo)
@@ -386,69 +383,11 @@ class GeoAPI {
      * @param {number} initialDelay - Délai initial en ms (défaut: 1000)
      * @returns {Promise<any>} Réponse JSON
      */
-    async _request(url, maxRetries = 3, initialDelay = 1000) {
-        this._requestCount++;
-        
-        let lastError = null;
-        
-        for (let attempt = 0; attempt < maxRetries; attempt++) {
-            try {
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json'
-                    }
-                });
-                
-                // Succès
-                if (response.ok) {
-                    const data = await response.json();
-                    return data;
-                }
-                
-                // Erreur 429 (Too Many Requests)
-                if (response.status === 429) {
-                    const retryAfter = response.headers.get('Retry-After');
-                    const delay = retryAfter ? parseInt(retryAfter) * 1000 : initialDelay * Math.pow(2, attempt);
-                    
-                    console.warn(`[GeoAPI] ⚠️ Erreur 429 - Tentative ${attempt + 1}/${maxRetries} - Attente ${delay}ms`);
-                    
-                    if (attempt < maxRetries - 1) {
-                        await this._sleep(delay);
-                        continue;
-                    }
-                }
-                
-                // Autres erreurs HTTP
-                throw new Error(`Erreur HTTP ${response.status}: ${response.statusText}`);
-                
-            } catch (error) {
-                lastError = error;
-                
-                // Si ce n'est pas la dernière tentative, attendre avant de réessayer
-                if (attempt < maxRetries - 1) {
-                    const delay = initialDelay * Math.pow(2, attempt);
-                    console.warn(`[GeoAPI] ⚠️ Erreur - Tentative ${attempt + 1}/${maxRetries} - Attente ${delay}ms`);
-                    await this._sleep(delay);
-                } else {
-                    console.error(`[GeoAPI] ❌ Échec après ${maxRetries} tentatives`);
-                }
-            }
-        }
-        
-        // Si on arrive ici, toutes les tentatives ont échoué
-        throw lastError;
+    async _request(url) {
+        return this.#http.getJSON(url);
     }
-    
-    /**
-     * Attendre un délai
-     * @private
-     * @param {number} ms - Délai en millisecondes
-     * @returns {Promise<void>}
-     */
-    async _sleep(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-    }
+
+    _sleep(ms) { return this.#http.sleep(ms); }
 }
 
 // =====================================
