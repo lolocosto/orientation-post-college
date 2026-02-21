@@ -101,6 +101,30 @@ class DetailsModal extends Modal {
         
         console.log(`[DetailsModal] Affichage dispositif ${dispositifEnrichi.dispositif.libelle}`, dispositifEnrichi);
     }
+
+    /**
+     * Affiche les détails d'un diplôme apprentissage (CARIF-OREF)
+     * @param {Object} diplomeEnrichi - { diplome, etablissements }
+     * @param {Array}  list  - Liste complète pour navigation (optionnel)
+     * @param {number} index - Index courant (optionnel)
+     */
+    showDiplomeApprentissage(diplomeEnrichi, list = null, index = -1) {
+        this.#currentType  = 'diplome_apprentissage';
+        this.#currentData  = diplomeEnrichi;
+        this.#currentList  = list;
+        this.#currentIndex = index;
+
+        this.setTitle(`🎓 ${diplomeEnrichi.diplome.libelle || 'Diplôme apprentissage'}`);
+
+        const content    = this.#buildDiplomeApprentissageHTML(diplomeEnrichi);
+        const navButtons = this.#buildNavigationButtons();
+        this.setContent(navButtons + content);
+
+        window.currentDetailsModal = this;
+        this.open();
+
+        console.log(`[DetailsModal] Affichage diplôme appr.: ${diplomeEnrichi.diplome.libelle}`, diplomeEnrichi);
+    }
     
     /**
      * Construit les boutons de navigation précédent/suivant
@@ -172,11 +196,14 @@ class DetailsModal extends Modal {
             let enriched = null;
             
             if (this.#currentType === 'etablissement') {
-                enriched = await window.databaseService.getEtablissementEnrichi(item.uai);
+                enriched = await window.databaseService.getEtablissementEnrichi(item._id || item.uai);
                 if (enriched) this.showEtablissement(enriched, this.#currentList, index);
             } else if (this.#currentType === 'diplome') {
                 enriched = await window.databaseService.getDiplomeEnrichi(item.libelle);
                 if (enriched) this.showDiplome(enriched, this.#currentList, index);
+            } else if (this.#currentType === 'diplome_apprentissage') {
+                enriched = await window.databaseService.getDiplomeApprentissageEnrichi(item.id);
+                if (enriched) this.showDiplomeApprentissage(enriched, this.#currentList, index);
             } else if (this.#currentType === 'dispositif') {
                 enriched = await window.databaseService.getDispositifEnrichi(item.libelle);
                 if (enriched) this.showDispositif(enriched, this.#currentList, index);
@@ -276,7 +303,7 @@ class DetailsModal extends Modal {
                     <h3>Proposé par (${diplomeEnrichi.etablissements.length})</h3>
                     <ul>
                         ${diplomeEnrichi.etablissements.slice(0, 10).map(e => `
-                            <li><a href="#" onclick="event.preventDefault(); window.openEtablissementDetailsFromModal('${e.uai}')">${e.nom}</a></li>
+                            <li><a href="#" onclick="event.preventDefault(); window.openEtablissementDetailsFromModal('${e._id}')">${e.nom}</a></li>
                         `).join('')}
                     </ul>
                 </div>
@@ -284,6 +311,33 @@ class DetailsModal extends Modal {
         `;
     }
     
+    /**
+     * Construit le HTML pour un diplôme apprentissage
+     * Délègue à window.buildDiplomeApprentissageDetailsHTML()
+     * @param {Object} diplomeEnrichi
+     * @returns {string}
+     * @private
+     */
+    #buildDiplomeApprentissageHTML(diplomeEnrichi) {
+        if (typeof window.buildDiplomeApprentissageDetailsHTML === 'function') {
+            return window.buildDiplomeApprentissageDetailsHTML(diplomeEnrichi);
+        }
+        // Fallback minimal
+        const { diplome, etablissements } = diplomeEnrichi;
+        return `
+            <div class="detail-section">
+                <h3>Informations</h3>
+                <p><strong>Type :</strong> ${diplome.typeDiplome || '—'}</p>
+                <p><strong>Niveau :</strong> ${diplome.niveau || '—'}</p>
+                ${diplome.rncpCode ? `<p><strong>RNCP :</strong> ${diplome.rncpCode}</p>` : ''}
+            </div>
+            ${etablissements?.length ? `
+                <div class="detail-section">
+                    <h3>Centres de formation (${etablissements.length})</h3>
+                    <ul>${etablissements.map(e => `<li><a href="#" onclick="event.preventDefault();window.openEtablissementDetailsFromModal('${e._id}')">${e.nom || e.uai}</a></li>`).join('')}</ul>
+                </div>` : ''}`;
+    }
+
     /**
      * Construit le HTML pour un dispositif
      * Utilise la fonction buildDispositifDetailsHTML de gestion_onglet_resultats.js
@@ -308,7 +362,7 @@ class DetailsModal extends Modal {
                     <h3>Proposé par (${dispositifEnrichi.etablissements.length})</h3>
                     <ul>
                         ${dispositifEnrichi.etablissements.slice(0, 10).map(e => `
-                            <li><a href="#" onclick="event.preventDefault(); window.openEtablissementDetailsFromModal('${e.uai}')">${e.nom}</a></li>
+                            <li><a href="#" onclick="event.preventDefault(); window.openEtablissementDetailsFromModal('${e._id}')">${e.nom}</a></li>
                         `).join('')}
                     </ul>
                 </div>
@@ -433,6 +487,25 @@ window.openDispositifDetailsFromModal = async function(libelle) {
         modal.showDispositif(dispositifEnrichi);
     } catch (error) {
         console.error(`[DetailsModal] Erreur ouverture dispositif:`, error);
+    }
+};
+
+/**
+ * Ouvre une modale de détails diplôme apprentissage depuis un lien dans une autre modale
+ * @param {string} id - RNCP code ou libellé normalisé
+ */
+window.openDiplomeApprentissageDetailsFromModal = async function(id) {
+    console.log(`[openDiplomeApprentissageDetailsFromModal] Ouverture diplôme appr. depuis lien: ${id}`);
+    try {
+        const diplomeEnrichi = await window.databaseService.getDiplomeApprentissageEnrichi(id);
+        if (!diplomeEnrichi) {
+            console.error(`[openDiplomeApprentissageDetailsFromModal] Diplôme non trouvé: ${id}`);
+            return;
+        }
+        const modal = new DetailsModal('diplome-details-modal');
+        modal.showDiplomeApprentissage(diplomeEnrichi);
+    } catch (error) {
+        console.error(`[openDiplomeApprentissageDetailsFromModal] Erreur:`, error);
     }
 };
 

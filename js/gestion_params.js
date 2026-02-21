@@ -481,23 +481,16 @@ async function importerFichier() {
 // RESET BASE
 // =====================================
 function confirmResetDatabase() { 
-    document.getElementById('reset-confirm-modal').classList.add('active');
+    const modal = document.getElementById('reset-confirm-modal');
+    if (modal) modal.style.display = 'flex';
 }
 
 function executeResetDatabase() {
     try {
-        // Vider toutes les données de la base
         localStorage.removeItem('parcours_avenir');
-        
-        // Fermer la modal
         closeResetConfirmModal();
-        
-        // Afficher confirmation
         showAlert('✅ Base de données vidée ! La page va se recharger...', 'success');
-        
-        // Recharger l'application
         setTimeout(() => location.reload(), 1000);
-        
     } catch (error) {
         console.error('Erreur reset database:', error);
         showAlert(`❌ Erreur lors du vidage : ${error.message}`, 'error');
@@ -505,7 +498,8 @@ function executeResetDatabase() {
 }
 
 function closeResetConfirmModal() {
-	document.getElementById('reset-confirm-modal').classList.remove('active');
+    const modal = document.getElementById('reset-confirm-modal');
+    if (modal) modal.style.display = 'none';
 }
 
 // =====================================

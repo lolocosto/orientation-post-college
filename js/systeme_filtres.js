@@ -72,11 +72,17 @@ async function updateFiltersForView(view) {
             if (filterStatut)  { filterStatut.classList.remove('u-hidden');  await populateStatutFilter(); }
             break;
 
-        case 'diplomes':
-            if (filterSearch) filterSearch.placeholder = '🔍 Rechercher un diplôme...';
-            if (filterNiveau)  { filterNiveau.classList.remove('u-hidden');  await populateNiveauDiplomeFilter(); }
-            if (filterType)    { filterType.classList.remove('u-hidden');    await populateTypeDiplomeFilter(); }
+        case 'diplomes_scolaire':
+            if (filterSearch) filterSearch.placeholder = '🔍 Rechercher un diplôme (voie scolaire)...';
+            if (filterNiveau)   { filterNiveau.classList.remove('u-hidden');   await populateNiveauDiplomeFilter(); }
+            if (filterType)     { filterType.classList.remove('u-hidden');     await populateTypeDiplomeFilter(); }
             if (filterCategorie){ filterCategorie.classList.remove('u-hidden'); await populateCategorieFilter(); }
+            break;
+
+        case 'diplomes_apprentissage':
+            if (filterSearch) filterSearch.placeholder = '🔍 Rechercher un diplôme (apprentissage)...';
+            if (filterNiveau)   { filterNiveau.classList.remove('u-hidden');   await populateNiveauDiplomeApprentissageFilter(); }
+            if (filterType)     { filterType.classList.remove('u-hidden');     await populateTypeDiplomeApprentissageFilter(); }
             break;
 
         case 'dispositifs':
@@ -132,8 +138,8 @@ function _populateSelect(selectEl, values, emptyLabel) {
         option.textContent = val;
         selectEl.appendChild(option);
     });
-    // Taille visible adaptée (max 6 lignes)
-    selectEl.size = Math.min(values.length, 6);
+    // Taille visible adaptée (max 4 lignes)
+    selectEl.size = Math.min(values.length, 4);
 }
 
 async function populateTypeFilter() {
@@ -186,6 +192,18 @@ async function populateCategorieDispositifFilter() {
     _populateSelect(document.getElementById('filter-categorie'), categories, 'Toutes les catégories');
 }
 
+async function populateNiveauDiplomeApprentissageFilter() {
+    const diplomes = await window.databaseService.getAllDiplomesApprentissage();
+    const niveaux = [...new Set(diplomes.map(d => d.niveau).filter(Boolean))].sort();
+    _populateSelect(document.getElementById('filter-niveau'), niveaux, 'Tous les niveaux');
+}
+
+async function populateTypeDiplomeApprentissageFilter() {
+    const diplomes = await window.databaseService.getAllDiplomesApprentissage();
+    const types = [...new Set(diplomes.map(d => d.typeDiplome).filter(Boolean))].sort();
+    _populateSelect(document.getElementById('filter-type'), types, 'Tous les types');
+}
+
 // =========================================================================
 // LOGIQUE DE FILTRAGE MULTI-VALEURS
 // =========================================================================
@@ -202,11 +220,12 @@ function applyFilters() {
     console.log('[Filtres] Application des filtres:', filtersState);
     const view = currentView;
     switch (view) {
-        case 'etablissements':    filterEtablissements(); break;
-        case 'diplomes':          filterDiplomes(); break;
-        case 'dispositifs':       filterDispositifs(); break;
-        case 'options_2nde_gt':   filterOptions(); break;
-        case 'specialites_1ereG': filterSpecialites(); break;
+        case 'etablissements':          filterEtablissements(); break;
+        case 'diplomes_scolaire':       filterDiplomes(); break;
+        case 'diplomes_apprentissage':  filterDiplomesApprentissage(); break;
+        case 'dispositifs':             filterDispositifs(); break;
+        case 'options_2nde_gt':         filterOptions(); break;
+        case 'specialites_1ereG':       filterSpecialites(); break;
     }
     updateResultsCount();
 }
@@ -255,6 +274,27 @@ function filterDiplomes() {
     });
 
     console.log(`[Filtres] ${visibleCount} diplômes visibles`);
+}
+
+function filterDiplomesApprentissage() {
+    const rows = document.querySelectorAll('#results-body tr[data-id]');
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+        const libelle = row.querySelector('td:nth-child(1)')?.textContent.toLowerCase() || '';
+        const niveau  = row.dataset.niveau || '';
+        const type    = row.dataset.type   || '';
+
+        const visible =
+            (!filtersState.search || libelle.includes(filtersState.search)) &&
+            _passesMultiFilter(filtersState.niveau, niveau) &&
+            _passesMultiFilter(filtersState.type,   type);
+
+        row.style.display = visible ? '' : 'none';
+        if (visible) visibleCount++;
+    });
+
+    console.log(`[Filtres] ${visibleCount} diplômes apprentissage visibles`);
 }
 
 function filterDispositifs() {

@@ -15,10 +15,11 @@ let filteredData = [];
 
 // État du tri par vue
 let sortState = {
-    etablissements: { column: 'nom', direction: 'asc' },
-    diplomes: { column: 'intitule', direction: 'asc' },
-    dispositifs: { column: 'intitule', direction: 'asc' },
-    options2ndeGT: { column: 'libelle', direction: 'asc' }
+    etablissements:       { column: 'nom',      direction: 'asc' },
+    diplomes_scolaire:    { column: 'intitule',  direction: 'asc' },
+    diplomes_apprentissage: { column: 'libelle', direction: 'asc' },
+    dispositifs:          { column: 'intitule',  direction: 'asc' },
+    options2ndeGT:        { column: 'libelle',   direction: 'asc' }
 };
 
 // État du filtre
@@ -30,7 +31,7 @@ let currentFilter = '';
 
 /**
  * Bascule entre les vues de résultats
- * @param {'etablissements'|'diplomes'|'dispositifs'|'options2ndeGT'} viewName - Nom de la vue
+ * @param {'etablissements'|'diplomes_scolaire'|'diplomes_apprentissage'|'dispositifs'|'options2ndeGT'} viewName
  * @returns {void}
  */
 function switchView(viewName) {
@@ -40,9 +41,9 @@ function switchView(viewName) {
     
     // Mettre à jour l'affichage des stat-cards
     document.querySelectorAll('.stat-card').forEach(card => {
-        card.classList.remove('active');
+        card.classList.remove('stat-card--active');
     });
-    document.querySelector(`.stat-card[data-view="${viewName}"]`)?.classList.add('active');
+    document.querySelector(`.stat-card[data-view="${viewName}"]`)?.classList.add('stat-card--active');
     
     // Charger et afficher les données
     loadView();
@@ -59,10 +60,11 @@ async function loadView() {
     const viewTitle = document.getElementById('view-title');
     if (viewTitle) {
         const titles = {
-            'etablissements': '📚 Liste des Établissements',
-            'diplomes': '🎓 Liste des Diplômes',
-            'dispositifs': '🎯 Liste des Dispositifs',
-            'options2ndeGT': '📚 Liste des Options 2nde GT'
+            'etablissements':         '📚 Liste des Établissements',
+            'diplomes_scolaire':      '🏫 Diplômes — voie scolaire',
+            'diplomes_apprentissage': '🎓 Diplômes — apprentissage',
+            'dispositifs':            '🎯 Liste des Dispositifs',
+            'options2ndeGT':          '📚 Liste des Options 2nde GT'
         };
         const newTitle = titles[currentView] || '📚 Liste des Établissements';
         console.log(`[loadView] ✏️ Mise à jour titre: "${viewTitle.textContent}" → "${newTitle}"`);
@@ -85,9 +87,13 @@ async function loadView() {
                 console.log('[loadView] → loadetablissementsView()');
                 await loadetablissementsView();
                 break;
-            case 'diplomes':
+            case 'diplomes_scolaire':
                 console.log('[loadView] → loadDiplomesView()');
                 await loadDiplomesView();
+                break;
+            case 'diplomes_apprentissage':
+                console.log('[loadView] → loadDiplomesApprentissageView()');
+                await loadDiplomesApprentissageView();
                 break;
             case 'dispositifs':
                 console.log('[loadView] → loadDispositifsView()');
@@ -132,6 +138,8 @@ async function loadStats() {
         document.getElementById('stat-diplomes').textContent = stats.diplomes;
         document.getElementById('stat-dispositifs').textContent = stats.dispositifs;
         document.getElementById('stat-options2ndeGT').textContent = stats.options_2nde_gt;
+        const statAppr = document.getElementById('stat-apprentissage');
+        if (statAppr) statAppr.textContent = stats.diplomes_apprentissage || 0;
     } catch (error) {
         console.error('[loadStats] Erreur chargement stats:', error);
     }
@@ -148,8 +156,9 @@ async function loadStats() {
 async function loadetablissementsView() {
     console.log('[loadetablissementsView] Chargement des établissements...');
     
-    const etablissements = await window.databaseService.getAllEtablissements();
-    
+    let etablissements = await window.databaseService.getAllEtablissements();
+    console.log('[loadetablissementsView] 📋 Établissements récupérés de la base :', etablissements);
+
     currentData = etablissements;
     filteredData = [...etablissements];
     
@@ -185,6 +194,7 @@ function renderetablissementsTable(data) {
                     <th onclick="sortTable('type')">
                         Type ${getSortIcon('type')}
                     </th>
+                    <th>Voie(s)</th>
                     <th onclick="sortTable('commune')">
                         Commune ${getSortIcon('commune')}
                     </th>
@@ -198,16 +208,17 @@ function renderetablissementsTable(data) {
             </thead>
             <tbody id="results-body">
                 ${data.map(etab => `
-                    <tr onclick="showEtablissementDetails('${etab.uai}')" 
-                        data-uai="${etab.uai}"
+                    <tr onclick="showEtablissementDetails('${etab._id}')" 
+                        data-id="${etab._id}"
                         data-type="${etab.type || ''}"
                         data-commune="${etab.commune || ''}"
                         data-statut="${etab.statut || ''}">
                         <td>
-                            <strong>${etab.nom || 'N/A'}</strong><br>
+                            <strong>${etab.nom || 'N/A'}</strong> <span class="link-icon">↗</span><br>
                             <small class="u-text-light">${etab.uai}</small>
                         </td>
                         <td class="resultat-col-filterable">${etab.type || 'N/A'}</td>
+                        <td>${renderVoiesBadges(etab.voies)}</td>
                         <td class="resultat-col-filterable">${etab.commune || 'N/A'}</td>
                         <td class="resultat-col-filterable">${etab.statut || 'N/A'}</td>
                         <td class="resultat-col-info">${etab.departement || 'N/A'}</td>
@@ -218,6 +229,20 @@ function renderetablissementsTable(data) {
     `;
     
     tableContainer.innerHTML = html;
+}
+
+/**
+ * Génère les badges HTML pour les voies d'un établissement
+ * @param {string[]} voies - Tableau de voies (ex: ['scolaire', 'apprentissage'])
+ * @returns {string} HTML des badges
+ */
+function renderVoiesBadges(voies) {
+    if (!voies || voies.length === 0) voies = ['scolaire'];
+    return voies.map(v => {
+        if (v === 'scolaire')     return '<span class="voie-badge voie-badge--scolaire" title="Voie scolaire">🏫 Scolaire</span>';
+        if (v === 'apprentissage') return '<span class="voie-badge voie-badge--apprentissage" title="Voie apprentissage">🎓 Appr.</span>';
+        return `<span class="voie-badge">${v}</span>`;
+    }).join(' ');
 }
 
 /**
@@ -253,8 +278,11 @@ function sortTable(column) {
         case 'etablissements':
             renderetablissementsTable(filteredData);
             break;
-        case 'diplomes':
+        case 'diplomes_scolaire':
             renderDiplomesTable(filteredData);
+            break;
+        case 'diplomes_apprentissage':
+            renderDiplomesApprentissageTable(filteredData);
             break;
         case 'dispositifs':
             renderDispositifsTable(filteredData);
@@ -287,7 +315,14 @@ function filterTable(query) {
         });
     }
     
-    renderetablissementsTable(filteredData);
+    // Dispatch selon la vue active
+    switch(currentView) {
+        case 'diplomes_scolaire':      renderDiplomesTable(filteredData); break;
+        case 'diplomes_apprentissage': renderDiplomesApprentissageTable(filteredData); break;
+        case 'dispositifs':            renderDispositifsTable(filteredData); break;
+        case 'options2ndeGT':          renderOptions2ndeGTTable(filteredData); break;
+        default:                       renderetablissementsTable(filteredData);
+    }
 }
 
 // =====================================
@@ -397,7 +432,7 @@ function renderDiplomesTable(data) {
                             data-categorie="${categorie}"
                             onclick="showDiplomeDetails(this.dataset.libelle)" 
                             style="cursor: pointer;">
-                            <td><strong>${diplome.libelle || 'N/A'}</strong></td>
+                            <td><strong>${diplome.libelle || 'N/A'}</strong> <span class="link-icon">↗</span></td>
                             <td class="resultat-col-filterable">${diplome.niveauSortie || 'N/A'}</td>
                             <td class="resultat-col-filterable">${diplome.type || 'N/A'}</td>
                             <td class="resultat-col-filterable">${categorie}</td>
@@ -410,6 +445,232 @@ function renderDiplomesTable(data) {
     `;
     
     tableContainer.innerHTML = html;
+}
+
+
+// =====================================
+// VUE DIPLÔMES APPRENTISSAGE
+// =====================================
+
+/**
+ * Charge et affiche la vue des diplômes en apprentissage (CARIF-OREF)
+ */
+async function loadDiplomesApprentissageView() {
+    console.log('[loadDiplomesApprentissageView] Chargement...');
+
+    const allDiplomes  = await window.databaseService.getAllDiplomesApprentissage();
+    const allRelations = await window.databaseService.getAllDiplomesApprentissageParEtablissement();
+    console.log('[loadDiplomesApprentissageView] 📋 Diplômes apprentissage récupérés de la base :', allDiplomes);
+    console.log('[loadDiplomesApprentissageView] 📋 Relations apprentissage récupérées de la base :', allRelations);
+
+    const comptageUais = {};
+    for (const rel of allRelations) {
+        if (!comptageUais[rel.diplomId]) comptageUais[rel.diplomId] = new Set();
+        if (rel.uai) comptageUais[rel.diplomId].add(rel.uai);
+    }
+
+    const diplomesArray = allDiplomes.map(d => ({
+        id:               d.id,
+        libelle:          d.libelle         || 'N/A',
+        typeDiplome:      d.typeDiplome      || 'N/A',
+        niveau:           d.niveau           || 'N/A',
+        rncpCode:         d.rncpCode         || null,
+        libelleNormalise: d.libelleNormalise || '',
+        nbEtablissements: comptageUais[d.id]?.size || 0
+    })).sort((a, b) => a.libelle.localeCompare(b.libelle, 'fr'));
+
+    currentData  = diplomesArray;
+    filteredData = [...diplomesArray];
+
+    renderDiplomesApprentissageTable(filteredData);
+}
+
+/**
+ * Affiche le tableau des diplômes en apprentissage
+ */
+function renderDiplomesApprentissageTable(data) {
+    console.log(`[renderDiplomesApprentissageTable] Affichage de ${data.length} diplôme(s)`);
+
+    const tableContainer = document.getElementById('content-container');
+
+    if (data.length === 0) {
+        tableContainer.innerHTML = `
+            <div class="empty-state">
+                <p>😔 Aucun diplôme en apprentissage trouvé.<br>
+                   Lancez une extraction depuis l'onglet Recherche en cochant "Apprentissage".</p>
+            </div>`;
+        return;
+    }
+
+    tableContainer.innerHTML = `
+        <table class="resultat-table">
+            <thead>
+                <tr>
+                    <th onclick="sortTable('libelle')">Diplôme ${getSortIcon('libelle')}</th>
+                    <th onclick="sortTable('typeDiplome')">Type ${getSortIcon('typeDiplome')}</th>
+                    <th onclick="sortTable('niveau')">Niveau ${getSortIcon('niveau')}</th>
+                    <th onclick="sortTable('rncpCode')">Code RNCP ${getSortIcon('rncpCode')}</th>
+                    <th onclick="sortTable('nbEtablissements')">Établissements ${getSortIcon('nbEtablissements')}</th>
+                </tr>
+            </thead>
+            <tbody id="results-body">
+                ${data.map(d => `
+                    <tr data-id="${d.id}"
+                        data-libelle="${d.libelle}"
+                        data-type="${d.typeDiplome}"
+                        data-niveau="${d.niveau}"
+                        onclick="showDiplomeApprentissageDetails('${d.id}')"
+                        style="cursor:pointer;">
+                        <td><strong>${d.libelle}</strong> <span class="link-icon">↗</span></td>
+                        <td class="resultat-col-filterable">${d.typeDiplome}</td>
+                        <td class="resultat-col-filterable">${d.niveau}</td>
+                        <td class="resultat-col-info">${d.rncpCode || '<span style="color:#bbb">—</span>'}</td>
+                        <td class="resultat-col-info">${d.nbEtablissements}</td>
+                    </tr>`).join('')}
+            </tbody>
+        </table>`;
+}
+
+/**
+ * Affiche la modale de détail d'un diplôme apprentissage
+ * @param {string} id - RNCP code ou libellé normalisé
+ */
+async function showDiplomeApprentissageDetails(id) {
+    console.log('[showDiplomeApprentissageDetails]', id);
+    try {
+        const diplomeEnrichi = await window.databaseService.getDiplomeApprentissageEnrichi(id);
+        if (!diplomeEnrichi) { showAlert('❌ Diplôme non trouvé', 'error'); return; }
+
+        // Vérifier si ce diplôme est aussi accessible en scolaire
+        diplomeEnrichi._aussiEnScolaire = await window.databaseService.estAussiEnScolaire(diplomeEnrichi.diplome.onisepIntitule);
+
+        let list = null, index = -1;
+        if (currentView === 'diplomes_apprentissage' && filteredData.length > 0) {
+            list  = filteredData;
+            index = filteredData.findIndex(d => d.id === id);
+        }
+
+        const uniqueId = `${id.substring(0, 20).replace(/\s/g, '')}-${Date.now()}`;
+        const modal = new DetailsModal('diplome-details-modal', uniqueId);
+        modal.showDiplomeApprentissage(diplomeEnrichi, list, index);
+
+    } catch (error) {
+        console.error('[showDiplomeApprentissageDetails]', error);
+        showAlert('❌ Erreur lors du chargement des détails', 'error');
+    }
+}
+
+/**
+ * Construit le HTML de la modale de détail d'un diplôme apprentissage.
+ * Exposé via window pour DetailsModal.
+ */
+function buildDiplomeApprentissageDetailsHTML(diplomeEnrichi) {
+    const { diplome, etablissements } = diplomeEnrichi;
+    let html = '';
+
+    // SECTION 0 : Description (contenu)
+    if (diplome.contenu) {
+        html += `
+    <div class="detail-section" style="background:var(--bg-light,#f8f9fa); border-radius:8px; padding:14px 16px; margin-bottom:12px; border-left: 4px solid var(--primary,#3b82f6);">
+        <p style="margin:0; line-height:1.65; color:var(--text,#333);">${diplome.contenu}</p>
+    </div>`;
+    }
+
+    // Badge voie croisée
+    if (diplomeEnrichi._aussiEnScolaire) {
+        html += `
+    <div style="margin-bottom:12px; padding:10px 14px; background:#f0fdf4; border-left:4px solid #22c55e; border-radius:6px; font-size:0.92em; color:#15803d; font-weight:500;">
+        🔄 Ce diplôme est <strong>également accessible par voie scolaire</strong> dans les établissements de la zone.
+    </div>`;
+    }
+
+    // SECTION 1 : Informations générales
+    html += `
+    <div class="detail-section">
+        <h3 class="detail-section-title">📋 Informations générales</h3>
+        <div class="detail-info-grid">`;
+    if (diplome.typeDiplome) html += `
+            <div class="info-row">
+                <span class="info-label">Type :</span>
+                <span class="info-value">${diplome.typeDiplome}</span>
+            </div>`;
+    if (diplome.niveau) html += `
+            <div class="info-row">
+                <span class="info-label">Niveau :</span>
+                <span class="info-value">${diplome.niveau}</span>
+            </div>`;
+    if (diplome.rncpCode) html += `
+            <div class="info-row">
+                <span class="info-label">Code RNCP :</span>
+                <span class="info-value">
+                    <a href="https://www.francecompetences.fr/recherche/rncp/${diplome.rncpCode.replace('RNCP','')}"
+                       target="_blank" rel="noopener">${diplome.rncpCode} ↗</a>
+                </span>
+            </div>`;
+    html += `
+        </div>
+    </div>`;
+
+    // SECTION 2 : Établissements
+    const nbEtab = etablissements?.length || 0;
+    html += `
+    <div class="detail-section">
+        <h3 class="detail-section-title">🏭 Centres de formation proposant ce diplôme (${nbEtab})</h3>`;
+
+    if (nbEtab > 0) {
+        html += '<ul class="detail-list">';
+        for (const etab of etablissements) {
+            const certifBadge = etab.certifieQualite
+                ? ` <span class="voie-badge voie-badge--qualite" title="Certifié Qualiopi">✓ Qualiopi</span>`
+                : '';
+            const siretInfo = etab.siret
+                ? `<span style="font-size:0.85em;color:#777;"> — SIRET ${etab.siret}</span>`
+                : '';
+            html += `
+                <li class="detail-item" style="cursor:pointer;">
+                    <a href="#" onclick="event.preventDefault(); window.openEtablissementDetailsFromModal('${etab._id}')">
+                        <strong>${etab.nom || etab.uai}</strong>${certifBadge}
+                        — ${etab.commune || ''}${siretInfo} ↗
+                    </a>
+                </li>`;
+        }
+        html += '</ul>';
+    } else {
+        html += '<p style="color:#999;">Aucun établissement enregistré pour ce diplôme.</p>';
+    }
+
+    html += '</div>';
+
+    // SECTION 3 : Blocs de compétences
+    const blocs = diplome.blocsCompetences || [];
+    if (blocs.length > 0) {
+        html += `
+    <div class="detail-section">
+        <h3 class="detail-section-title">📚 Blocs de compétences (${blocs.length})</h3>
+        <div style="display:flex; flex-direction:column; gap:10px;">`;
+        for (const bloc of blocs) {
+            const titreBloc = bloc.rncp_intitule || bloc.intitule || bloc.libelle || '—';
+            const codeBloc  = bloc.rncp_code || '';
+            const listeComp = Array.isArray(bloc.competences) ? bloc.competences : [];
+            html += `
+            <div style="border:1px solid var(--border,#e2e8f0); border-radius:6px; overflow:hidden;">
+                <div style="background:var(--bg-light,#f8f9fa); padding:8px 12px; font-weight:600; font-size:0.92em;">
+                    ${codeBloc ? `<span style="color:#888;font-weight:400;margin-right:6px;">${codeBloc}</span>` : ''}${titreBloc}
+                </div>`;
+            if (listeComp.length > 0) {
+                html += `<ul style="margin:0; padding:8px 12px 8px 26px; line-height:1.7; font-size:0.9em;">`;
+                for (const comp of listeComp) {
+                    html += `<li>${comp.libelle || comp}</li>`;
+                }
+                html += `</ul>`;
+            }
+            html += `</div>`;
+        }
+        html += `</div>
+    </div>`;
+    }
+
+    return html;
 }
 
 // =====================================
@@ -525,6 +786,7 @@ async function loadOptions2ndeGTView() {
 
     // Récupérer toutes les options avec comptage des établissements
     const options = await window.databaseService.getAllOptions2ndeGTAvecComptage();
+    console.log('[loadOptions2ndeGTView] 📋 Options 2nde GT récupérées de la base :', options);
 
     currentData = options;
     filteredData = [...options];
@@ -589,11 +851,14 @@ function renderOptions2ndeGTTable(data) {
 function resetFilters() {
     console.log('[resetFilters] Réinitialisation des filtres');
     
-    currentFilter = '';
-    document.getElementById('filter-input').value = '';
+    // Déléguer à systeme_filtres.js qui gère l'état complet des filtres
+    if (typeof resetFiltersState === 'function') {
+        resetFiltersState();
+    }
     
-    filteredData = [...currentData];
-    
+    if (Array.isArray(currentData)) {
+        filteredData = [...currentData];
+    }
     loadView();
 }
 
@@ -606,12 +871,12 @@ function resetFilters() {
  * @param {string} uai - Code UAI de l'établissement
  * @returns {Promise<void>}
  */
-async function showEtablissementDetails(uai) {
-    console.log(`[showEtablissementDetails] Affichage détails établissement: ${uai}`);
+async function showEtablissementDetails(id) {
+    console.log(`[showEtablissementDetails] Affichage détails établissement: ${id}`);
     
     try {
         // Récupérer toutes les données
-        const etablissementEnrichi = await window.databaseService.getEtablissementEnrichi(uai);
+        const etablissementEnrichi = await window.databaseService.getEtablissementEnrichi(id);
         if (!etablissementEnrichi) {
             showAlert('❌ Établissement non trouvé', 'error');
             return;
@@ -623,11 +888,11 @@ async function showEtablissementDetails(uai) {
         let index = -1;
         if (currentView === 'etablissements' && filteredData.length > 0) {
             list = filteredData;
-            index = filteredData.findIndex(e => e.uai === uai);
+            index = filteredData.findIndex(e => e._id === id);
         }
         
         // Créer modale avec ID unique pour permettre plusieurs établissements ouverts
-        const uniqueId = `${uai}-${Date.now()}`;
+        const uniqueId = `${id}-${Date.now()}`;
         const modal = new DetailsModal('etablissement-details-modal', uniqueId);
         modal.showEtablissement(etablissementEnrichi, list, index);
         
@@ -657,10 +922,13 @@ async function showDiplomeDetails(libelle) {
         }
         console.log(`[showDiplomeDetails] Diplôme enrichi:`, diplomeEnrichi);
 
-        // Trouver l'index dans la liste filtrée courante (si on est en vue diplômes)
+        // Vérifier si ce diplôme est aussi accessible par apprentissage
+        diplomeEnrichi._aussiEnApprentissage = await window.databaseService.estAussiEnApprentissage(libelle);
+
+        // Trouver l'index dans la liste filtrée courante (si on est en vue diplômes scolaire)
         let list = null;
         let index = -1;
-        if (currentView === 'diplomes' && filteredData.length > 0) {
+        if (currentView === 'diplomes_scolaire' && filteredData.length > 0) {
             list = filteredData;
             index = filteredData.findIndex(d => d.libelle === libelle);
         }
@@ -827,9 +1095,9 @@ function buildOption2ndeGTDetailsHTML(optionEnrichie) {
         for (const etab of etablissements) {
             html += `
                 <li class="detail-item">
-                    <a href="#" onclick="event.preventDefault(); window.openEtablissementDetailsFromModal('${etab.uai}')">
+                    <a href="#" onclick="event.preventDefault(); window.openEtablissementDetailsFromModal('${etab._id}')">
                         <strong>${etab.nom}</strong> — ${etab.commune || ''}
-                        <span class="badge ${etab.statut === 'public' ? 'badge--primary' : 'badge--success'}">${etab.statut || ''}</span>
+                        <span class="badge ${etab.statut === 'public' ? 'badge--primary' : 'badge--success'}">${etab.statut || ''}</span> ↗
                     </a>
                 </li>`;
         }
@@ -891,7 +1159,7 @@ async function initResultsTab() {
  * @returns {string} HTML
  */
 function buildEtablissementDetailsHTML(etablissementEnrichi) {
-    const { etablissement, diplomes, dispositifs, options2ndeGT, specialites1ereG } = etablissementEnrichi;
+    const { etablissement, diplomes, diplomes_apprentissage, dispositifs, options2ndeGT, specialites1ereG } = etablissementEnrichi;
     let html = '';
     
     // SECTION 1 : INFORMATIONS GÉNÉRALES
@@ -914,19 +1182,15 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
 </div>
 `;
     
-    // SECTION 2 : DIPLÔMES
+    // SECTION 2 : DIPLÔMES VOIE SCOLAIRE
     if (diplomes && diplomes.length > 0) {
         const groupes = groupDiplomesByCategorie(diplomes);
-        // Dans chaque groupe, on trie les diplômes par ordre alphabétique du libellé
         Object.keys(groupes).forEach(niveau => {
-            groupes[niveau].sort((a, b) => 
-                a.libelle.localeCompare(b.libelle)
-            );
+            groupes[niveau].sort((a, b) => a.libelle.localeCompare(b.libelle));
         });
 
-        // Afficher les groupes de diplômes
         html += `<div class="detail-section">
-            <h3 class="detail-section-title">🎓 Diplômes proposés (${diplomes.length})</h3>`;
+            <h3 class="detail-section-title">🏫 Diplômes — voie scolaire (${diplomes.length})</h3>`;
         
         for (const [categorie, diplomesList] of Object.entries(groupes)) {
             html += `
@@ -940,19 +1204,56 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
                 html += `
                     <li class="detail-item">
                         <span class="diplome-libelle">
-                            <a href="#" data-libelle="${diplome.libelle}" onclick="event.preventDefault(); showDiplomeDetails(this.dataset.libelle);">${diplome.libelle}</a>
+                            <a href="#" data-libelle="${diplome.libelle}" onclick="event.preventDefault(); showDiplomeDetails(this.dataset.libelle);">${diplome.libelle} ↗</a>
                         </span>
                         ${modalitesStr}
                     </li>`;
             }
+            html += `</ul></div>`;
+        }
+        html += `</div>`;
+    }
+
+    // SECTION 3 : DIPLÔMES VOIE APPRENTISSAGE
+    if (diplomes_apprentissage && diplomes_apprentissage.length > 0) {
+        const sorted = [...diplomes_apprentissage].sort((a, b) =>
+            (a.libelle || '').localeCompare(b.libelle || '', 'fr')
+        );
+
+        // Grouper par niveau (3 (CAP...) / 4 (BAC...))
+        const niveaux = {};
+        for (const d of sorted) {
+            const niv = d.niveau || 'Autre';
+            if (!niveaux[niv]) niveaux[niv] = [];
+            niveaux[niv].push(d);
+        }
+
+        html += `<div class="detail-section">
+            <h3 class="detail-section-title">🎓 Diplômes — voie apprentissage (${diplomes_apprentissage.length})</h3>`;
+
+        for (const [niv, liste] of Object.entries(niveaux)) {
             html += `
-        </ul>
-    </div>`;
+                <div class="diplomes-categorie">
+                    <h4 class="diplomes-categorie-title">${niv} (${liste.length})</h4>
+                    <ul class="detail-list">`;
+            for (const d of liste) {
+                const certifBadge = d.certifieQualite
+                    ? ` <span class="voie-badge voie-badge--qualite" title="Certifié Qualiopi">✓ Qualiopi</span>`
+                    : '';
+                html += `
+                    <li class="detail-item">
+                        <a href="#" onclick="event.preventDefault(); window.openDiplomeApprentissageDetailsFromModal('${d.id}')">
+                            <span class="diplome-libelle">${d.libelle || 'N/A'}</span>
+                            ${certifBadge} ↗
+                        </a>
+                    </li>`;
+            }
+            html += `</ul></div>`;
         }
         html += `</div>`;
     }
     
-    // SECTION 3 : DISPOSITIFS
+    // SECTION 4 : DISPOSITIFS
     if (dispositifs && dispositifs.length > 0) {
         // Tri alphabétique des dispositifs
         dispositifs.sort((a, b) => a.libelle.localeCompare(b.libelle));
@@ -994,7 +1295,7 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
 </div>`;
     }
     
-    // SECTION 4 : OPTIONS 2NDE GT
+    // SECTION 5 : OPTIONS 2NDE GT
     if (options2ndeGT && options2ndeGT.length > 0) {
         // Tri alphabétique des options
         options2ndeGT.sort((a, b) => (a.libelle || '').localeCompare(b.libelle || ''));
@@ -1013,7 +1314,7 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
 </div>`;
     }
     
-    // SECTION 5 : SPÉCIALITÉS 1ÈRE G
+    // SECTION 6 : SPÉCIALITÉS 1ÈRE G
     if (specialites1ereG && specialites1ereG.length > 0) {
         // Tri alphabétique des spécialités
         specialites1ereG.sort((a, b) => (a.libelle || '').localeCompare(b.libelle || ''));
@@ -1095,6 +1396,14 @@ function formatTelephone(tel) {
 function buildDiplomeDetailsHTML(diplomeEnrichi) {
     const { diplome, etablissements, parcours } = diplomeEnrichi;
     let html = '';
+
+    // Badge voie croisée
+    if (diplomeEnrichi._aussiEnApprentissage) {
+        html += `
+    <div style="margin-bottom:12px; padding:10px 14px; background:#e8f4fd; border-left:4px solid #3b82f6; border-radius:6px; font-size:0.92em; color:#1e40af; font-weight:500;">
+        🔄 Ce diplôme est <strong>également accessible par voie d'apprentissage</strong> dans les établissements de la zone.
+    </div>`;
+    }
     
     // SECTION 0 : Informations générales
     html += `
@@ -1161,9 +1470,9 @@ function buildDiplomeDetailsHTML(diplomeEnrichi) {
         for (const etab of etablissements) {
             html += `
                 <li class="detail-item" style="cursor: pointer;">
-                    <a href="#" onclick="event.preventDefault(); window.openEtablissementDetailsFromModal('${etab.uai}')">
-                        <strong>${etab.nom}</strong> - ${etab.commune}
-                        <span class="badge ${etab.statut === 'public' ? 'badge--primary' : 'badge--success'}">${etab.statut}</span>
+                    <a href="#" onclick="event.preventDefault(); window.openEtablissementDetailsFromModal('${etab._id}')">
+                        <strong>${etab.nom}</strong> — ${etab.commune}
+                        <span class="badge ${etab.statut === 'public' ? 'badge--primary' : 'badge--success'}">${etab.statut}</span> ↗
                     </a>
                 </li>`;
         }
@@ -1257,9 +1566,9 @@ function buildDispositifDetailsHTML(dispositifEnrichi) {
             
             html += `
                 <li class="detail-item" style="cursor: pointer;">
-                    <a href="#" onclick="event.preventDefault(); window.openEtablissementDetailsFromModal('${etab.uai}')">
-                        <strong>${etab.nom}</strong> - ${etab.commune}
-                        <span class="badge ${etab.statut === 'public' ? 'badge--primary' : 'badge--success'}">${etab.statut}</span>
+                    <a href="#" onclick="event.preventDefault(); window.openEtablissementDetailsFromModal('${etab._id}')">
+                        <strong>${etab.nom}</strong> — ${etab.commune}
+                        <span class="badge ${etab.statut === 'public' ? 'badge--primary' : 'badge--success'}">${etab.statut}</span> ↗
                     </a>
                     ${elementsHtml}
                 </li>`;
@@ -1299,9 +1608,11 @@ if (typeof window !== 'undefined') {
     window.initResultsTab = initResultsTab;
     // Vues détails
     window.showOption2ndeGTDetails = showOption2ndeGTDetails;
+    window.showDiplomeApprentissageDetails = showDiplomeApprentissageDetails;
     // Fonctions de construction HTML utilisées par DetailsModal
     window.buildEtablissementDetailsHTML = buildEtablissementDetailsHTML;
     window.buildDiplomeDetailsHTML = buildDiplomeDetailsHTML;
+    window.buildDiplomeApprentissageDetailsHTML = buildDiplomeApprentissageDetailsHTML;
     window.buildDispositifDetailsHTML = buildDispositifDetailsHTML;
     window.buildOption2ndeGTDetailsHTML = buildOption2ndeGTDetailsHTML;
 }
@@ -1318,7 +1629,7 @@ function exportData(format) {
     console.log(`[exportData] Export demandé: ${format}, vue: ${currentView}, ${filteredData.length} items`);
     
     if (!filteredData || filteredData.length === 0) {
-        alert('❌ Aucune donnée à exporter. Veuillez d\'abord extraire des données depuis l\'onglet Recherche.');
+        showAlert('❌ Aucune donnée à exporter. Veuillez d\'abord extraire des données depuis l\'onglet Recherche.', 'warning');
         return;
     }
     
@@ -1327,7 +1638,7 @@ function exportData(format) {
     } else if (format === 'pdf') {
         ExportService.exportToPDF(currentView, filteredData);
     } else {
-        alert('❌ Format d\'export non supporté');
+        showAlert('❌ Format d\'export non supporté', 'error');
     }
 }
 

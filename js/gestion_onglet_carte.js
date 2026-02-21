@@ -126,9 +126,15 @@ function initMap() {
 }
 
 /** Crée une icône HTML personnalisée pour Leaflet **/
-function createCustomIcon(emoji, isUser = false) {
+function createCustomIcon(emoji, isUser = false, voie = 'scolaire') {
+    let voieClass = '';
+    if (!isUser) {
+        if (voie === 'apprentissage') voieClass = 'marker-icon--apprentissage';
+        else if (voie === 'mixte')    voieClass = 'marker-icon--mixte';
+        else                          voieClass = 'marker-icon--scolaire';
+    }
     return L.divIcon({
-        html: `<div class="marker-icon ${isUser ? 'marker-icon-user' : ''}">${emoji}</div>`,
+        html: `<div class="marker-icon ${isUser ? 'marker-icon-user' : voieClass}">${emoji}</div>`,
         className: '', // Pas de classe par défaut Leaflet
         iconSize: isUser ? [35, 35] : [30, 30],
         iconAnchor: isUser ? [17, 17] : [15, 15],
@@ -138,16 +144,22 @@ function createCustomIcon(emoji, isUser = false) {
 
 /** Crée le contenu HTML de la popup **/
 function createPopupContent(lycee) {
-    // Compter les diplômes via la base
+    // Compter les diplômes via la base (scolaire + apprentissage)
     let diplomesCount = 0;
+    let apprentissageCount = 0;
     try {
-        const diplomes = window.databaseService ? 
-            window.databaseService.getDiplomesParEtablissementSync(lycee.uai) : [];
-        diplomesCount = diplomes?.length || 0;
-    } catch (e) {
-        diplomesCount = 0;
+        if (window.databaseService) {
+            diplomesCount    = window.databaseService.getDiplomesParEtablissementSync(lycee._id)?.length || 0;
+            apprentissageCount = window.databaseService.getDiplomesApprentissageParEtablissementSync(lycee._id)?.length || 0;
+        }
+    } catch (e) { /* silencieux */ }
+
+    const totalCount    = diplomesCount + apprentissageCount;
+    let diplomesDetail  = '';
+    if (diplomesCount > 0 && apprentissageCount > 0) {
+        diplomesDetail = ` <span style="font-size:0.85em;color:#777;">(🏫 ${diplomesCount} sco. / 🎓 ${apprentissageCount} appr.)</span>`;
     }
-    
+
     return `
         <div class="map-popup">
             <div class="map-popup-header">
@@ -164,7 +176,7 @@ function createPopupContent(lycee) {
                 </div>
                 <div class="map-popup-row">
                     <span class="map-popup-label">🎓 Diplômes:</span>
-                    ${diplomesCount} diplôme(s)
+                    ${totalCount} diplôme(s)${diplomesDetail}
                 </div>
                 ${lycee.telephone ? `
                 <div class="map-popup-row">
@@ -172,7 +184,7 @@ function createPopupContent(lycee) {
                     ${lycee.telephone}
                 </div>` : ''}
                 <div class="map-popup-actions">
-                    <a class="map-popup-btn" onclick="showLyceeDetailsCarte('${lycee.uai}'); return false;">
+                    <a class="map-popup-btn" onclick="showLyceeDetailsCarte('${lycee._id}'); return false;">
                     📋 Voir la fiche complète</a>
                 </div>
             </div>
@@ -236,8 +248,13 @@ async function loadMapMarkers() {
         if (lycee.longitude < -180 || lycee.longitude > 180) return;
         
         const emoji = getEtablissementIcon(lycee.type);
-        console.log(`🎨 Marqueur: ${lycee.nom} - Type: "${lycee.type}" - Emoji: ${emoji}`);
-        const icon = createCustomIcon(emoji);
+        // Déterminer la voie pour la couleur du marqueur
+        const voies = lycee.voies || ['scolaire'];
+        const voieMarqueur = (voies.includes('scolaire') && voies.includes('apprentissage')) ? 'mixte'
+                           : voies.includes('apprentissage') ? 'apprentissage'
+                           : 'scolaire';
+        console.log(`🎨 Marqueur: ${lycee.nom} - Type: "${lycee.type}" - Voie: ${voieMarqueur}`);
+        const icon = createCustomIcon(emoji, false, voieMarqueur);
         
         const marker = L.marker([lycee.latitude, lycee.longitude], { icon: icon })
             .bindPopup(createPopupContent(lycee), {maxWidth: 350,className: 'custom-popup'})
@@ -402,11 +419,11 @@ function refreshMap() {
 }
 
 /** Affiche les détails d'un établissement depuis la carte **/
-function showLyceeDetailsCarte(uai) {
-    console.log('[Carte] Affichage détails établissement:', uai);
+function showLyceeDetailsCarte(id) {
+    console.log('[Carte] Affichage détails établissement:', id);
     
     if (typeof showEtablissementDetails === 'function') {
-        showEtablissementDetails(uai);
+        showEtablissementDetails(id);
     } else {
         console.error('[Carte] Fonction showEtablissementDetails non disponible');
     }

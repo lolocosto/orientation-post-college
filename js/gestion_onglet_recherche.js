@@ -367,6 +367,13 @@ async function lancerExtractionGeo() {
     
     // Réinitialiser le flag d'arrêt
     window.extractionStopped = false;
+
+    // ── VIDER LES DONNÉES PRÉCÉDENTES ─────────────────────────────────────
+    // Une nouvelle recherche géo remplace toujours les données existantes
+    if (window.databaseService) {
+        await window.databaseService.clearAllData();
+        console.log('[Recherche] Base vidée avant nouvelle extraction');
+    }
     
     // Gérer le bouton Stop
     const btnStop = document.getElementById('btn-stop-extraction');
@@ -376,59 +383,77 @@ async function lancerExtractionGeo() {
         // btnStop.textContent = '🛑 Arrêter l\'extraction';  // Ne pas modifier la croix
     }
     
+    const voies = getVoiesSelectionnees('geo');
+    if (voies.length === 0) {
+        showAlert('⚠️ Veuillez sélectionner au moins une voie (scolaire et/ou apprentissage) avant de lancer la recherche.', 'warning');
+        if (btnStop) btnStop.classList.add('u-hidden');
+        return;
+    }
+    const geoParams = {
+        type: geoType,
+        value: geoValue,
+        displayInfo: {
+            nom: geoDisplay,
+            codeEpci: selectedScope === 'intercommunalite' ? selectedCommune.codeEpci : null
+        }
+    };
+
+    // Statistiques cumulées sur les deux voies
+    const statsGlobales = { etablissements: 0, diplomes: 0, relations: 0 };
+    let erreurCritique = false;
+
     try {
-        // Vérifier que le controller existe
-        if (!window.onisepExtractionController) {
-            throw new Error('Controller d\'extraction ONISEP non initialisé');
-        }
-        
-        // Préparer les paramètres pour le controller
-        const extractionParams = {
-            type: geoType,
-            value: geoValue,
-            displayInfo: {
-                nom: geoDisplay,
-                codeEpci: selectedScope === 'intercommunalite' ? selectedCommune.codeEpci : null
+        // ── VOIE SCOLAIRE (ONISEP) ────────────────────────────────────────
+        if (voies.includes('scolaire')) {
+            if (!window.onisepExtractionController) {
+                throw new Error('Controller d\'extraction ONISEP non initialisé');
             }
-        };
-        
-        // Appeler le CONTROLLER - il gère toute la modale
-        const result = await window.onisepExtractionController.extractByGeo(extractionParams);
-        
-        // Vérifier si l'extraction a été annulée ou a échoué
-        if (!result.success) {
-            // Le contrôleur a déjà géré la modale
-            if (btnStop) btnStop.classList.add('u-hidden');
-            showAlert(result.message || '⚠️ Extraction interrompue', 'warning');
-            return;
+            const result = await window.onisepExtractionController.extractByGeo({
+                ...geoParams,
+                voies: ['scolaire']
+            });
+            if (!result.success) {
+                if (btnStop) btnStop.classList.add('u-hidden');
+                showAlert(result.message || '⚠️ Extraction scolaire interrompue', 'warning');
+                return;
+            }
+            statsGlobales.etablissements += result.stats.etablissements || 0;
+            statsGlobales.diplomes      += result.stats.diplomes       || 0;
+            statsGlobales.relations     += result.stats.relations       || 0;
         }
-        
-        // Succès - le contrôleur a géré la modale
-        const data = {
-            lycees: { length: result.stats.etablissements },
-            diplomes: { length: result.stats.diplomes },
-            diplomes_par_lycee: { length: result.stats.relations }
-        };
-        
-        // Cacher le bouton Stop
-        // if (btnStop) btnStop.classList.add('u-hidden');  // Gardé visible
-        
-        // Sauvegarder la date
+
+        // ── VOIE APPRENTISSAGE (CARIF-OREF) ───────────────────────────────
+        if (voies.includes('apprentissage')) {
+            if (!window.carifOrefExtractionController) {
+                throw new Error('Controller d\'extraction CARIF-OREF non initialisé');
+            }
+            const result = await window.carifOrefExtractionController.extractByGeo(geoParams);
+            if (!result.success) {
+                if (btnStop) btnStop.classList.add('u-hidden');
+                showAlert(result.message || '⚠️ Extraction apprentissage interrompue', 'warning');
+                return;
+            }
+            statsGlobales.etablissements += result.stats.etablissements || 0;
+            statsGlobales.diplomes       += result.stats.diplomes       || 0;
+            statsGlobales.relations      += result.stats.relations      || 0;
+        }
+
+        // ── Succès ────────────────────────────────────────────────────────
         localStorage.setItem('last_extraction_date', new Date().toISOString());
-        
-        // Recharger les stats et basculer vers résultats
         if (typeof loadStats === 'function') loadStats();
         if (typeof loadView === 'function') loadView();
         if (typeof switchToResults === 'function') {
             setTimeout(() => switchToResults(), 10000);
         }
-        
-        // Message succès
-        showAlert(`✅ ${data.lycees.length} établissements et ${data.diplomes_par_lycee.length} diplômes (dont ${data.diplomes.length} uniques) extraits de ${geoDisplay} !`, 'success');
-        
+
+        const voiesLabel = voies.join(' + ');
+        showAlert(
+            `✅ ${statsGlobales.etablissements} établissements extraits de ${geoDisplay} (${voiesLabel}) !`,
+            'success'
+        );
+
     } catch (error) {
-        console.error('[Recherche] Erreur extraction:', error);
-        // Le contrôleur a déjà géré l'affichage de l'erreur dans la modale
+        console.error('[Recherche] Erreur extraction géo:', error);
         if (btnStop) btnStop.classList.add('u-hidden');
         showAlert(`❌ Erreur lors de l'extraction : ${error.message}`, 'error');
     }
@@ -581,6 +606,12 @@ async function lancerExtractionItems(type) {
     
     // Réinitialiser le flag d'arrêt
     window.extractionStopped = false;
+
+    // ── VIDER LES DONNÉES PRÉCÉDENTES ─────────────────────────────────────
+    if (window.databaseService) {
+        await window.databaseService.clearAllData();
+        console.log('[Recherche] Base vidée avant nouvelle extraction items');
+    }
     
     // Gérer le bouton Stop
     const btnStop = document.getElementById('btn-stop-extraction');
@@ -592,18 +623,53 @@ async function lancerExtractionItems(type) {
         // Appeler le bon CONTROLLER - il gère toute la modale
         let result = null;
         if (type === 'diplomes') {
-            result = await window.onisepExtractionController.extractByDiplomes({
-                libelles: selectedItems,
-                type: itemsGeoType,
-                value: itemsGeoValue,
-                displayInfo: {nom: itemsGeoValue}
-            });
+            const voies = getVoiesSelectionnees('diplomes');
+
+            // ── VOIE SCOLAIRE (ONISEP) ────────────────────────────────────
+            if (voies.includes('scolaire')) {
+                result = await window.onisepExtractionController.extractByDiplomes({
+                    libelles: selectedItems,
+                    type: itemsGeoType,
+                    value: itemsGeoValue,
+                    displayInfo: { nom: itemsGeoValue },
+                    voies: ['scolaire']
+                });
+                if (result && !result.success) {
+                    if (btnStop) btnStop.classList.add('u-hidden');
+                    showAlert(result.message || '⚠️ Extraction scolaire interrompue', 'warning');
+                    return;
+                }
+            }
+
+            // ── VOIE APPRENTISSAGE (CARIF-OREF) ──────────────────────────
+            if (voies.includes('apprentissage') && window.carifOrefExtractionController) {
+                // Les UAI sont déjà connus depuis l'étape 1 (stockés dans tabContexteItems)
+                const uaisParLibelle = window.tabContexteItems?.uaisCarifParLibelle || {};
+                const carifResult = await window.carifOrefExtractionController.extractByDiplomesLibelles(
+                    selectedItems,
+                    uaisParLibelle
+                );
+                if (carifResult && !carifResult.success) {
+                    if (btnStop) btnStop.classList.add('u-hidden');
+                    showAlert(carifResult.message || '⚠️ Extraction apprentissage interrompue', 'warning');
+                    return;
+                }
+                // Fusionner les stats si les deux voies ont été extraites
+                if (result && carifResult) {
+                    result.stats = result.stats || {};
+                    result.stats.etablissements = (result.stats.etablissements || 0) + (carifResult.stats?.etablissements || 0);
+                } else if (carifResult) {
+                    result = carifResult;
+                }
+            }
+
         } else {
             result = await window.onisepExtractionController.extractByOptions({
                 libelles: selectedItems,
                 type: itemsGeoType,
                 value: itemsGeoValue,
-                displayInfo: {nom: itemsGeoValue}
+                displayInfo: {nom: itemsGeoValue},
+                voies: getVoiesSelectionnees('options')
             });
         }
         
@@ -718,7 +784,60 @@ async function chargerItemsDisponibles(type) {
                 facetGeo = { 'facet.ens_academie': itemsGeoDisplay };
             }
             console.log('[chargerItemsDisponibles] Facette géo :', facetGeo);
-            result = await window.onisepExtractionController.extractDiplomesDisponiblesByZone(facetGeo);
+
+            // ── Interroger ONISEP et CARIF-OREF en parallèle ─────────────────
+            const [onisepResult, carifDiplomes] = await Promise.all([
+                window.onisepExtractionController.extractDiplomesDisponiblesByZone(facetGeo),
+                window.carifOrefExtractionController
+                    ? window.carifOrefExtractionController.getDiplomesDisponibles(itemsGeoType, itemsGeoValue)
+                    : Promise.resolve([])
+            ]);
+
+            // ── Fusion par libellé normalisé ──────────────────────────────────
+            // Index CARIF : libelleNormalise → { nbEtablissements, uais }
+            const carifIndex = new Map();
+            for (const d of carifDiplomes) {
+                carifIndex.set(d.libelleNormalise, {
+                    nbEtablissementsApprentissage: d.nbEtablissements,
+                    uais: d.uais
+                });
+            }
+
+            // Construire la liste fusionnée à partir des diplômes ONISEP
+            // (référentiel principal pour les libellés affichés)
+            const itemsFusionnes = (onisepResult.items || []).map(item => {
+                const libNorm = _normaliserLibelle(item.libelle);
+                const carifData = carifIndex.get(libNorm) || null;
+                return {
+                    ...item,
+                    nbEtablissementsApprentissage: carifData?.nbEtablissementsApprentissage ?? 0,
+                    uaisCarif: carifData?.uais ?? []
+                };
+            });
+
+            // Ajouter les diplômes CARIF-OREF non présents dans ONISEP
+            const libNormOnisep = new Set(
+                (onisepResult.items || []).map(i => _normaliserLibelle(i.libelle))
+            );
+            for (const d of carifDiplomes) {
+                if (!libNormOnisep.has(d.libelleNormalise)) {
+                    itemsFusionnes.push({
+                        libelle:                      d.libelle,
+                        type:                         d.typeDiplome,
+                        niveauSortie:                 d.niveau,
+                        urlOnisep:                    null,
+                        nbEtablissements:             0,
+                        nbEtablissementsApprentissage: d.nbEtablissements,
+                        uaisCarif:                    d.uais
+                    });
+                }
+            }
+
+            // Trier : ordre alphabétique de libellé
+            itemsFusionnes.sort((a, b) => a.libelle.localeCompare(b.libelle, 'fr'));
+
+            result = { items: itemsFusionnes };
+
         } else {
             if (itemsGeoType === 'departement') {
                 facetGeo = { 'facet.departement_lieu_de_cours': itemsGeoDisplay };
@@ -728,24 +847,30 @@ async function chargerItemsDisponibles(type) {
             console.log('[chargerItemsDisponibles] Facette géo :', facetGeo);
             result = await window.onisepExtractionController.extractOptions2ndeGTDisponiblesByZone(facetGeo);
         }
+
         if (!result.items || result.items.length === 0) {
             showAlert('❌ Aucun item trouvé pour ce périmètre', 'error');
             return;
         }
 
         // Sauvegarder contexte
+        // Pour les diplômes : on stocke aussi uaisCarif par libellé pour l'étape 2
         window.tabContexteItems = {
             type:        itemsGeoType,
             value:       itemsGeoValue,
             displayName: itemsGeoType + ' - ' + itemsGeoDisplay,
-            items:  result.items,
-            facetGeo: facetGeo
+            items:       result.items,
+            facetGeo:    facetGeo,
+            // Index libellé → uais CARIF-OREF (uniquement pour les diplômes)
+            uaisCarifParLibelle: type === 'diplomes'
+                ? Object.fromEntries(result.items.map(i => [i.libelle, i.uaisCarif || []]))
+                : {}
         };
         availableItems = result.items;
 
         console.log('[chargerItemsDisponibles] Items trouvées :', result.items);
 
-        // Passer à l'étape 2 
+        // Passer à l'étape 2
         afficherItemsCheckboxes(type, result.items);
         document.getElementById(`tab-${type}-perimetre-info`).textContent = window.tabContexteItems.displayName;
         document.getElementById(`tab-${type}-etape-1`).style.display = 'none';
@@ -783,19 +908,47 @@ function afficherItemsCheckboxes(type, values) {
     }
 
     // On construit la liste
-    // TODO : pour les diplômes, on groupait les CAP et les Bac en 2 catégories 
-    // Peut-être à mettreen place à nouveau ici.
-    const html = values.map(val => `
-        <label class="diplome-item">
-            <input type="checkbox" class="${type}-checkbox"
-                   value="${val.libelle.replace(/"/g, '&quot;')}"
-                   onchange="updateSelectedItemsCount('${type}')">
-            <div class="diplome-info">
-                <div class="diplome-intitule">${val.libelle}</div>
-                <div class="diplome-meta">${val.nbEtablissements} établissement(s) dans la zone</div>
-            </div>
-        </label>
-    `).join('');
+    let html;
+    if (type === 'diplomes') {
+        // Pour les diplômes : afficher les deux compteurs (scolaire + apprentissage)
+        html = values.map(val => {
+            const nbScolaire     = val.nbEtablissements             || 0;
+            const nbApprentissage = val.nbEtablissementsApprentissage || 0;
+            let metaHtml = '';
+            if (nbScolaire > 0 && nbApprentissage > 0) {
+                metaHtml = `🏫 ${nbScolaire} en voie scolaire &nbsp;•&nbsp; 🎓 ${nbApprentissage} en apprentissage`;
+            } else if (nbScolaire > 0) {
+                metaHtml = `🏫 ${nbScolaire} établissement(s) en voie scolaire`;
+            } else if (nbApprentissage > 0) {
+                metaHtml = `🎓 ${nbApprentissage} établissement(s) en apprentissage`;
+            } else {
+                metaHtml = `Aucun établissement trouvé dans la zone`;
+            }
+            return `
+            <label class="diplome-item">
+                <input type="checkbox" class="${type}-checkbox"
+                       value="${val.libelle.replace(/"/g, '&quot;')}"
+                       onchange="updateSelectedItemsCount('${type}')">
+                <div class="diplome-info">
+                    <div class="diplome-intitule">${val.libelle}</div>
+                    <div class="diplome-meta">${metaHtml}</div>
+                </div>
+            </label>`;
+        }).join('');
+    } else {
+        // Pour les options : affichage simple (une seule source)
+        html = values.map(val => `
+            <label class="diplome-item">
+                <input type="checkbox" class="${type}-checkbox"
+                       value="${val.libelle.replace(/"/g, '&quot;')}"
+                       onchange="updateSelectedItemsCount('${type}')">
+                <div class="diplome-info">
+                    <div class="diplome-intitule">${val.libelle}</div>
+                    <div class="diplome-meta">${val.nbEtablissements} établissement(s) dans la zone</div>
+                </div>
+            </label>
+        `).join('');
+    }
     container.innerHTML = html;
 
     // On met à jour la variable globale et le compte
@@ -826,6 +979,42 @@ function updateSelectedItemsCount(type) {
     }
 }
 
+
+// =====================================
+// UTILITAIRES VOIES
+// =====================================
+
+/**
+ * Normalise un libellé de diplôme pour la jointure ONISEP ↔ CARIF-OREF.
+ * Identique à CARIFOREFParser._normaliserLibelle().
+ * @param {string} libelle
+ * @returns {string}
+ */
+function _normaliserLibelle(libelle) {
+    if (!libelle) return '';
+    return libelle
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9 ]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+/**
+ * Lit les checkboxes voies cochées pour un panel donné
+ * @param {string} panel - 'geo' | 'diplomes' | 'options'
+ * @returns {string[]} Tableau des voies sélectionnées (ex: ['scolaire', 'apprentissage'])
+ */
+function getVoiesSelectionnees(panel) {
+    const prefix = `tab-${panel}-voie-`;
+    const voies = [];
+    ['scolaire', 'apprentissage'].forEach(voie => {
+        const cb = document.getElementById(prefix + voie);
+        if (cb && cb.checked) voies.push(voie);
+    });
+    return voies;  // Peut retourner [] si aucune voie cochée
+}
 
 // =====================================
 // EXPOSITION GLOBALE

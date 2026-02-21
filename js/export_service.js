@@ -10,14 +10,14 @@ class ExportService {
     // =========================================================================
 
     static exportToCSV(viewName, data) {
-        if (!data || data.length === 0) { alert('Aucune donnée à exporter'); return; }
+        if (!data || data.length === 0) { showAlert('Aucune donnée à exporter', 'warning'); return; }
 
         let csv = '', filename = '';
         switch (viewName) {
             case 'etablissements': csv = this.#generateEtablissementsCSV(data); filename = 'etablissements.csv'; break;
             case 'diplomes':       csv = this.#generateDiplomesCSV(data);       filename = 'diplomes.csv'; break;
             case 'dispositifs':    csv = this.#generateDispositifsCSV(data);    filename = 'dispositifs.csv'; break;
-            default: alert('Type d\'export non supporté'); return;
+            default: showAlert('Type d\'export non supporté', 'error'); return;
         }
         const BOM = '\uFEFF';
         const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
@@ -82,8 +82,8 @@ class ExportService {
     // =========================================================================
 
     static async exportToPDF(viewName, data) {
-        if (!data || data.length === 0) { alert('Aucune donnée à exporter'); return; }
-        if (typeof window.jspdf === 'undefined') { alert('Bibliothèque PDF non chargée'); return; }
+        if (!data || data.length === 0) { showAlert('Aucune donnée à exporter', 'warning'); return; }
+        if (typeof window.jspdf === 'undefined') { showAlert('Bibliothèque PDF non chargée. Rechargez la page.', 'error'); return; }
 
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF({ unit: 'mm', format: 'a4' });

@@ -25,7 +25,7 @@ let SQL = null;  // Obsolète (SQL.js), sera supprimé
  */
 async function init() {
     console.log('════════════════════════════════════════════════');
-    console.log('🚀 INITIALISATION DÉMARRÉE - V0.29 (v0.31: Navigation universelle + Export enrichi)');
+    console.log('🚀 INITIALISATION DÉMARRÉE - V0.38');
     console.log('════════════════════════════════════════════════');
     
     try {
@@ -54,6 +54,12 @@ async function init() {
         
         // Connecter GeoController à OnisepController (pour extractions EPCI)
         window.onisepExtractionController.setGeoController(window.geoExtractionController);
+        
+        // CARIFOREFExtractionController (voie apprentissage)
+        window.carifOrefExtractionController = new CARIFOREFExtractionController();
+        window.carifOrefExtractionController.init(); // Connecter DatabaseService
+        window.carifOrefExtractionController.setGeoController(window.geoExtractionController);
+        console.log('[INIT] ✅ CARIFOREFExtractionController créé et connecté');
         
         // DataEducationExtractionController (instancie DataEducationAPI en interne)
         window.dataEducationExtractionController = new DataEducationExtractionController();

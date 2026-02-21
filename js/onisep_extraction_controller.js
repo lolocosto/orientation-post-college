@@ -57,7 +57,7 @@ class OnisepExtractionController {
         this.#geoController = geoController;
         console.log('[OnisepExtractionController] 🔗 GeoController connecté');
     }
-    
+
     // =====================================
     // AUTHENTIFICATION
     // =====================================
@@ -93,6 +93,50 @@ class OnisepExtractionController {
     }
     
     // =====================================
+    // PATTERN BOILERPLATE : #runExtraction
+    // Factorise ouverture/fermeture ProgressModal + catch pour toutes les méthodes publiques
+    // =====================================
+
+    /**
+     * Exécute une fonction d'extraction async dans le contexte ProgressModal standard.
+     * @private
+     * @param {Function} extractFn - async () => { result, statsMessage }
+     *   extractFn reçoit this.#currentProgressModal dans le contexte partagé.
+     * @returns {Promise<Object>}
+     */
+    async #runExtraction(extractFn) {
+        this.#currentProgressModal = new ProgressModal(null, null, false);
+
+        try {
+            this.#currentProgressModal.show();
+            this.#currentProgressModal.update('Démarrage de l\'extraction...', 0, 100);
+
+            const result = await extractFn();
+
+            if (result.cancelled) {
+                this.#currentProgressModal.update('⚠️ Extraction annulée', 100, 100);
+                this.#addProgressDetail('L\'extraction a été interrompue par l\'utilisateur');
+                return { success: false, cancelled: true, message: 'Extraction annulée' };
+            }
+
+            const successMsg = this.#formatStatsMessage(result.stats);
+            this.#currentProgressModal.update(successMsg, 100, 100);
+            this.#addProgressDetail('✅ Extraction terminée avec succès !');
+            this.#currentProgressModal.hideWithSuccess(2000);
+
+            return result;
+
+        } catch (error) {
+            console.error('[OnisepExtractionController] ❌ Erreur:', error);
+            this.#currentProgressModal.update('❌ Erreur lors de l\'extraction', 100, 100);
+            this.#addProgressDetail(error.message || 'Erreur inconnue');
+            throw error;
+        } finally {
+            this.#currentProgressModal = null;
+        }
+    }
+
+    // =====================================
     // MÉTHODE PRINCIPALE D'EXTRACTION GÉO
     // =====================================
     
@@ -102,76 +146,43 @@ class OnisepExtractionController {
      * @param {string} params.type - 'commune' | 'intercommunalite'
      * @param {string} params.value - Valeur (nom commune ou code EPCI)
      * @param {Object} params.displayInfo - Infos affichage
-     * @param {Function} progressCallback - Callback(percent, message, details)
+     * @param {string[]} params.voies - Voies à extraire ['scolaire', 'apprentissage']
      * @returns {Promise<Object>} { success, stats, extractionInfo }
      */
     async extractByGeo(params) {
-        
         console.log('[OnisepExtractionController] 🚀 Extraction géographique:', params);
-        
-        // Créer modale SANS bascule auto (l'utilisateur veut lire les détails)
-        this.#currentProgressModal = new ProgressModal(null, null, false);
-        
-        try {
+
+        return await this.#runExtraction(async () => {
             await this.reset();
-            
-            // Ouvrir et initialiser la modale de progression
-            this.#currentProgressModal.show();
-            this.#currentProgressModal.update('Démarrage de l\'extraction...', 0, 100);
-            let result;
-            
-            // Router selon le type
-            if (params.type === 'commune') {
-                result = await this.extractByCommune(params.value);
-            } else if (params.type === 'intercommunalite') {
-                result = await this.extractByEPCI(params.value);
-            } else {
-                throw new Error(`Type d'extraction inconnu: ${params.type}`);
+
+            const voies = params.voies || ['scolaire'];
+            let result = { stats: { etablissements: 0, diplomes: 0 }, cancelled: false };
+
+            // ── Voie scolaire (Onisep) ──────────────────────────────────────────
+            if (voies.includes('scolaire')) {
+                let onisepResult;
+                if (params.type === 'commune') {
+                    onisepResult = await this.extractByCommune(params.value);
+                } else if (params.type === 'intercommunalite') {
+                    onisepResult = await this.extractByEPCI(params.value);
+                } else {
+                    throw new Error(`Type d'extraction inconnu: ${params.type}`);
+                }
+                if (onisepResult.cancelled) return { cancelled: true };
+                result.stats = onisepResult.stats || result.stats;
             }
-            
-            // Vérifier annulation
-            if (result.cancelled) {
-                this.#currentProgressModal.update('⚠️ Extraction annulée', 100, 100);
-                this.#addProgressDetail('L\'extraction a été interrompue par l\'utilisateur');
-                // Ne pas fermer automatiquement en cas d'annulation
-                return {
-                    success: false,
-                    cancelled: true,
-                    message: 'Extraction annulée'
-                };
-            }
-            
-            // Afficher succès
-            const successMsg = `✅ ${result.stats.etablissements} établissements, ${result.stats.diplomes} diplômes`;
-            this.#currentProgressModal.update(successMsg, 100, 100);
-            this.#addProgressDetail(`Extraction terminée avec succès !`);
-            
-            // Fermer et basculer vers résultats après 2s
-            this.#currentProgressModal.hideWithSuccess(2000);
-            
-            // Retourner succès avec stats
+
             return {
                 success: true,
                 stats: result.stats,
                 extractionInfo: {
                     type: params.type,
                     zone: params.displayInfo?.nom || params.value,
+                    voies,
                     date: new Date().toISOString()
                 }
             };
-            
-        } catch (error) {
-            console.error('[OnisepExtractionController] ❌ Erreur:', error);
-            
-            // Afficher erreur dans la modale
-            this.#currentProgressModal.update('❌ Erreur lors de l\'extraction', 100, 100);
-            this.#addProgressDetail(error.message || 'Erreur inconnue');
-            
-            throw error;
-        } finally {
-            // Libérer la référence
-            this.#currentProgressModal = null;
-        }
+        });
     }
     
     // =====================================
@@ -225,10 +236,10 @@ class OnisepExtractionController {
      * @private
      * @param {string} detail - Détail à ajouter
      */
-    #addProgressDetail(detail) {
+    #addProgressDetail(detail, type = 'info') {
         console.log(`[ExtractionController] 📝 addProgressDetail appelé: "${detail}" (currentProgressModal: ${this.#currentProgressModal ? 'OK' : 'NULL'})`);
         if (detail && detail !== 'null' && this.#currentProgressModal) {
-            this.#currentProgressModal.addDetail(detail, 'info');
+            this.#currentProgressModal.addDetail(detail, type);
         } else if (!this.#currentProgressModal) {
             console.warn(`[ExtractionController] ⚠️ IMPOSSIBLE d'ajouter détail: currentProgressModal est NULL !`);
         }
@@ -294,288 +305,82 @@ class OnisepExtractionController {
     // =====================================
     /**
      * Extrait les établissements proposant certains diplômes
-     * Notifications de progression envoyées via callback jusqu'à 20% avant extraction des données par UAI
-     * et au-delà de 80% après extraction des données par UAI
      * @param {Object} params - Paramètres d'extraction
      * @param {Array<string>} params.libelles - Libellés des diplômes
      * @param {string} params.type - 'departement' | 'academie'
      * @param {string} params.value - Valeur (code département ou code académie)
      * @param {Object} params.displayInfo - Infos affichage
-     * @param {Function} progressCallback - Callback(percent, message, details)
+     * @param {string[]} params.voies - Voies à extraire ['scolaire', 'apprentissage']
      * @returns {Promise<Object>} { success, stats, extractionInfo }
      */
     async extractByDiplomes(params = {}) {
         console.log(`[ExtractionController] 🚀 Extraction de ${params.libelles.length} diplômes`);
-        
-        // Créer modale SANS bascule auto (l'utilisateur veut lire les détails)
-        this.#currentProgressModal = new ProgressModal(null, null, false);
-        
-        try {
+
+        return await this.#runExtraction(async () => {
             await this.reset();
-            
-            // Ouvrir et initialiser la modale
-            this.#currentProgressModal.show();
+
+            const voies = params.voies || ['scolaire'];
 
             // ÉTAPE 1 : Requêtes sur le dataset actionsLycee par libellés 
-            // Demander à queryDataset d'envoyer les libellés un par un !
             this.#currentProgressModal.update('Recherche des formations...', 3, 100);
             this.#addProgressDetail(`🔍 Recherche de ${params.libelles.length} diplôme(s)...`);
             
-            let queryFilters = {'q': params.libelles,size: 100};
+            let queryFilters = {'q': params.libelles, size: 100};
             if (params.type == 'departement') {
-                queryFilters['facet.ens_departement']=window.getNomDepartement(params.value);
+                queryFilters['facet.ens_departement'] = window.getNomDepartement(params.value);
                 this.#addProgressDetail(`📍 Zone : département ${window.getNomDepartement(params.value)}`);
-            }
-            else if (params.type == 'academie') {
-                queryFilters['facet.ens_academie']=window.getNomAcademie(params.value);
-                this.#addProgressDetail(`📍 Zone : académie ${window.getNomAcademie(params.value)}`);
-            }
-            else {
-                throw new Error(`Type de filtre géographique inconnu: ${params.type}`);
-            }
-            console.log(`[ExtractionController] Paramètres d'extraction: `, queryFilters);
-            const actionsLycee = await this.#onisepAPI.queryDataset(
-				'actions_lycee', 
-				queryFilters,
-				1,
-				(detail) => this.#currentProgressModal.addDetail(detail)
-			);
-            if (this.#checkStopped()) return { cancelled: true };
-            console.log(`[ExtractionController] ${actionsLycee.length} formations récupérées`);
-            this.#addProgressDetail(`✅ ${actionsLycee.length} formations récupérées`);
-            
-            // ÉTAPE 2 : Parser les formations récupérées
-            this.#currentProgressModal.update('Analyse des formations...', 6, 100);
-            this.#addProgressDetail('🔄 Parsing des données...');
-            const parsedActions = OnisepParser.parseActionsLycee(actionsLycee);
-            
-            // ÉTAPE 3 : Construire la liste des UAI
-            this.#currentProgressModal.update('Identification des établissements...', 9, 100);
-            const uais = [...new Set(parsedActions.diplomes_par_etablissement.map(r => r.uai))];
-            console.log(`[ExtractionController] ${uais.length} établissements uniques trouvés`);
-            this.#addProgressDetail(`🏫 ${uais.length} établissement(s) identifié(s)`);
-            
-            if (uais.length === 0) {
-                console.warn('[ExtractionController] Aucun établissement trouvé');
-                this.#addProgressDetail('⚠️ Aucun établissement trouvé');
-                return { success: true, etablissements: 0 };
-            }
-            
-			// ÉTAPE 4 : Requête sur le dataset structures par UAI
-			// Les établissements extraits de action_lycées n'ont pas de champ type !
-            this.#currentProgressModal.update('Recherche des établissements...', 12, 100);
-            const structures = await this.#onisepAPI.queryDataset('structures', {
-                q: uais, // ✅ Array → groupé automatiquement
-                size: 100
-            }, 10, (detail) => this.#addProgressDetail(detail)); // Passer le callback
-            if (this.#checkStopped()) return { cancelled: true };
-            
-            // ÉTAPE 5 : Parser les structures récupérées 
-            this.#currentProgressModal.update('Analyse des structures...', 15, 100);
-            const parsedStructures = OnisepParser.parseStructures(structures);
-            console.log(`[ExtractionController] ${structures.length} structures parsées : `, parsedStructures);
-
-            // ÉTAPE 6 : Extraire toutes les données pour la liste des UAI
-            // ExtractByUAIs met aussi à jour la modale de progression en interne (entre 20 et 80%)
-            this.#addProgressDetail(`🔄 Extraction des données pour ${uais.length} établissement(s)...`);            
-            const allData = await this.#extractByUAIs(uais);
-            
-            if (this.#checkStopped()) return { cancelled: true };
-            
-            // ÉTAPE 7 : Préparer données brutes pour traitement centralisé
-            this.#currentProgressModal.update('Préparation des données...', 80, 100);
-            this.#addProgressDetail('🔄 Assemblage des données...');
-            
-            const rawData = {
-                // Etablissements
-                etablissements: [
-					...parsedStructures.etablissements
-				],
-				// Diplômes 
-				diplomes: [
-					...allData.actionsLycee.diplomes,
-					...allData.actionsSup.diplomes
-				],
-                // Relations diplômes - établissements
-				relationsDiplomesEtablissements: [
-					...allData.actionsLycee.diplomes_par_etablissement,
-					...allData.actionsSup.diplomes_par_etablissement
-				],
-                // Dispositifs
-                dispositifs: allData.dispositifs || [],
-                // Options de 2nde GT
-                options2ndeGT: allData.options2ndeGT || [],
-                // Spécialités de 1ère G
-                specialites1ereG: allData.specialites1ereG || []
-            };
-            
-            // ÉTAPE 8 : Traitement centralisé (déduplication, filtrage, cascade, stockage)
-            this.#currentProgressModal.update('Traitement et stockage...', 90, 100);
-            this.#addProgressDetail('💾 Déduplication et stockage en base...');
-            
-            const stats = await this.#processAndStoreAllData(rawData);
-            
-            if (this.#checkStopped()) {
-                this.#currentProgressModal.update('⚠️ Extraction annulée', 100, 100);
-                this.#addProgressDetail('L\'extraction a été interrompue par l\'utilisateur');
-                // Ne pas fermer automatiquement
-                return { cancelled: true };
-            }
-            
-            // Message final formaté
-            const finalMessage = this.#formatStatsMessage(stats);
-            this.#currentProgressModal.update(finalMessage, 100, 100);
-            this.#addProgressDetail('✅ Extraction terminée avec succès !');
-            
-            // Fermer et basculer vers résultats après 2s
-            this.#currentProgressModal.hideWithSuccess(2000);
-            
-            // Retourner stats détaillées
-            return {
-                success: true,
-                stats: stats,
-                extractionInfo: {
-                    type: params.type,
-                    zone: params.displayInfo?.nom || params.value,
-                    date: stats.timestamp
-                }
-            };
-
-        } catch (error) {
-            console.error('[ExtractionController] ❌ Erreur extraction diplômes:', error);
-            
-            // Afficher erreur dans la modale
-            this.#currentProgressModal.update('❌ Erreur lors de l\'extraction', 100, 100);
-            this.#addProgressDetail(error.message || 'Erreur inconnue');
-            
-            throw error;
-        } finally {
-            // Libérer la référence
-            this.#currentProgressModal = null;
-        }
-    }
-
-    // =====================================
-    // EXTRACTION PAR OPTIONS 2NDE GT
-    // =====================================
-
-    /**
-     * Extrait les établissements proposant certaines options 2nde GT
-     * Suit le même pattern que extractByDiplomes() :
-     *   1. Requête dataset optionnels → UAI correspondants
-     *   2. Requête structures → parsedStructures
-     *   3. extractByUAIs → allData
-     *   4. processAndStoreAllData → stats
-     * @param {Object} params - Paramètres d'extraction
-     * @param {Array<string>} params.libelles - Libellés des options sélectionnées
-     * @param {string} params.type - 'departement' | 'academie'
-     * @param {string} params.value - Nom du département ou de l'académie
-     * @returns {Promise<Object>} { success, stats, extractionInfo }
-     */
-    async extractByOptions(params = {}) {
-        console.log(`[extractByOptions] 🚀 Extraction de ${params.libelles.length} option(s) 2nde GT`);
-
-        // Créer modale SANS bascule auto (même pattern que extractByDiplomes)
-        this.#currentProgressModal = new ProgressModal(null, null, false);
-
-        try {
-            await this.reset();
-
-            // Ouvrir et initialiser la modale
-            this.#currentProgressModal.show();
-
-            // ÉTAPE 1 : Requête sur le dataset enseignements_optionnels_2nde avec filtre géographique
-            this.#currentProgressModal.update('Recherche des options...', 3, 100);
-            this.#addProgressDetail(`🔍 Recherche de ${params.libelles.length} option(s)...`);
-
-            let queryFilters = {'q': params.libelles,size: 100};
-            if (params.type === 'departement') {
-                queryFilters['facet.departement_lieu_de_cours'] = window.getNomDepartement(params.value);
-                this.#addProgressDetail(`📍 Zone : département ${window.getNomDepartement(params.value)}`);
-            } else if (params.type === 'academie') {
-                queryFilters['facet.academie_lieu_de_cours'] = window.getNomAcademie(params.value);
+            } else if (params.type == 'academie') {
+                queryFilters['facet.ens_academie'] = window.getNomAcademie(params.value);
                 this.#addProgressDetail(`📍 Zone : académie ${window.getNomAcademie(params.value)}`);
             } else {
                 throw new Error(`Type de filtre géographique inconnu: ${params.type}`);
             }
 
-            console.log(`[extractByOptions] Paramètres extraction options:`, queryFilters);
-            const optionsData = await this.#onisepAPI.queryDataset(
-                'enseignements_optionnels_2nde',
+            const actionsLycee = await this.#onisepAPI.queryDataset(
+                'actions_lycee', 
                 queryFilters,
                 1,
                 (detail) => this.#currentProgressModal.addDetail(detail)
             );
-
             if (this.#checkStopped()) return { cancelled: true };
-            console.log('[extractByOptions] options récupérées du dataset', optionsData);
-            this.#addProgressDetail(`✅ ${optionsData.length} lignes récupérées`);
+            this.#addProgressDetail(`✅ ${actionsLycee.length} formations récupérées`);
 
-            // ÉTAPE 2 : Identifier les UAI dont les options correspondent à la sélection
-            this.#currentProgressModal.update('Analyse des options...', 6, 100);
-            this.#addProgressDetail('🔄 Filtrage par options sélectionnées...');
-
-            const uaisCorrespondants = new Set();
-            optionsData.forEach(record => {
-                const uai = record.uai_lieu_de_cours;
-                const optionsString = record.enseignements_optionnels_et_langues_de_classe_de_2nde_gt;
-                if (!uai || !optionsString) return;
-                console.log('[extractByOptions] UAI et optionsString : ', uai, optionsString);
-
-                // Les options sont séparées par / ou \/ dans la chaîne
-                const optionsListe = optionsString.split(/[/\\]+/).map(opt => opt.trim()).filter(Boolean);
-
-                const hasMatch = params.libelles.some(optionCherchee =>
-                    optionsListe.some(optionPresente =>
-                        optionPresente.toLowerCase().includes(optionCherchee.toLowerCase()) ||
-                        optionCherchee.toLowerCase().includes(optionPresente.toLowerCase())
-                    )
-                );
-                if (hasMatch) uaisCorrespondants.add(uai);
-            });
-
-            const uais = Array.from(uaisCorrespondants);
-            console.log(`[extractByOptions] ${uais.length} établissements correspondants`);
+            // ÉTAPE 2 : Parser les formations récupérées
+            this.#currentProgressModal.update('Analyse des formations...', 6, 100);
+            const parsedActions = OnisepParser.parseActionsLycee(actionsLycee);
+            
+            // ÉTAPE 3 : Construire la liste des UAI
+            this.#currentProgressModal.update('Identification des établissements...', 9, 100);
+            const uais = [...new Set(parsedActions.diplomes_par_etablissement.map(r => r.uai))];
             this.#addProgressDetail(`🏫 ${uais.length} établissement(s) identifié(s)`);
-
+            
             if (uais.length === 0) {
-                console.warn('[extractByOptions] Aucun établissement trouvé');
                 this.#addProgressDetail('⚠️ Aucun établissement trouvé');
-                const finalMessage = '✅ Aucun établissement trouvé pour ces critères';
-                this.#currentProgressModal.update(finalMessage, 100, 100);
-                this.#currentProgressModal.hideWithSuccess(2000);
-                return { success: true, stats: { etablissements: 0 } };
+                return { success: true, stats: { etablissements: 0, diplomes: 0 } };
             }
 
-            // ÉTAPE 3 : Requête structures pour avoir les infos complètes des établissements
+            // ÉTAPE 4 : Requête structures
             this.#currentProgressModal.update('Recherche des établissements...', 12, 100);
             const structures = await this.#onisepAPI.queryDataset('structures', {
-                q: uais, // ✅ Array → groupé automatiquement
+                q: uais,
                 size: 100
             }, 10, (detail) => this.#addProgressDetail(detail));
             if (this.#checkStopped()) return { cancelled: true };
 
-            // ÉTAPE 4 : Parser les structures récupérées
+            // ÉTAPE 5 : Parser les structures
             this.#currentProgressModal.update('Analyse des structures...', 15, 100);
             const parsedStructures = OnisepParser.parseStructures(structures);
-            console.log(`[extractByOptions] ${structures.length} structures parsées :`, parsedStructures);
 
-            // ÉTAPE 5 : Extraire toutes les données pour la liste des UAI
-            // (même appel que extractByDiplomes — réutilise #extractByUAIs)
+            // ÉTAPE 6 : Extraire toutes les données pour la liste des UAI (20-80%)
             this.#addProgressDetail(`🔄 Extraction des données pour ${uais.length} établissement(s)...`);
             const allData = await this.#extractByUAIs(uais);
             if (this.#checkStopped()) return { cancelled: true };
 
-            // ÉTAPE 6 : Préparer rawData pour le traitement centralisé
+            // ÉTAPE 7 : Assembler rawData
             this.#currentProgressModal.update('Préparation des données...', 80, 100);
-            this.#addProgressDetail('🔄 Assemblage des données...');
-
             const rawData = {
                 etablissements: [...parsedStructures.etablissements],
-                diplomes: [
-                    ...allData.actionsLycee.diplomes,
-                    ...allData.actionsSup.diplomes
-                ],
+                diplomes: [...allData.actionsLycee.diplomes, ...allData.actionsSup.diplomes],
                 relationsDiplomesEtablissements: [
                     ...allData.actionsLycee.diplomes_par_etablissement,
                     ...allData.actionsSup.diplomes_par_etablissement
@@ -585,44 +390,23 @@ class OnisepExtractionController {
                 specialites1ereG: allData.specialites1ereG || []
             };
 
-            // ÉTAPE 7 : Traitement centralisé (déduplication, filtrage, cascade, stockage)
+            // ÉTAPE 8 : Traitement centralisé
             this.#currentProgressModal.update('Traitement et stockage...', 90, 100);
             this.#addProgressDetail('💾 Déduplication et stockage en base...');
-
             const stats = await this.#processAndStoreAllData(rawData);
-
-            if (this.#checkStopped()) {
-                this.#currentProgressModal.update('⚠️ Extraction annulée', 100, 100);
-                this.#addProgressDetail('L\'extraction a été interrompue par l\'utilisateur');
-                return { cancelled: true };
-            }
-
-            // Message final — même pattern que extractByDiplomes
-            const finalMessage = this.#formatStatsMessage(stats);
-            this.#currentProgressModal.update(finalMessage, 100, 100);
-            this.#addProgressDetail('✅ Extraction terminée avec succès !');
-
-            this.#currentProgressModal.hideWithSuccess(2000);
+            if (this.#checkStopped()) return { cancelled: true };
 
             return {
                 success: true,
-                stats: stats,
+                stats,
                 extractionInfo: {
                     type: params.type,
-                    zone: params.value,
+                    zone: params.displayInfo?.nom || params.value,
+                    voies,
                     date: stats.timestamp
                 }
             };
-
-        } catch (error) {
-            console.error('[extractByOptions] ❌ Erreur extraction options:', error);
-            this.#currentProgressModal.update('❌ Erreur lors de l\'extraction', 100, 100);
-            this.#addProgressDetail(error.message || 'Erreur inconnue');
-            throw error;
-        } finally {
-            // Libérer la référence
-            this.#currentProgressModal = null;
-        }
+        });
     }
     
     // =====================================
@@ -1157,10 +941,12 @@ class OnisepExtractionController {
             // ÉTAPE 3 : Construire la map des établissements uniques,
             // puis les stocker dans la base
             const etablissementsUniquesMap = await this.#buildEtablissementsUniquesMap(rawData, diplomesParEtablissementMap);
-            await this.#storeEtablissements(etablissementsUniquesMap);
-            stats.stored.etablissements = etablissementsUniquesMap.size;
+            const { count: nbEtabStockes, uaiToId } = await this.#storeEtablissements(etablissementsUniquesMap);
+            stats.stored.etablissements = nbEtabStockes;
             stats.cascade.etablissements = stats.input.etablissements - stats.stored.etablissements;
             this.#addProgressDetail(`${stats.input.etablissements} établissements → ${stats.stored.etablissements} stockés`);
+            // Enrichir les relations avec etabId (_id interne) maintenant que les étabs sont en base
+            await this.#enrichirRelationsAvecEtabId(uaiToId);
 
             // ÉTAPE 4 : Construire la map des relation dispositifs-etablissements valides,
             // puis les stocker dans la base
@@ -1385,23 +1171,55 @@ class OnisepExtractionController {
     }
 
     /**
-     * Stocke les établissements en base
+     * Stocke les établissements en base.
+     * Retourne un objet { count, uaiToId } où uaiToId est une Map UAI→_id interne.
      */
     async #storeEtablissements(etablissementsMap) {
         let count = 0;
+        const uaiToId = new Map();
     
         console.log(`[storeEtablissements] 📦 Stockage de ${etablissementsMap.size} établissements`);
         for (const etab of etablissementsMap.values()) {
             const insertKey = await this.#databaseService.insertEtablissement(etab);
             if (!insertKey) {
-                console.warn(`[storeEtablissements] ❌ Échec du stockage de l'établissement: "${etab.nom}" (UAI: ${etab.uai})`);
+                const motif = (!etab.uai && !etab.siret)
+                    ? 'UAI et SIRET tous deux absents'
+                    : 'erreur inconnue';
+                console.warn(`[storeEtablissements] ❌ Établissement refusé: "${etab.nom}" — ${motif}`);
+                this.#addProgressDetail(`⚠️ Établissement refusé (${motif}): ${etab.nom || '?'}`, 'warning');
             } else {
-                console.log(`[storeEtablissements] ✅ Établissement stocké avec clé: ${insertKey}`);
                 count++;
+                if (etab.uai) uaiToId.set(etab.uai, insertKey);
             }
         };
         console.log(`[storeEtablissements] ${count} établissements stockés`);
-        return count;
+        return { count, uaiToId };
+    }
+
+    /**
+     * Enrichit les relations déjà stockées avec le etabId (_id interne)
+     * à partir de la Map UAI→_id retournée par storeEtablissements.
+     */
+    async #enrichirRelationsAvecEtabId(uaiToId) {
+        if (!uaiToId || uaiToId.size === 0) return;
+
+        const tables = [
+            { getAll: () => this.#databaseService.getAllDiplomesParEtablissement(),       insert: r => this.#databaseService.insertDiplomeParEtablissement(r) },
+            { getAll: () => this.#databaseService.getAllDispositifsParEtablissement(),     insert: r => this.#databaseService.insertDispositifParEtablissement(r) },
+            { getAll: () => this.#databaseService.getAllOptions2ndeGTParEtablissement(),   insert: r => this.#databaseService.insertOption2ndeGTParEtablissement(r) },
+            { getAll: () => this.#databaseService.getAllSpecialites1ereGParEtablissement ? this.#databaseService.getAllSpecialites1ereGParEtablissement() : Promise.resolve([]), insert: r => this.#databaseService.insertSpecialite1ereGParEtablissement(r) },
+        ];
+
+        for (const table of tables) {
+            const rels = await table.getAll();
+            for (const rel of rels) {
+                if (!rel.etabId && rel.uai && uaiToId.has(rel.uai)) {
+                    rel.etabId = uaiToId.get(rel.uai);
+                    await table.insert(rel);
+                }
+            }
+        }
+        console.log('[enrichirRelationsAvecEtabId] ✅ Relations enrichies avec etabId');
     }
     
     /**
@@ -1564,6 +1382,20 @@ class OnisepExtractionController {
      * Formate le message de stats final
      */
     #formatStatsMessage(stats) {
+        // Cas apprentissage uniquement : stats n'a pas de propriété "stored"
+        if (!stats || !stats.stored) {
+            const nbEtab = stats?.etablissements ?? 0;
+            const nbDip  = stats?.diplomes ?? 0;
+            const duree  = stats?.duree != null ? ` en ${(stats.duree / 1000).toFixed(1)}s` : '';
+            return [
+                `✅ Extraction terminée${duree}`,
+                '',
+                '📊 Résumé:',
+                `• ${nbEtab} établissements stockés`,
+                `• ${nbDip} formations stockées`
+            ].join('\n');
+        }
+
         const lines = [
             `✅ Extraction terminée en ${(stats.duree / 1000).toFixed(1)}s`,
             '',
@@ -1591,6 +1423,55 @@ class OnisepExtractionController {
         }
         
         return lines.join('\n');
+    }
+
+    /**
+     * Enrichit les établissements CARIF-OREF avec type/statut depuis le dataset ONISEP structures.
+     * Appelé après une extraction CARIF pour les établissements sans type ni statut.
+     * @param {string[]} uais - Liste des UAI à enrichir
+     * @returns {Promise<number>} Nombre d'établissements enrichis
+     */
+    async enrichirTypeStatutParUAIs(uais) {
+        if (!uais || uais.length === 0) return 0;
+        if (!this.isAuthenticated()) {
+            console.warn('[OnisepExtractionController] enrichirTypeStatutParUAIs : non authentifié');
+            return 0;
+        }
+
+        console.log(`[OnisepExtractionController] Enrichissement type/statut pour ${uais.length} UAI(s)...`);
+        try {
+            const structures = await this.#onisepAPI.queryDataset('structures', {
+                q: uais,
+                size: 200
+            }, 10);
+
+            const parsed = OnisepParser.parseStructures(structures);
+            let nbEnrichis = 0;
+
+            for (const etab of parsed.etablissements) {
+                if (!etab.uai) continue;
+                const existing = await this.#databaseService.getEtablissementByUai(etab.uai);
+                if (!existing) continue;
+
+                // N'écraser que les champs manquants
+                const updates = {};
+                if (!existing.type  && etab.type)   updates.type   = etab.type;
+                if (!existing.statut && etab.statut) updates.statut = etab.statut;
+                if (!existing.nom   && etab.nom)     updates.nom    = etab.nom;
+
+                if (Object.keys(updates).length > 0) {
+                    await this.#databaseService.updateEtablissement(existing._id, updates);
+                    nbEnrichis++;
+                }
+            }
+
+            console.log(`[OnisepExtractionController] ✅ ${nbEnrichis} établissements enrichis (type/statut)`);
+            return nbEnrichis;
+
+        } catch (error) {
+            console.warn('[OnisepExtractionController] Enrichissement type/statut échoué:', error);
+            return 0;
+        }
     }
 }
 

@@ -439,6 +439,31 @@ tbody tr:hover { background: var(--bg-light); }
 .marker-icon      { background: white; border: 3px solid var(--primary); border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: var(--font-size-lg); box-shadow: 0 2px 8px rgba(0,0,0,.3); }
 .marker-icon-user { background: #ff9800; border-color: #f57c00; width: 35px; height: 35px; animation: pulse 2s infinite; }
 
+/* Marqueurs par voie */
+.marker-icon--scolaire     { border-color: var(--primary); }
+.marker-icon--apprentissage { border-color: #e67e22; }
+.marker-icon--mixte        { border-color: #27ae60; }
+
+/* Légende carte */
+.map-legend { position: absolute; bottom: 30px; right: 10px; z-index: 1000; background: white; border: 1px solid var(--border); border-radius: var(--border-radius-md); padding: 10px 14px; box-shadow: var(--shadow-md); font-size: var(--font-size-sm); min-width: 160px; }
+.map-legend-title { font-weight: var(--font-weight-semibold); color: var(--text); margin-bottom: 8px; font-size: var(--font-size-sm); }
+.map-legend-item  { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; color: var(--text); }
+.map-legend-marker { display: inline-block; width: 16px; height: 16px; border-radius: 50%; border: 3px solid; flex-shrink: 0; }
+.map-legend-marker--scolaire     { border-color: var(--primary); background: white; }
+.map-legend-marker--apprentissage { border-color: #e67e22; background: white; }
+.map-legend-marker--mixte        { border-color: #27ae60; background: white; }
+
+/* Sélecteur de voies (checkboxes dans les panels de recherche) */
+.voie-selector { padding: 12px; background: var(--bg-light); border-radius: var(--border-radius-md); border: 1px solid var(--border); }
+.voie-checkboxes { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; }
+.voie-checkbox-label { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 6px 10px; border-radius: var(--border-radius-sm); border: 1px solid var(--border); background: white; transition: border-color var(--transition-base), background var(--transition-base); }
+.voie-checkbox-label:hover { border-color: var(--primary); background: var(--primary-bg); }
+.voie-checkbox-label input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+.voie-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); }
+.voie-badge--scolaire     { background: var(--primary-bg); color: var(--primary); }
+.voie-badge--apprentissage { background: #fef3e2; color: #e67e22; }
+.voie-desc { font-size: 11px; color: var(--text-light); }
+
 @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
 
 /* --- PANNEAU PARAMETRES & HAMBURGER --- */

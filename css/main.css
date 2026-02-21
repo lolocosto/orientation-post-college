@@ -4,3 +4,24 @@
  * Ce fichier est intentionnellement vide.
  * Tous les styles sont desormais dans design-system.css
  */
+
+/* =====================================================
+   ICÔNE LIEN ↗ (v0.38)
+   ===================================================== */
+.link-icon {
+    font-size: 0.75em;
+    color: #888;
+    vertical-align: super;
+    opacity: 0.7;
+}
+
+tr:hover .link-icon,
+.detail-item:hover .link-icon {
+    color: var(--color-primary, #3b82f6);
+    opacity: 1;
+}
+
+/* Table rows cliquables : indiquer le curseur pointer */
+.resultat-table tbody tr[onclick] {
+    cursor: pointer;
+}

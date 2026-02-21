@@ -32,39 +32,42 @@
 	<script src="data/academies_data.js"></script>
 
 	<!-- 2. Classes database, API et parser -->
-    <script src="js/database_service.js?v=1771082194"></script>
-    <script src="js/systeme_filtres.js?v=1771082194"></script>
-    <script src="js/geo_api.js?v=1771082194"></script>
-    <script src="js/geo_parser.js?v=1771082194"></script>
-    <script src="js/data_education_api.js?v=1771082194"></script>
-    <script src="js/data_education_parser.js?v=1771082194"></script>
-    <script src="js/onisep_api.js?v=1771082194"></script>
-    <script src="js/onisep_parser.js?v=1771082194"></script>
+    <script src="js/database_service.js?v=1771596491"></script>
+    <script src="js/systeme_filtres.js?v=1771596491"></script>
+    <script src="js/geo_api.js?v=1771596491"></script>
+    <script src="js/geo_parser.js?v=1771596491"></script>
+    <script src="js/data_education_api.js?v=1771596491"></script>
+    <script src="js/data_education_parser.js?v=1771596491"></script>
+    <script src="js/onisep_api.js?v=1771596491"></script>
+    <script src="js/onisep_parser.js?v=1771596491"></script>
+    <script src="js/carif_oref_api.js?v=1771596491"></script>
+    <script src="js/carif_oref_parser.js?v=1771596491"></script>
 
 	<!-- 3. Classes contrôleur d'extraction -->
-    <script src="js/geo_extraction_controller.js?v=1771082194"></script>
-    <script src="js/data_education_extraction_controller.js?v=1771082194"></script>
-    <script src="js/onisep_extraction_controller.js?v=1771082194"></script>
+    <script src="js/geo_extraction_controller.js?v=1771596491"></script>
+    <script src="js/data_education_extraction_controller.js?v=1771596491"></script>
+    <script src="js/onisep_extraction_controller.js?v=1771596491"></script>
+    <script src="js/carif_oref_extraction_controller.js?v=1771596491"></script>
 
 	<!-- Modale de progrès (NOUVEAU) -->
-    <script src="js/modal.js?v=1771082194"></script>
-    <script src="js/progress_modal.js?v=1771082194"></script>
-    <!-- <script src="js/extraction_modal.js?v=1771082194"></script> → Supprimé v0.27.2 - Utiliser ProgressModal -->
-    <script src="js/details_modal.js?v=1771082194"></script>
+    <script src="js/modal.js?v=1771596491"></script>
+    <script src="js/progress_modal.js?v=1771596491"></script>
+    <!-- <script src="js/extraction_modal.js?v=1771596491"></script> → Supprimé v0.27.2 - Utiliser ProgressModal -->
+    <script src="js/details_modal.js?v=1771596491"></script>
 
     <!-- 4. Modules UI -->
-	<script src="js/gestion_params.js?v=1771082194"></script>
-	<script src="js/gestion_onglets.js?v=1771082194"></script>
-	<script src="js/gestion_onglet_recherche.js?v=1771082194"></script>
-	<script src="js/gestion_onglet_resultats.js?v=1771082194"></script>
-	<script src="js/gestion_onglet_carte.js?v=1771082194"></script>
+	<script src="js/gestion_params.js?v=1771596491"></script>
+	<script src="js/gestion_onglets.js?v=1771596491"></script>
+	<script src="js/gestion_onglet_recherche.js?v=1771596491"></script>
+	<script src="js/gestion_onglet_resultats.js?v=1771596491"></script>
+	<script src="js/gestion_onglet_carte.js?v=1771596491"></script>
 
 	<!-- 5. Export (PDF via CDN) -->
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-	<script src="js/export_service.js?v=1771082194"></script>
+	<script src="js/export_service.js?v=1771596491"></script>
 
 	<!-- 6. Utilitaires -->
-	<script src="js/utils.js?v=1771082194"></script>
+	<script src="js/utils.js?v=1771596491"></script>
 	
 	<!-- 7. Initialisation -->
 	<script>
@@ -314,9 +317,53 @@
                     <div class="form-group">
                         <label class="setting-label">À propos</label>
                         <div style="font-size: 13px; color: var(--text-light); line-height: 1.8;">
-                            <p><strong>Orientation Post-Collège v0.32.1</strong></p>
+                            <p><strong>Orientation Post-Collège v0.41</strong></p>
                             <p class="u-mt-3"><strong>📓 Historique des versions</strong></p>
                             <div style="font-size: 12px; margin-top: 10px; max-height: 300px; overflow-y: auto;">
+                                <p><strong>v0.41</strong> (21 février 2026) - IDs internes, alertes, robustesse</p>
+                                <ul class="u-ml-4 u-mt-1">
+                                    <li>Amélioration : stat-card de la vue active mise en évidence (fond bleu pâle)</li>
+                                    <li>Amélioration : toutes les alertes bloquantes converties en modales non-bloquantes</li>
+                                    <li>Amélioration : logs des données chargées au début de chaque vue résultats</li>
+                                    <li>Bug corrigé : recherche géo sans voie cochée bloquée avec message explicatif</li>
+                                    <li>Bug corrigé : chaque entité a maintenant un _id interne généré — refus si UAI et SIRET nuls pour les établissements</li>
+                                    <li>Bug corrigé : les relations génèrent automatiquement un _id si l'API n'en fournit pas</li>
+                                    <li>Bug corrigé : fiches établissements sans UAI désormais accessibles (via _id interne)</li>
+                                    <li>Bug corrigé : messages de pagination CARIF-OREF affichés dans un ordre uniforme</li>
+                                    <li>100 tests (3 suites) — tous verts</li>
+                                </ul>
+                                <p><strong>v0.39</strong> (20 février 2026) - Données enrichies et bugs critiques</p>
+                                <ul class="u-ml-4 u-mt-1">
+                                    <li>Bug corrigé : bouton "Vider la base locale" (modale de confirmation manquante)</li>
+                                    <li>Bug corrigé : nouvelle extraction vide systématiquement la base précédente</li>
+                                    <li>Champ "contenu" CARIF-OREF affiché en tête de fiche diplôme apprentissage</li>
+                                    <li>Blocs de compétences affichés dans la fiche diplôme apprentissage</li>
+                                    <li>Badge croisé : "Également accessible par voie scolaire/apprentissage" dans les fiches diplômes</li>
+                                    <li>Enrichissement type/statut des CFA via requête ONISEP structures post-extraction</li>
+                                </ul>
+                                <p><strong>v0.38</strong> (20 février 2026) - Améliorations UX et filtrage niveaux</p>
+                                <ul class="u-ml-4 u-mt-1">
+                                    <li>Filtre niveaux 3/4 à l'extraction : établissements proposant uniquement niveaux 5/6/7 exclus automatiquement</li>
+                                    <li>Correction bug bouton "Réinitialiser" : sécurisation de la réinitialisation pour toutes les vues (apprentissage, scolaire, établissements)</li>
+                                    <li>Correction affichage parasite dans la section boutons de la recherche géo</li>
+                                    <li>Suppression des libellés techniques "Lycées (Onisep)" / "CFA (CARIF-OREF)"</li>
+                                    <li>Icône ↗ généralisée sur tous les liens cliquables dans les listes modales</li>
+                                    <li>Multi-select filtres limité à 4 items visibles</li>
+                                    <li>Détails d'extraction CARIF-OREF plus fréquents (throttle 2s/page)</li>
+                                    <li>98 tests (3 suites) — tous verts</li>
+                                </ul>
+                                <p><strong>v0.37</strong> (20 février 2026) - Vues diplômes séparées scolaire / apprentissage</p>
+                                <ul class="u-ml-4 u-mt-1">
+                                    <li>Vue "Diplômes scolaires" (ancienne vue Diplômes, renommée)</li>
+                                    <li>Nouvelle vue "Diplômes apprentissage" (CARIF-OREF) avec tableau dédié et filtres niveau/type</li>
+                                    <li>Modale détail diplôme apprentissage : infos, lien France Compétences, centres de formation cliquables</li>
+                                    <li>Navigation ←/→ dans la liste depuis la modale apprentissage</li>
+                                    <li>Stat-card "Diplômes apprentissage" cliquable dans le tableau de bord</li>
+                                    <li>Fiche établissement : sections scolaire et apprentissage séparées</li>
+                                    <li>Popup carte : total diplômes avec détail sco/appr</li>
+                                    <li>Suite de tests : 98 tests (3 suites unitaires et fonctionnels)</li>
+                                </ul>
+                                <p><strong>v0.36</strong> (20 février 2026) - Refactoring architecture CARIF-OREF</p>
                                 <p><strong>v0.32.1</strong> (18 février 2026) - Recherche par Options 2nde GT (correctif intégration)</p>
                                 <ul class="u-ml-4 u-mt-1">
                                     <li>Nouveau mode de recherche « Par Options 2nde GT » avec filtrage dynamique par département/académie</li>
@@ -563,10 +610,25 @@
                         });
                     </script>
 
+                    <!-- Sélection voie(s) de formation -->
+                    <div class="form-group voie-selector" id="tab-geo-voie-selector">
+                        <label class="setting-label">📚 Voie(s) de formation à extraire</label>
+                        <div class="voie-checkboxes">
+                            <label class="voie-checkbox-label">
+                                <input type="checkbox" id="tab-geo-voie-scolaire" class="voie-checkbox" value="scolaire" checked>
+                                <span class="voie-badge voie-badge--scolaire">🏫 Voie scolaire</span>
+                            </label>
+                            <label class="voie-checkbox-label">
+                                <input type="checkbox" id="tab-geo-voie-apprentissage" class="voie-checkbox" value="apprentissage">
+                                <span class="voie-badge voie-badge--apprentissage">🎓 Apprentissage</span>
+                            </label>
+                        </div>
+                    </div>
+
                     <!-- Boutons d'action -->
-                    <div class="search-actions custom-style-12">
-                        <button id="tab-btn-clear-geo" 
-                                class="btn btn--secondary u-flex-1 u-font-lg u-font-semibold u-p-4" 
+                    <div class="u-flex u-gap-2">
+                        <button id="tab-btn-clear-geo"
+                                class="btn btn--secondary u-flex-1 u-font-lg u-font-semibold u-p-4"
                                 onclick="clearSelection()"
                                 disabled
                                >
@@ -687,6 +749,21 @@
                             });
                         </script>
                             
+                        <!-- Sélection voie(s) de formation -->
+                        <div class="form-group voie-selector">
+                            <label class="setting-label">📚 Voie(s) de formation à extraire</label>
+                            <div class="voie-checkboxes">
+                                <label class="voie-checkbox-label">
+                                    <input type="checkbox" id="tab-diplomes-voie-scolaire" class="voie-checkbox" value="scolaire" checked>
+                                    <span class="voie-badge voie-badge--scolaire">🏫 Voie scolaire</span>
+                                </label>
+                                <label class="voie-checkbox-label">
+                                    <input type="checkbox" id="tab-diplomes-voie-apprentissage" class="voie-checkbox" value="apprentissage">
+                                    <span class="voie-badge voie-badge--apprentissage">🎓 Apprentissage</span>
+                                </label>
+                            </div>
+                        </div>
+
                         <!-- Boutons d'action -->
                         <div class="etape-navigation custom-style-12">
                             <button class="btn btn--secondary u-flex-1" onclick="resetItemsSearch('diplomes')">
@@ -778,6 +855,21 @@
                                 ✅ <span id="tab-selection-count-options">0</span> option(s) sélectionnée(s)
                             </div>
 
+                            <!-- Sélection voie(s) de formation -->
+                            <div class="form-group voie-selector">
+                                <label class="setting-label">📚 Voie(s) de formation à extraire</label>
+                                <div class="voie-checkboxes">
+                                    <label class="voie-checkbox-label">
+                                        <input type="checkbox" id="tab-options-voie-scolaire" class="voie-checkbox" value="scolaire" checked>
+                                        <span class="voie-badge voie-badge--scolaire">🏫 Voie scolaire</span>
+                                    </label>
+                                    <label class="voie-checkbox-label">
+                                        <input type="checkbox" id="tab-options-voie-apprentissage" class="voie-checkbox" value="apprentissage">
+                                        <span class="voie-badge voie-badge--apprentissage">🎓 Apprentissage</span>
+                                    </label>
+                                </div>
+                            </div>
+
                             <!-- Boutons d'action -->
                             <div class="etape-navigation custom-style-12">
                                 <button class="btn btn--secondary u-flex-1" onclick="resetItemsSearch('options')">
@@ -799,19 +891,23 @@
             <!-- ========================================= -->
             <div class="tabs__panel" id="tab-resultats">
                 <div class="stats-grid">
-                    <div class="stat-card" onclick="switchView('etablissements')" class="cursor-pointer" title="Cliquez pour voir la liste des établissements">
+                    <div class="stat-card" data-view="etablissements" onclick="switchView('etablissements')" title="Cliquez pour voir la liste des établissements">
                         <div class="stat-value" id="stat-etablissements">-</div>
                         <div class="stat-label">Établissements</div>
                     </div>
-                    <div class="stat-card" onclick="switchView('diplomes')" class="cursor-pointer" title="Cliquez pour voir la liste des diplômes">
+                    <div class="stat-card" data-view="diplomes_scolaire" onclick="switchView('diplomes_scolaire')" title="Diplômes voie scolaire — cliquez pour voir la liste">
                         <div class="stat-value" id="stat-diplomes">-</div>
-                        <div class="stat-label">Diplômes</div>
+                        <div class="stat-label">Diplômes scolaires</div>
                     </div>
-                    <div class="stat-card" onclick="switchView('dispositifs')" class="cursor-pointer" title="Cliquez pour voir la liste des dispositifs">
+                    <div class="stat-card" data-view="diplomes_apprentissage" onclick="switchView('diplomes_apprentissage')" title="Diplômes en apprentissage — cliquez pour voir la liste">
+                        <div class="stat-value" id="stat-apprentissage">-</div>
+                        <div class="stat-label">Diplômes apprentissage</div>
+                    </div>
+                    <div class="stat-card" data-view="dispositifs" onclick="switchView('dispositifs')" title="Cliquez pour voir la liste des dispositifs">
                         <div class="stat-value" id="stat-dispositifs">-</div>
                         <div class="stat-label">Dispositifs</div>
                     </div>
-                    <div class="stat-card" onclick="switchView('options2ndeGT')" class="cursor-pointer" title="Cliquez pour voir la liste des options 2nde GT">
+                    <div class="stat-card" data-view="options2ndeGT" onclick="switchView('options2ndeGT')" title="Cliquez pour voir la liste des options 2nde GT">
                         <div class="stat-value" id="stat-options2ndeGT">-</div>
                         <div class="stat-label">Options 2nde GT</div>
                     </div>
@@ -874,6 +970,23 @@
                     </div>
                 </div>
 
+                <!-- Légende des marqueurs -->
+                <div class="map-legend" id="map-legend">
+                    <div class="map-legend-title">Légende</div>
+                    <div class="map-legend-item">
+                        <span class="map-legend-marker map-legend-marker--scolaire"></span>
+                        <span>Voie scolaire</span>
+                    </div>
+                    <div class="map-legend-item">
+                        <span class="map-legend-marker map-legend-marker--apprentissage"></span>
+                        <span>Apprentissage</span>
+                    </div>
+                    <div class="map-legend-item">
+                        <span class="map-legend-marker map-legend-marker--mixte"></span>
+                        <span>Les deux voies</span>
+                    </div>
+                </div>
+
                 <!-- Conteneur carte -->
                 <div id="map-container">
                     <div id="map"></div>
@@ -906,7 +1019,28 @@
     
 
     <!-- Confirmation de supression des données -->
-    
+    <div id="reset-confirm-modal" class="modal" style="display:none;">
+        <div class="modal__backdrop" onclick="closeResetConfirmModal()"></div>
+        <div class="modal__container" style="max-width:420px;">
+            <div class="modal__header">
+                <h2 class="modal__title">🗑️ Vider la base locale</h2>
+                <button class="modal__close" onclick="closeResetConfirmModal()">✕</button>
+            </div>
+            <div class="modal__body" style="padding:20px 24px;">
+                <p style="margin-bottom:12px;">Cette action supprimera <strong>toutes les données</strong> stockées localement :</p>
+                <ul style="margin:0 0 16px 20px; line-height:1.8; color:var(--text-light);">
+                    <li>Établissements et diplômes extraits</li>
+                    <li>Données ONISEP et CARIF-OREF</li>
+                    <li>Historique de connexion API</li>
+                </ul>
+                <p style="color:#e74c3c; font-weight:600;">⚠️ Cette action est irréversible.</p>
+            </div>
+            <div class="modal__footer" style="display:flex; gap:12px; justify-content:flex-end; padding:16px 24px;">
+                <button class="btn btn--secondary" onclick="closeResetConfirmModal()">Annuler</button>
+                <button class="btn" onclick="executeResetDatabase()" style="background:#e74c3c; color:white; border:none;">🗑️ Confirmer la suppression</button>
+            </div>
+        </div>
+    </div>
 	
 </body>
 </html>
