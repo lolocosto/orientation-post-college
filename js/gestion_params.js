@@ -363,6 +363,81 @@ function saveUserEstablishment() {
     }
 }
 
+// =====================================
+// MON DOMICILE
+// =====================================
+
+/**
+ * Géocode l'adresse domicile saisie via Nominatim (OSM, sans clé API).
+ * Remplit les champs lat/lon en lecture seule.
+ */
+async function geocoderDomicile() {
+    const adresse = document.getElementById('pref-domicile-adresse')?.value?.trim();
+    if (!adresse) {
+        showAlert('⚠️ Veuillez saisir une adresse', 'warning');
+        return;
+    }
+
+    const btn = document.getElementById('btn-geocoder-domicile');
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Recherche...'; }
+
+    try {
+        // Nominatim OSM : gratuit, sans clé, 1 req/s max
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(adresse + ', France')}&format=json&limit=1&addressdetails=0`;
+        const resp = await fetch(url, {
+            headers: { 'Accept-Language': 'fr', 'User-Agent': 'OrientationPostCollege/0.43' }
+        });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const results = await resp.json();
+        if (!results || results.length === 0) {
+            showAlert('❌ Adresse introuvable — vérifiez la saisie (ex: 12 rue de la Paix, Rennes)', 'error');
+            return;
+        }
+        const { lat, lon, display_name } = results[0];
+        document.getElementById('pref-domicile-lat').value = parseFloat(lat).toFixed(6);
+        document.getElementById('pref-domicile-lon').value = parseFloat(lon).toFixed(6);
+        showAlert(`📍 Adresse trouvée : ${display_name.split(',').slice(0, 3).join(',')}`, 'success');
+    } catch (err) {
+        console.error('[geocoderDomicile] Erreur:', err);
+        showAlert('❌ Erreur de géocodage — vérifiez votre connexion internet', 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '📍 Géolocaliser'; }
+    }
+}
+
+/**
+ * Sauvegarde les préférences domicile dans localStorage.
+ */
+function saveUserDomicile() {
+    const adresse = document.getElementById('pref-domicile-adresse')?.value?.trim();
+    const lat     = parseFloat(document.getElementById('pref-domicile-lat')?.value);
+    const lon     = parseFloat(document.getElementById('pref-domicile-lon')?.value);
+
+    if (!adresse) {
+        showAlert('⚠️ Veuillez saisir une adresse', 'warning');
+        return;
+    }
+    if (isNaN(lat) || isNaN(lon)) {
+        showAlert('⚠️ Veuillez cliquer sur "📍 Géolocaliser" pour obtenir les coordonnées GPS', 'warning');
+        return;
+    }
+
+    const domicile = { adresse, latitude: lat, longitude: lon };
+    localStorage.setItem('pref_user_domicile', JSON.stringify(domicile));
+    showAlert('✅ Domicile sauvegardé', 'success');
+}
+
+/**
+ * Efface les préférences domicile.
+ */
+function clearUserDomicile() {
+    localStorage.removeItem('pref_user_domicile');
+    if (document.getElementById('pref-domicile-adresse')) document.getElementById('pref-domicile-adresse').value = '';
+    if (document.getElementById('pref-domicile-lat'))     document.getElementById('pref-domicile-lat').value = '';
+    if (document.getElementById('pref-domicile-lon'))     document.getElementById('pref-domicile-lon').value = '';
+    showAlert('🗑️ Domicile effacé', 'info');
+}
+
 function loadUserPreferences() {
     // Charger depuis nouvel objet si disponible
     const stored = localStorage.getItem('pref_user_etablissement');
@@ -381,6 +456,19 @@ function loadUserPreferences() {
         const uai = localStorage.getItem('pref_user_uai');
         if (uai) {
             document.getElementById('pref-user-uai').value = uai;
+        }
+    }
+
+    // Charger domicile
+    const storedDomicile = localStorage.getItem('pref_user_domicile');
+    if (storedDomicile) {
+        try {
+            const dom = JSON.parse(storedDomicile);
+            if (dom.adresse)   document.getElementById('pref-domicile-adresse').value = dom.adresse;
+            if (dom.latitude)  document.getElementById('pref-domicile-lat').value     = dom.latitude;
+            if (dom.longitude) document.getElementById('pref-domicile-lon').value     = dom.longitude;
+        } catch (e) {
+            console.warn('Erreur chargement domicile:', e);
         }
     }
 }
@@ -779,6 +867,9 @@ if (typeof window !== 'undefined') {
     window.logoutOnisep = logoutOnisep;
     window.fetchOnisepEstablishment = fetchOnisepEstablishment;
     window.saveUserEstablishment = saveUserEstablishment;
+    window.geocoderDomicile = geocoderDomicile;
+    window.saveUserDomicile = saveUserDomicile;
+    window.clearUserDomicile = clearUserDomicile;
     window.exporterDonnees = exporterDonnees;
     window.importerFichier = importerFichier;
     window.confirmResetDatabase = confirmResetDatabase;

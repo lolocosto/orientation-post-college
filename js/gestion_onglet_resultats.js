@@ -1163,9 +1163,21 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
     let html = '';
     
     // SECTION 1 : INFORMATIONS GÉNÉRALES
+    // Bouton itinéraire (visible uniquement si coordonnées GPS disponibles)
+    const hasCoords = etablissement.latitude && etablissement.longitude;
+    const btnItineraire = hasCoords
+        ? `<div class="detail-itineraire-bar">
+               <button class="btn btn--primary btn--sm detail-btn-itineraire"
+                       onclick="openItineraireModal({nom: '${(etablissement.nom || '').replace(/'/g, "\\'")}', latitude: ${etablissement.latitude}, longitude: ${etablissement.longitude}})">
+                   🗺️ Itinéraire
+               </button>
+           </div>`
+        : '';
+
     html += `
 <div class="detail-section">
     <h3 class="detail-section-title">📍 Informations générales</h3>
+    ${btnItineraire}
     <div class="detail-info-grid">
         ${buildInfoRow('UAI', etablissement.uai)}
         ${etablissement.siret ? buildInfoRow('SIRET', etablissement.siret) : ''}

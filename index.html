@@ -58,6 +58,7 @@
 
     <!-- 4. Modules UI -->
 	<script src="js/gestion_params.js?v=1771596491"></script>
+	<script src="js/itineraire_modal.js?v=1771596491"></script>
 	<script src="js/gestion_onglets.js?v=1771596491"></script>
 	<script src="js/gestion_onglet_recherche.js?v=1771596491"></script>
 	<script src="js/gestion_onglet_resultats.js?v=1771596491"></script>
@@ -283,9 +284,55 @@
                         </button>
                     </div>
 
+                    <div class="settings-separator"></div>
+
+                    <!-- Mon domicile -->
+                    <div class="form-group">
+                        <label class="setting-label">🏠 Mon domicile</label>
+                        <label class="u-text-sm u-mt-3 u-block">Adresse</label>
+                        <div class="search-input-group">
+                            <input type="text"
+                                   id="pref-domicile-adresse"
+                                   class="setting-input"
+                                   placeholder="12 rue de la Paix, Rennes">
+                            <button class="setting-button setting-button--nowrap" id="btn-geocoder-domicile" onclick="geocoderDomicile()">
+                                📍 Géolocaliser
+                            </button>
+                        </div>
+
+                        <label class="u-text-sm u-mt-3 u-block">Latitude (GPS)</label>
+                        <input type="number"
+                               id="pref-domicile-lat"
+                               class="setting-input"
+                               placeholder="Renseignée automatiquement"
+                               step="0.000001"
+                               readonly>
+
+                        <label class="u-text-sm u-mt-3 u-block">Longitude (GPS)</label>
+                        <input type="number"
+                               id="pref-domicile-lon"
+                               class="setting-input"
+                               placeholder="Renseignée automatiquement"
+                               step="0.000001"
+                               readonly>
+
+                        <div class="setting-help u-mt-3">
+                            💡 Saisissez votre adresse puis cliquez sur "📍 Géolocaliser" — les coordonnées GPS sont calculées automatiquement via OpenStreetMap.
+                        </div>
+
+                        <div class="u-flex u-gap-md u-mt-3">
+                            <button class="btn btn--secondary u-flex-1" onclick="clearUserDomicile()">
+                                🗑️ Effacer
+                            </button>
+                            <button class="setting-button u-flex-1" onclick="saveUserDomicile()">
+                                💾 Sauvegarder
+                            </button>
+                        </div>
+                    </div>
+
                 </div>
             </div>
-            
+
             <!-- Section Aide -->
             <div class="settings-section">
                 <div class="settings-section-header" onclick="toggleSection(this)">
@@ -318,9 +365,19 @@
                     <div class="form-group">
                         <label class="setting-label">À propos</label>
                         <div class="about-text">
-                            <p><strong>Orientation Post-Collège v0.42</strong></p>
+                            <p><strong>Orientation Post-Collège v0.43</strong></p>
                             <p class="u-mt-3"><strong>📓 Historique des versions</strong></p>
                             <div class="changelog-scroll">
+                                <p><strong>v0.43</strong> (21 février 2026) - Itinéraire & Mon domicile</p>
+                                <ul class="u-ml-4 u-mt-1">
+                                    <li>Nouveau : "Mon domicile" dans les paramètres (géocodage Nominatim/OSM)</li>
+                                    <li>Nouveau : bouton "🗺️ Itinéraire" dans la popup carte (résumé établissement)</li>
+                                    <li>Nouveau : bouton "🗺️ Itinéraire" dans la fiche détail établissement</li>
+                                    <li>Modale itinéraire : choix du départ (domicile / établissement) + mode (voiture, TC, pied, vélo)</li>
+                                    <li>Ouverture Google Maps dans un nouvel onglet — sans clé API — compatible mobile (app Maps native)</li>
+                                    <li>Correction : sélecteur voie scolaire/apprentissage supprimé en phase 2 recherche par diplôme (voies déduites automatiquement)</li>
+                                    <li>Performance : localStorage.setItem réduit de ~116 000 à ~14 appels par extraction (×8 000)</li>
+                                </ul>
                                 <p><strong>v0.42</strong> (21 février 2026) - Factorisation HTTP & détails extraction</p>
                                 <ul class="u-ml-4 u-mt-1">
                                     <li>Nouveau : classe <code>HttpClient</code> — retry, rate limiting 429, backoff exponentiel centralisés</li>

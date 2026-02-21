@@ -186,6 +186,8 @@ function createPopupContent(lycee) {
                 <div class="map-popup-actions">
                     <a class="map-popup-btn" onclick="showLyceeDetailsCarte('${lycee._id}'); return false;">
                     📋 Voir la fiche complète</a>
+                    <a class="map-popup-btn map-popup-btn--secondary" onclick="openItineraireModal({nom: '${lycee.nom.replace(/'/g, "\\'")}', latitude: ${lycee.latitude}, longitude: ${lycee.longitude}}); return false;">
+                    🗺️ Itinéraire</a>
                 </div>
             </div>
         </div>
