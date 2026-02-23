@@ -132,6 +132,9 @@ class OnisepAPI {
             });
             
             if (!response.ok) {
+                if (response.status === 401) {
+                    throw new Error('Identifiants incorrects (401). Vérifiez votre email, mot de passe et Application ID dans les paramètres.');
+                }
                 throw new Error(`Erreur HTTP ${response.status}: ${response.statusText}`);
             }
             

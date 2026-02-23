@@ -234,7 +234,8 @@ class OnisepParser {
     static _parseActionLycee(action) {
         const result = {
             diplomes: [],
-            diplomes_par_etablissement: []
+            diplomes_par_etablissement: [],
+            enrichissements_etab: []  // ens_hebergement, ens_site_web, ens_accessibilite par UAI
         };
         
         // Structure DIPLOME (champs for_...)
@@ -272,13 +273,32 @@ class OnisepParser {
                 
                 // URLs
                 urlOnisep: action.for_url_et_id_onisep || null,
-                urlReferentiel: action.for_url_referentiel || null
+                urlReferentiel: action.for_url_referentiel || null,
+
+                // Code RNCP extrait depuis urlReferentiel (France Compétences) ou urlOnisep
+                rncpCode: (() => {
+                    const urlRef = action.for_url_referentiel || '';
+                    const urlOnisep = action.for_url_et_id_onisep || '';
+                    const m = urlRef.match(/\/rncp\/(\d+)\//i) || urlOnisep.match(/RNCP(\d+)/i);
+                    return m ? `RNCP${m[1]}` : null;
+                })()
             });
         }
         
-        // Structure ETABLISSEMENT (champs ens_...)
-        // On ne stocke rien car il manque des champs
+        // Structure ETABLISSEMENT (champs ens_...) — enrichissement par UAI (1 fois)
         
+        // Enrichissement établissement : hebergement / siteWeb / accessibilite
+        // Stocké par UAI (première valeur rencontrée lors du traitement amont)
+        if (action.ens_code_uai) {
+            const enrich = {};
+            if (action.ens_hebergement)   enrich.hebergement   = action.ens_hebergement;
+            if (action.ens_site_web)      enrich.siteWeb       = action.ens_site_web;
+            if (action.ens_accessibilite) enrich.accessibilite = action.ens_accessibilite;
+            if (Object.keys(enrich).length > 0) {
+                result.enrichissements_etab.push({ uai: action.ens_code_uai, ...enrich });
+            }
+        }
+
         // Structure DIPLOME_PAR_ETABLISSEMENT (champs af_... + clés externes)
         if (action.ens_code_uai && action.formation_for_libelle) {
             result.diplomes_par_etablissement.push({
@@ -610,13 +630,15 @@ class OnisepParser {
         
         const result = {
             diplomes: [],
-            diplomes_par_etablissement: []
+            diplomes_par_etablissement: [],
+            enrichissements_etab: []
         };
         
         for (const action of actions) {
             const parsed = this._parseActionLycee(action);
             result.diplomes.push(...parsed.diplomes);
             result.diplomes_par_etablissement.push(...parsed.diplomes_par_etablissement);
+            if (parsed.enrichissements_etab) result.enrichissements_etab.push(...parsed.enrichissements_etab);
         }
         
         return result;

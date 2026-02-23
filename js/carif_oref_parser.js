@@ -138,6 +138,8 @@ class CARIFOREFParser {
             // ── Spécifique apprentissage ─────────────────────────────────
             certifieQualite: !!e.certifie_qualite,
             nda:     (e.nda || '').trim() || null,
+            opcoNom: (e.opco_nom || '').trim() || null,
+            formeJuridique: (e.entreprise_forme_juridique || '').trim() || null,
 
             // ── Voie ─────────────────────────────────────────────────────
             voies: ['apprentissage']
@@ -162,6 +164,170 @@ class CARIFOREFParser {
 
         // Fallback : adresse brute (peut contenir la raison sociale en tête)
         return (e.adresse || '').trim() || null;
+    }
+
+    // =====================================
+    // PARSER ÉTABLISSEMENTS DEPUIS FORMATIONS
+    // =====================================
+
+    /**
+     * Construit un tableau d'établissements normalisés directement depuis les champs
+     * `etablissement_formateur_*` inclus dans les formations CARIF-OREF.
+     *
+     * Avantage par rapport à parseEtablissements() qui utilise /etablissements :
+     * les champs formateur reflètent l'adresse de l'**antenne locale** qui dispense
+     * réellement la formation dans la zone géographique ciblée. Un GRETA ou CFA
+     * régional dont le siège est dans un autre département apparaîtra ici avec
+     * l'adresse de son antenne locale, non celle de son siège.
+     *
+     * Déduplication automatique par UAI : si plusieurs formations partagent le même
+     * formateur, un seul établissement est retourné.
+     *
+     * @param {Object[]} rawFormations - Formations brutes /formations (champs complets)
+     * @returns {Object[]} Établissements normalisés (même structure que parseEtablissements)
+     */
+    static parseEtablissementsDepuisFormations(rawFormations) {
+        if (!rawFormations || rawFormations.length === 0) return [];
+
+        // ── Phase 1 : grouper les formations par UAI ──────────────────────────────
+        // Permet de choisir les coordonnées du lieu de formation le plus pertinent
+        // (même département) quand le siège de l'organisme est hors-département.
+        const formationsParUAI = new Map(); // UAI → [formation, ...]
+        for (const f of rawFormations) {
+            const uai = (f.etablissement_formateur_uai || '').trim() || null;
+            if (!uai) continue;
+            if (!formationsParUAI.has(uai)) formationsParUAI.set(uai, []);
+            formationsParUAI.get(uai).push(f);
+        }
+
+        // ── Phase 2 : construire un établissement par UAI ─────────────────────────
+        const map = new Map(); // UAI → établissement normalisé
+
+        for (const [uai, formations] of formationsParUAI) {
+            const f = formations[0]; // première formation pour les métadonnées du formateur
+
+            const nom = (f.etablissement_formateur_enseigne               || '').trim()
+                     || (f.etablissement_formateur_entreprise_raison_sociale || '').trim()
+                     || null;
+
+            // Coordonnées préférées : siège du formateur (après correction inversion)
+            let geoCoords = this._parseGeoCoords(f.geo_coordonnees_etablissement_formateur);
+
+            // Fallback coordonnées : si le siège est hors-France ou absent,
+            // chercher parmi les lieux de formation une coordonnée valide.
+            if (!geoCoords.lat || !geoCoords.lon) {
+                for (const ff of formations) {
+                    const gc = this._parseGeoCoords(ff.lieu_formation_geo_coordonnees);
+                    if (gc.lat && gc.lon) { geoCoords = gc; break; }
+                }
+            }
+
+            // ── Détection organisme hors-département ──────────────────────────────
+            // Le champ `etablissement_formateur_num_departement` désigne le département
+            // du siège du formateur (ex : 93 pour AFPA à Montreuil).
+            // Le champ `num_departement` (au niveau formation) désigne l'endroit où
+            // la formation a physiquement lieu — c'est lui qu'on utilise pour détecter
+            // les organismes dont le siège est hors de la zone d'extraction.
+            const deptFormateur   = (f.etablissement_formateur_num_departement || '').trim();
+            const deptFormations  = formations
+                .map(ff => (ff.num_departement || '').trim())  // dept du LIEU de formation
+                .filter(Boolean);
+            const deptMajoritaire = deptFormations.length > 0
+                ? deptFormations.sort((a, b) =>
+                    deptFormations.filter(d => d === b).length -
+                    deptFormations.filter(d => d === a).length)[0]
+                : deptFormateur;
+
+            // Si siège hors-département, chercher une adresse de lieu de formation locale
+            let adresseLocale  = (f.etablissement_formateur_adresse     || '').trim() || null;
+            let communeLocale  = (f.etablissement_formateur_localite     || '').trim() || null;
+            let cpLocal        = (f.etablissement_formateur_code_postal  || '').trim() || null;
+            let deptLocal      = (f.etablissement_formateur_nom_departement || '').trim() || null;
+
+            // Siège hors-département détecté si deptFormateur ≠ deptMajoritaire du lieu de formation
+            if (deptMajoritaire && deptFormateur !== deptMajoritaire) {
+                // Organisme national/régional dont le siège est hors du département cible.
+                // Remplacer coordonnées ET adresse par celles du lieu de formation local.
+                for (const ff of formations) {
+                    const ffLieuDept = (ff.num_departement || '').trim(); // dept du lieu
+                    if (ffLieuDept !== deptMajoritaire) continue;
+                    const gc = this._parseGeoCoords(ff.lieu_formation_geo_coordonnees);
+                    if (gc.lat && gc.lon) {
+                        geoCoords     = gc;
+                        adresseLocale = (ff.lieu_formation_adresse || '').trim() || adresseLocale;
+                        // Utiliser les champs localisation du LIEU de formation
+                        communeLocale = (ff.localite   || ff.etablissement_formateur_localite    || '').trim() || communeLocale;
+                        cpLocal       = (ff.code_postal || ff.etablissement_formateur_code_postal || '').trim() || cpLocal;
+                        deptLocal     = (ff.nom_departement || ff.etablissement_formateur_nom_departement || '').trim() || deptLocal;
+                        break;
+                    }
+                }
+                // Si aucune coordonnée locale trouvée, mettre à jour au moins l'adresse/commune
+                if (!geoCoords.lat) {
+                    for (const ff of formations) {
+                        const ffLieuDept = (ff.num_departement || '').trim();
+                        if (ffLieuDept !== deptMajoritaire) continue;
+                        communeLocale = (ff.localite    || ff.etablissement_formateur_localite    || '').trim() || communeLocale;
+                        cpLocal       = (ff.code_postal || ff.etablissement_formateur_code_postal || '').trim() || cpLocal;
+                        deptLocal     = (ff.nom_departement || ff.etablissement_formateur_nom_departement || '').trim() || deptLocal;
+                        break;
+                    }
+                }
+            }
+
+            map.set(uai, {
+                // ── Identification ──────────────────────────────────────────
+                uai,
+                siret:  (f.etablissement_formateur_siret || '').trim() || null,
+                nom,
+                sigle:  null,
+                type:   null,
+
+                // ── Statut et tutelle ────────────────────────────────────────
+                statut:  null,
+                tutelle: null,
+
+                // ── Adresse (antenne locale si organisme national, sinon siège) ─
+                adresse:        adresseLocale,
+                boitePostale:   null,
+                codePostal:     cpLocal,
+                commune:        communeLocale,
+                codeCommuneCOG: (f.etablissement_formateur_code_commune_insee || '').trim() || null,
+                cedex:          (f.etablissement_formateur_cedex      || '').trim() || null,
+                arrondissement: null,
+                departement:    deptLocal,
+                academie:       (f.etablissement_formateur_nom_academie    || '').trim() || null,
+                region:         (f.etablissement_formateur_region          || '').trim() || null,
+                regionCOG:      null,
+
+                // ── Géolocalisation de l'établissement formateur ──────────────
+                latitude:  geoCoords.lat,
+                longitude: geoCoords.lon,
+
+                // ── Contact ──────────────────────────────────────────────────
+                telephone: null,
+
+                // ── Informations complémentaires ─────────────────────────────
+                languesEnseignees:      null,
+                journeesPortesOuvertes: null,
+                urlOnisep: null,
+
+                // ── Dates ────────────────────────────────────────────────────
+                dateCreation:     f.etablissement_formateur_date_creation || null,
+                dateModification: null,
+
+                // ── Spécifique apprentissage ─────────────────────────────────
+                certifieQualite: !!f.etablissement_formateur_certifie_qualite,
+                nda: (f.etablissement_formateur_nda || '').trim() || null,
+
+                // ── Voie ─────────────────────────────────────────────────────
+                voies: ['apprentissage']
+            });
+        }
+
+        const result = Array.from(map.values());
+        console.log(`[CARIFOREFParser] parseEtablissementsDepuisFormations : ${result.length} établissements (${rawFormations.length} formations)`);
+        return result;
     }
 
     // =====================================
@@ -259,6 +425,13 @@ class CARIFOREFParser {
         if (uai && idRelation) {
             const geoCoords = this._parseGeoCoords(f.lieu_formation_geo_coordonnees);
 
+            // Durée : bcn_mefs_10[0].modalite.duree (en années)
+            const dureeAnnees = (() => {
+                const mefs = Array.isArray(f.bcn_mefs_10) ? f.bcn_mefs_10 : [];
+                const first = mefs.find(m => m && m.modalite && m.modalite.duree);
+                return first ? (parseInt(first.modalite.duree, 10) || null) : null;
+            })();
+
             result.relation = {
                 // Clé primaire de la relation
                 id: idRelation,
@@ -266,6 +439,12 @@ class CARIFOREFParser {
                 // Clés étrangères
                 diplomId: cleDiplome,
                 uai,
+
+                // Durée de la formation (en années)
+                dureeAnnees,
+
+                // Email de contact du CFA formateur
+                courriel: (f.etablissement_formateur_courriel || '').trim() || null,
 
                 // Lieu de formation (peut différer du siège)
                 lieuAdresse:       (f.lieu_formation_adresse || '').trim() || null,
@@ -307,13 +486,59 @@ class CARIFOREFParser {
      * @param {string|null} geoString - Ex: "48.1173,-1.6778"
      * @returns {{ lat: number|null, lon: number|null }}
      */
+    /**
+     * Parse et corrige les coordonnées géographiques d'une chaîne "lat,lon" ou "lon,lat".
+     * Certains organismes CARIF publient en format inversé "lon,lat".
+     *
+     * Algorithme :
+     *  1. Si seulement l'un des deux est dans la plage latitude France → cas non-ambigu, on ordonne.
+     *  2. Si les deux sont dans des plages compatibles (ambiguïté), on utilise la magnitude :
+     *     en France métropolitaine, la latitude (41-51) est toujours supérieure à la longitude (-5.5 à 9.7).
+     *     Donc la valeur la plus grande des deux est la latitude.
+     *
+     * @param {string} geoString - Chaîne "val1,val2"
+     * @returns {{lat: number|null, lon: number|null}}
+     */
     static _parseGeoCoords(geoString) {
         if (!geoString || typeof geoString !== 'string') return { lat: null, lon: null };
         const parts = geoString.split(',');
         if (parts.length !== 2) return { lat: null, lon: null };
-        const lat = parseFloat(parts[0]);
-        const lon = parseFloat(parts[1]);
-        if (isNaN(lat) || isNaN(lon)) return { lat: null, lon: null };
+        const a = parseFloat(parts[0]);
+        const b = parseFloat(parts[1]);
+        if (isNaN(a) || isNaN(b)) return { lat: null, lon: null };
+
+        // Plages France métropolitaine (avec marge)
+        const estLatFrance = v => v >= 41.3 && v <= 51.5;
+        const estLonFrance = v => v >= -5.5  && v <= 9.7;
+
+        const aEstLat = estLatFrance(a);
+        const bEstLat = estLatFrance(b);
+        const aEstLon = estLonFrance(a);
+        const bEstLon = estLonFrance(b);
+
+        let lat = a, lon = b; // hypothèse par défaut
+
+        if (aEstLat && !bEstLat && bEstLon) {
+            // a=lat, b=lon → ordre correct
+            lat = a; lon = b;
+        } else if (!aEstLat && aEstLon && bEstLat) {
+            // a=lon, b=lat → inversion certaine
+            lat = b; lon = a;
+        } else if (aEstLat && bEstLat && aEstLon && bEstLon) {
+            // Ambiguïté : les deux pourraient être lat ou lon.
+            // Heuristique France : la latitude est toujours > longitude.
+            // Ex : Aveyron lat≈44, lon≈2.5 ; Caen lat≈49.2, lon≈-0.3
+            // La valeur la plus grande (en valeur absolue si nécessaire) est la latitude.
+            if (Math.abs(a) > Math.abs(b)) {
+                lat = a; lon = b; // a plus grand → a=lat (ordre correct)
+            } else {
+                lat = b; lon = a; // b plus grand → b=lat → inversion
+            }
+        } else if (!aEstLat && !bEstLat) {
+            // Aucune valeur dans plage latitude → coordonnées hors France, retourner tel quel
+            lat = a; lon = b;
+        }
+
         return { lat, lon };
     }
 

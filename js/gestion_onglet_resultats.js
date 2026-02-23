@@ -13,6 +13,50 @@ let currentView = 'etablissements'; // 'etablissements' | 'diplomes' | 'disposit
 let currentData = [];
 let filteredData = [];
 
+/**
+ * Resynchronise filteredData avec les lignes actuellement visibles dans le DOM.
+ * Appelée par applyFilters() (systeme_filtres.js) après chaque application de filtre,
+ * afin que la navigation Précédent/Suivant dans les modales reflète la liste filtrée.
+ *
+ * Stratégie par vue :
+ *   - établissements       : lignes tr[data-id] visibles → currentData._id
+ *   - diplomes_scolaire    : lignes tr[data-libelle] visibles → currentData.libelle
+ *   - diplomes_apprentissage: lignes tr[data-id] visibles → currentData.id
+ *   - dispositifs          : lignes tr[data-libelle] visibles → currentData.libelle
+ *   - options2ndeGT        : lignes tr[data-libelle] visibles → currentData.libelle
+ *
+ * @returns {void}
+ */
+function _syncFilteredData() {
+    const body = document.getElementById('results-body');
+    if (!body || !Array.isArray(currentData) || currentData.length === 0) return;
+
+    const visibleKeys = [];
+
+    if (currentView === 'etablissements') {
+        // tr[data-id] : chaque ligne a data-id="_id"
+        body.querySelectorAll('tr[data-id]').forEach(tr => {
+            if (tr.style.display !== 'none') visibleKeys.push(tr.dataset.id);
+        });
+        filteredData = currentData.filter(e => visibleKeys.includes(e._id));
+
+    } else if (currentView === 'diplomes_scolaire' || currentView === 'dispositifs' || currentView === 'options2ndeGT') {
+        // tr[data-libelle] : chaque ligne a data-libelle=libelle
+        body.querySelectorAll('tr[data-libelle]').forEach(tr => {
+            if (tr.style.display !== 'none') visibleKeys.push(tr.dataset.libelle);
+        });
+        filteredData = currentData.filter(e => visibleKeys.includes(e.libelle));
+
+    } else if (currentView === 'diplomes_apprentissage') {
+        // tr[data-id] : chaque ligne a data-id=d.id
+        body.querySelectorAll('tr[data-id]').forEach(tr => {
+            if (tr.style.display !== 'none') visibleKeys.push(tr.dataset.id);
+        });
+        filteredData = currentData.filter(e => visibleKeys.includes(e.id));
+    }
+}
+window._syncFilteredData = _syncFilteredData;
+
 // État du tri par vue
 let sortState = {
     etablissements:       { column: 'nom',      direction: 'asc' },
@@ -184,8 +228,9 @@ function renderetablissementsTable(data) {
         return;
     }
     
-    const html = `
-        <table class="resultat-table">
+    // ── Vue tableau (tablette/ordinateur) ──────────────────
+    const tableHtml = `
+        <table class="resultat-table results-table">
             <thead>
                 <tr>
                     <th onclick="sortTable('nom')">
@@ -201,7 +246,7 @@ function renderetablissementsTable(data) {
                     <th onclick="sortTable('statut')">
                         Statut ${getSortIcon('statut')}
                     </th>
-                    <th onclick="sortTable('departement')">
+                    <th onclick="sortTable('departement')" class="resultat-col--masquer-mobile">
                         Département ${getSortIcon('departement')}
                     </th>
                 </tr>
@@ -221,14 +266,35 @@ function renderetablissementsTable(data) {
                         <td>${renderVoiesBadges(etab.voies)}</td>
                         <td class="resultat-col-filterable">${etab.commune || 'N/A'}</td>
                         <td class="resultat-col-filterable">${etab.statut || 'N/A'}</td>
-                        <td class="resultat-col-info">${etab.departement || 'N/A'}</td>
+                        <td class="resultat-col-info resultat-col--masquer-mobile">${etab.departement || 'N/A'}</td>
                     </tr>
                 `).join('')}
             </tbody>
         </table>
     `;
+
+    // ── Vue cartes (téléphone) ─────────────────────────────
+    const cardsHtml = `
+        <div class="results-cards">
+            ${data.map(etab => `
+                <div class="result-card" onclick="showEtablissementDetails('${etab._id}')"
+                     data-id="${etab._id}">
+                    <div class="result-card__titre">${etab.nom || 'N/A'} <span class="link-icon">↗</span></div>
+                    <div class="result-card__meta">
+                        ${etab.type || 'N/A'} · ${etab.commune || 'N/A'}
+                        ${etab.statut ? `· ${etab.statut}` : ''}
+                    </div>
+                    <div class="result-card__badges">
+                        ${renderVoiesBadges(etab.voies)}
+                        ${etab.certifieQualiopi ? '<span class="badge badge--qualiopi">Qualiopi</span>' : ''}
+                        ${etab.educationPrioritaire ? '<span class="badge badge--rep">REP</span>' : ''}
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
     
-    tableContainer.innerHTML = html;
+    tableContainer.innerHTML = tableHtml + cardsHtml;
 }
 
 /**
@@ -301,7 +367,8 @@ function sortTable(column) {
  * @returns {void}
  */
 function filterTable(query) {
-    currentFilter = query.toLowerCase();
+    // Normaliser la recherche (minuscules + sans accents) pour une correspondance robuste
+    currentFilter = (query || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     
     console.log(`[filterTable] Filtrage: "${query}"`);
     
@@ -309,9 +376,11 @@ function filterTable(query) {
         filteredData = [...currentData];
     } else {
         filteredData = currentData.filter(item => {
-            return Object.values(item).some(value => 
-                value && value.toString().toLowerCase().includes(currentFilter)
-            );
+            return Object.values(item).some(value => {
+                if (!value) return false;
+                const norm = value.toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+                return norm.includes(currentFilter);
+            });
         });
     }
     
@@ -323,6 +392,8 @@ function filterTable(query) {
         case 'options2ndeGT':          renderOptions2ndeGTTable(filteredData); break;
         default:                       renderetablissementsTable(filteredData);
     }
+    // filteredData est à jour — pas besoin de _syncFilteredData() ici
+    // car filterTable() met directement filteredData avant le rendu
 }
 
 // =====================================
@@ -536,6 +607,8 @@ function renderDiplomesApprentissageTable(data) {
  * @param {string} id - RNCP code ou libellé normalisé
  */
 async function showDiplomeApprentissageDetails(id) {
+    if (_detailsModalOpening) { console.log('[showDiplomeApprentissageDetails] ⏳ Ouverture en cours, clic ignoré.'); return; }
+    _detailsModalOpening = true;
     console.log('[showDiplomeApprentissageDetails]', id);
     try {
         const diplomeEnrichi = await window.databaseService.getDiplomeApprentissageEnrichi(id);
@@ -557,6 +630,8 @@ async function showDiplomeApprentissageDetails(id) {
     } catch (error) {
         console.error('[showDiplomeApprentissageDetails]', error);
         showAlert('❌ Erreur lors du chargement des détails', 'error');
+    } finally {
+        _detailsModalOpening = false;
     }
 }
 
@@ -568,106 +643,77 @@ function buildDiplomeApprentissageDetailsHTML(diplomeEnrichi) {
     const { diplome, etablissements } = diplomeEnrichi;
     let html = '';
 
-    // SECTION 0 : Description (contenu)
-    if (diplome.contenu) {
-        html += `
-    <div class="detail-section" style="background:var(--bg-light,#f8f9fa); border-radius:8px; padding:14px 16px; margin-bottom:12px; border-left: 4px solid var(--primary,#3b82f6);">
-        <p style="margin:0; line-height:1.65; color:var(--text,#333);">${diplome.contenu}</p>
-    </div>`;
-    }
-
     // Badge voie croisée
     if (diplomeEnrichi._aussiEnScolaire) {
         html += `
-    <div style="margin-bottom:12px; padding:10px 14px; background:#f0fdf4; border-left:4px solid #22c55e; border-radius:6px; font-size:0.92em; color:#15803d; font-weight:500;">
+    <div class="detail-badge-croise detail-badge-croise--scolaire">
         🔄 Ce diplôme est <strong>également accessible par voie scolaire</strong> dans les établissements de la zone.
     </div>`;
     }
 
-    // SECTION 1 : Informations générales
-    html += `
-    <div class="detail-section">
-        <h3 class="detail-section-title">📋 Informations générales</h3>
-        <div class="detail-info-grid">`;
-    if (diplome.typeDiplome) html += `
-            <div class="info-row">
-                <span class="info-label">Type :</span>
-                <span class="info-value">${diplome.typeDiplome}</span>
-            </div>`;
-    if (diplome.niveau) html += `
-            <div class="info-row">
-                <span class="info-label">Niveau :</span>
-                <span class="info-value">${diplome.niveau}</span>
-            </div>`;
-    if (diplome.rncpCode) html += `
-            <div class="info-row">
-                <span class="info-label">Code RNCP :</span>
-                <span class="info-value">
-                    <a href="https://www.francecompetences.fr/recherche/rncp/${diplome.rncpCode.replace('RNCP','')}"
-                       target="_blank" rel="noopener">${diplome.rncpCode} ↗</a>
-                </span>
-            </div>`;
-    html += `
-        </div>
-    </div>`;
-
-    // SECTION 2 : Établissements
-    const nbEtab = etablissements?.length || 0;
-    html += `
-    <div class="detail-section">
-        <h3 class="detail-section-title">🏭 Centres de formation proposant ce diplôme (${nbEtab})</h3>`;
-
-    if (nbEtab > 0) {
-        html += '<ul class="detail-list">';
-        for (const etab of etablissements) {
-            const certifBadge = etab.certifieQualite
-                ? ` <span class="voie-badge voie-badge--qualite" title="Certifié Qualiopi">✓ Qualiopi</span>`
-                : '';
-            const siretInfo = etab.siret
-                ? `<span style="font-size:0.85em;color:#777;"> — SIRET ${etab.siret}</span>`
-                : '';
-            html += `
-                <li class="detail-item" style="cursor:pointer;">
-                    <a href="#" onclick="event.preventDefault(); window.openEtablissementDetailsFromModal('${etab._id}')">
-                        <strong>${etab.nom || etab.uai}</strong>${certifBadge}
-                        — ${etab.commune || ''}${siretInfo} ↗
-                    </a>
-                </li>`;
-        }
-        html += '</ul>';
-    } else {
-        html += '<p style="color:#999;">Aucun établissement enregistré pour ce diplôme.</p>';
+    // Description (contenu) — toujours visible, pas en accordéon
+    if (diplome.contenu) {
+        html += `<div class="detail-description">${diplome.contenu}</div>`;
     }
 
-    html += '</div>';
+    // Section 1 : Informations générales
+    let infoBody = '<div class="detail-info-grid">';
+    if (diplome.typeDiplome) infoBody += buildInfoRow('Type', diplome.typeDiplome);
+    if (diplome.niveau)      infoBody += buildInfoRow('Niveau', diplome.niveau);
+    if (diplome.rncpCode)    infoBody += buildInfoRow('Code RNCP', `<a href="https://www.francecompetences.fr/recherche/rncp/${diplome.rncpCode.replace('RNCP','')}" target="_blank" rel="noopener">${diplome.rncpCode} ↗</a>`);
+    infoBody += '</div>';
+    html += accordionSection('📋', 'Informations générales', '', infoBody, true);
 
-    // SECTION 3 : Blocs de compétences
+    // Section 2 : Centres de formation
+    const nbEtab = etablissements?.length || 0;
+    let etabBody = '';
+    if (nbEtab > 0) {
+        etabBody += '<ul class="detail-list">';
+        for (const etab of etablissements) {
+            // Trouver la relation pour récupérer dureeAnnees et courriel
+            const relation = diplomeEnrichi.relations?.find(r => r.uai === etab.uai) || {};
+            const certifBadge = etab.certifieQualite
+                ? ` <span class="voie-badge voie-badge--qualite" title="Certifié Qualiopi">✓ Qualiopi</span>` : '';
+            const dureeBadge = relation.dureeAnnees
+                ? ` <span class="badge badge--duree">⏱ ${relation.dureeAnnees} an${relation.dureeAnnees > 1 ? 's' : ''}</span>` : '';
+            const opcoInfo = etab.opcoNom
+                ? `<div class="detail-etab-meta">OPCO : ${etab.opcoNom}</div>` : '';
+            const courrielInfo = relation.courriel
+                ? `<div class="detail-etab-meta">✉️ <a href="mailto:${relation.courriel}">${relation.courriel}</a></div>` : '';
+            etabBody += `<li class="detail-item">
+                <a href="#" data-etab-id="${etab._id}" onclick="event.preventDefault(); window.openEtablissementDetailsFromModal(this.dataset.etabId)">
+                    <strong>${etab.nom || etab.uai}</strong>${certifBadge}${dureeBadge} — ${etab.commune || ''} ↗
+                </a>
+                ${opcoInfo}${courrielInfo}
+            </li>`;
+        }
+        etabBody += '</ul>';
+    } else {
+        etabBody = '<p class="u-text-light">Aucun établissement enregistré pour ce diplôme.</p>';
+    }
+    html += accordionSection('🏭', 'Centres de formation', nbEtab, etabBody, true);
+
+    // Section 3 : Blocs de compétences (repliée)
     const blocs = diplome.blocsCompetences || [];
     if (blocs.length > 0) {
-        html += `
-    <div class="detail-section">
-        <h3 class="detail-section-title">📚 Blocs de compétences (${blocs.length})</h3>
-        <div style="display:flex; flex-direction:column; gap:10px;">`;
+        let blocsBody = '<div style="display:flex;flex-direction:column;gap:10px;">';
         for (const bloc of blocs) {
             const titreBloc = bloc.rncp_intitule || bloc.intitule || bloc.libelle || '—';
             const codeBloc  = bloc.rncp_code || '';
             const listeComp = Array.isArray(bloc.competences) ? bloc.competences : [];
-            html += `
-            <div style="border:1px solid var(--border,#e2e8f0); border-radius:6px; overflow:hidden;">
-                <div style="background:var(--bg-light,#f8f9fa); padding:8px 12px; font-weight:600; font-size:0.92em;">
-                    ${codeBloc ? `<span style="color:#888;font-weight:400;margin-right:6px;">${codeBloc}</span>` : ''}${titreBloc}
+            blocsBody += `<div class="detail-bloc-competence">
+                <div class="detail-bloc-competence__titre">
+                    ${codeBloc ? `<span class="detail-bloc-competence__code">${codeBloc}</span>` : ''}${titreBloc}
                 </div>`;
             if (listeComp.length > 0) {
-                html += `<ul style="margin:0; padding:8px 12px 8px 26px; line-height:1.7; font-size:0.9em;">`;
-                for (const comp of listeComp) {
-                    html += `<li>${comp.libelle || comp}</li>`;
-                }
-                html += `</ul>`;
+                blocsBody += '<ul class="detail-bloc-competence__liste">';
+                for (const comp of listeComp) blocsBody += `<li>${comp.libelle || comp}</li>`;
+                blocsBody += '</ul>';
             }
-            html += `</div>`;
+            blocsBody += '</div>';
         }
-        html += `</div>
-    </div>`;
+        blocsBody += '</div>';
+        html += accordionSection('📚', 'Blocs de compétences', blocs.length, blocsBody, true);
     }
 
     return html;
@@ -826,9 +872,10 @@ function renderOptions2ndeGTTable(data) {
                     </th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="results-body">
                 ${data.map(option => `
-                    <tr onclick="showOption2ndeGTDetails('${option.libelle.replace(/'/g, "\\'")}')" style="cursor: pointer;">
+                    <tr data-libelle="${(option.libelle || '').replace(/"/g, '&quot;')}"
+                        onclick="showOption2ndeGTDetails(this.dataset.libelle)" style="cursor: pointer;">
                         <td><strong>${option.libelle}</strong></td>
                         <td class="resultat-col-info">${option.nbEtablissements || 0}</td>
                     </tr>
@@ -871,7 +918,16 @@ function resetFilters() {
  * @param {string} uai - Code UAI de l'établissement
  * @returns {Promise<void>}
  */
+// =====================================
+// GUARD ANTI-OUVERTURE MULTIPLE
+// =====================================
+// Empêche les clics rapides d'ouvrir plusieurs modales simultanément.
+// Flag remis à false dès que la modale est ouverte ou en cas d'erreur.
+let _detailsModalOpening = false;
+
 async function showEtablissementDetails(id) {
+    if (_detailsModalOpening) { console.log('[showEtablissementDetails] ⏳ Ouverture en cours, clic ignoré.'); return; }
+    _detailsModalOpening = true;
     console.log(`[showEtablissementDetails] Affichage détails établissement: ${id}`);
     
     try {
@@ -899,6 +955,8 @@ async function showEtablissementDetails(id) {
     } catch (error) {
         console.error('[showEtablissementDetails] Erreur chargement détails:', error);
         showAlert('❌ Erreur lors du chargement des détails', 'error');
+    } finally {
+        _detailsModalOpening = false;
     }
 }
 
@@ -912,7 +970,8 @@ async function showEtablissementDetails(id) {
  * @returns {Promise<void>}
  */
 async function showDiplomeDetails(libelle) {
-    
+    if (_detailsModalOpening) { console.log('[showDiplomeDetails] ⏳ Ouverture en cours, clic ignoré.'); return; }
+    _detailsModalOpening = true;
     try {
         // Récupérer le diplôme complet (avec domaines et URL)
         const diplomeEnrichi = await window.databaseService.getDiplomeEnrichi(libelle);
@@ -941,9 +1000,16 @@ async function showDiplomeDetails(libelle) {
     } catch (error) {
         console.error('[showDiplomeDetails] Erreur chargement détails diplôme:', error);
         showAlert('❌ Erreur lors du chargement des détails', 'error');
+    } finally {
+        _detailsModalOpening = false;
     }
 }
 
+/**
+ * Génère le HTML des parcours professionnels associés à un diplôme.
+ * @param {Object[]} parcours
+ * @returns {string}
+ */
 function generateParcoursProHtml(parcours) {
     if (!parcours) {
         return `
@@ -1005,8 +1071,9 @@ function generateParcoursProHtml(parcours) {
  * @param {string} libelle - Libellé du dispositif
  */
 async function showDispositifDetails(libelle) {
+    if (_detailsModalOpening) { console.log('[showDispositifDetails] ⏳ Ouverture en cours, clic ignoré.'); return; }
+    _detailsModalOpening = true;
     console.log('[showDispositifDetails] Affichage détails dispositif:', libelle);
-    
     try {
         const dispositifEnrichi = await window.databaseService.getDispositifEnrichi(libelle);
         if (!dispositifEnrichi) {
@@ -1031,6 +1098,8 @@ async function showDispositifDetails(libelle) {
     } catch (error) {
         console.error('[showDispositifDetails] Erreur chargement détails dispositif:', error);
         showAlert('❌ Erreur lors du chargement des détails', 'error');
+    } finally {
+        _detailsModalOpening = false;
     }
 }
 // Fonction close supprimée (gérée par Modal.close())
@@ -1046,6 +1115,8 @@ async function showDispositifDetails(libelle) {
  * @returns {Promise<void>}
  */
 async function showOption2ndeGTDetails(libelle) {
+    if (_detailsModalOpening) { console.log('[showOption2ndeGTDetails] ⏳ Ouverture en cours, clic ignoré.'); return; }
+    _detailsModalOpening = true;
     console.log(`[showOption2ndeGTDetails] Affichage détails option: ${libelle}`);
 
     try {
@@ -1071,6 +1142,8 @@ async function showOption2ndeGTDetails(libelle) {
     } catch (error) {
         console.error('[showOption2ndeGTDetails] Erreur chargement détails option:', error);
         showAlert('❌ Erreur lors du chargement des détails', 'error');
+    } finally {
+        _detailsModalOpening = false;
     }
 }
 
@@ -1085,28 +1158,24 @@ function buildOption2ndeGTDetailsHTML(optionEnrichie) {
     const { option, etablissements } = optionEnrichie;
     let html = '';
 
-    // SECTION : ÉTABLISSEMENTS PROPOSANT CETTE OPTION
-    html += `
-    <div class="detail-section">
-        <h3 class="detail-section-title">🏫 Établissements proposant cette option (${etablissements?.length || 0})</h3>`;
-
-    if (etablissements && etablissements.length > 0) {
-        html += '<ul class="detail-list">';
+    // Section : établissements (ouverte)
+    const nb = etablissements?.length || 0;
+    let etabBody = '';
+    if (nb > 0) {
+        etabBody += '<ul class="detail-list">';
         for (const etab of etablissements) {
-            html += `
-                <li class="detail-item">
+            etabBody += `<li class="detail-item">
                     <a href="#" onclick="event.preventDefault(); window.openEtablissementDetailsFromModal('${etab._id}')">
                         <strong>${etab.nom}</strong> — ${etab.commune || ''}
                         <span class="badge ${etab.statut === 'public' ? 'badge--primary' : 'badge--success'}">${etab.statut || ''}</span> ↗
-                    </a>
-                </li>`;
+                    </a></li>`;
         }
-        html += '</ul>';
+        etabBody += '</ul>';
     } else {
-        html += '<p class="u-text-light">Aucun établissement ne propose cette option dans la base de données</p>';
+        etabBody = '<p class="u-text-light">Aucun établissement ne propose cette option dans la base de données</p>';
     }
+    html += accordionSection('🏫', 'Établissements proposant cette option', nb, etabBody, true);
 
-    html += '</div>';
     return html;
 }
 
@@ -1133,18 +1202,34 @@ function getSortIcon(column) {
 // INITIALISATION
 // =====================================
 
+// Flag d'initialisation unique de l'onglet résultats
+let _resultsTabInitialized = false;
+// Timestamp du dernier rendu complet — évite le doublon quand db:ready
+// et le switch d'onglet arrivent à moins de 2 secondes d'intervalle.
+let _lastFullRenderAt = 0;
+
 /**
- * Initialise l'onglet résultats
+ * Initialise l'onglet résultats.
+ * - Au premier appel : attache les filtres + charge stats et vue.
+ * - Aux appels suivants : rafraîchit stats + vue, sauf si un rendu
+ *   vient d'avoir lieu (guard anti-doublon db:ready / tab-switch).
  * @returns {Promise<void>}
  */
 async function initResultsTab() {
     console.log('[initResultsTab] Initialisation de l\'onglet');
-    
-    // Initialiser le système de filtres
-    if (typeof initFilters === 'function') {
-        initFilters();
+
+    if (!_resultsTabInitialized) {
+        if (typeof initFilters === 'function') initFilters();
+        _resultsTabInitialized = true;
     }
-    
+
+    // Guard : rendu < 2s → skip (db:ready vient d'afficher les données)
+    const now = Date.now();
+    if (now - _lastFullRenderAt < 2000) {
+        console.log('[initResultsTab] ⏭️ Rendu récent (<2s), skip doublon.');
+        return;
+    }
+    _lastFullRenderAt = now;
     await loadStats();
     await loadView();
 }
@@ -1160,24 +1245,32 @@ async function initResultsTab() {
  */
 function buildEtablissementDetailsHTML(etablissementEnrichi) {
     const { etablissement, diplomes, diplomes_apprentissage, dispositifs, options2ndeGT, specialites1ereG } = etablissementEnrichi;
+    const id       = etablissement._id || etablissement.uai;
+    const nomEchap = (etablissement.nom || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
     let html = '';
-    
-    // SECTION 1 : INFORMATIONS GÉNÉRALES
-    // Bouton itinéraire (visible uniquement si coordonnées GPS disponibles)
+
+    // accordionSection() est maintenant global (voir ci-dessus)
+
+    // ── BARRE D'ACTIONS (itinéraire + favori) ──────────────────────────
     const hasCoords = etablissement.latitude && etablissement.longitude;
+    const isFav     = typeof isEtablissementFavori === 'function' && isEtablissementFavori(id);
+
     const btnItineraire = hasCoords
-        ? `<div class="detail-itineraire-bar">
-               <button class="btn btn--primary btn--sm detail-btn-itineraire"
-                       onclick="openItineraireModal({nom: '${(etablissement.nom || '').replace(/'/g, "\\'")}', latitude: ${etablissement.latitude}, longitude: ${etablissement.longitude}})">
-                   🗺️ Itinéraire
-               </button>
-           </div>`
+        ? `<button class="btn btn--primary btn--sm detail-btn-itineraire"
+               onclick="openItineraireModal({nom:'${nomEchap}',latitude:${etablissement.latitude},longitude:${etablissement.longitude}})">
+               🗺️ Itinéraire
+           </button>`
         : '';
 
-    html += `
-<div class="detail-section">
-    <h3 class="detail-section-title">📍 Informations générales</h3>
-    ${btnItineraire}
+    // Le titre et le bouton étoile sont construits par DetailsModal.#renderModal(),
+    // qui reçoit favoriId/Nom/Commune/Type via showEtablissement().
+
+    if (btnItineraire) {
+        html += `<div class="detail-action-bar">${btnItineraire}</div>`;
+    }
+
+    // ── SECTION 1 : INFORMATIONS GÉNÉRALES (ouverte) ──────────────────
+    const infoBody = `
     <div class="detail-info-grid">
         ${buildInfoRow('UAI', etablissement.uai)}
         ${etablissement.siret ? buildInfoRow('SIRET', etablissement.siret) : ''}
@@ -1190,176 +1283,166 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
         ${etablissement.siteWeb ? buildInfoRow('Site web', `<a href="${etablissement.siteWeb}" target="_blank">${etablissement.siteWeb}</a>`) : ''}
         ${etablissement.hebergement ? buildInfoRow('Hébergement', etablissement.hebergement) : ''}
         ${etablissement.restauration ? buildInfoRow('Restauration', etablissement.restauration) : ''}
-    </div>
-</div>
-`;
-    
-    // SECTION 2 : DIPLÔMES VOIE SCOLAIRE
+    </div>`;
+    html += accordionSection('📍', 'Informations générales', '', infoBody, true);
+
+    // ── SECTION 2 : DIPLÔMES VOIE SCOLAIRE ────────────────────────────
     if (diplomes && diplomes.length > 0) {
         const groupes = groupDiplomesByCategorie(diplomes);
-        Object.keys(groupes).forEach(niveau => {
-            groupes[niveau].sort((a, b) => a.libelle.localeCompare(b.libelle));
-        });
-
-        html += `<div class="detail-section">
-            <h3 class="detail-section-title">🏫 Diplômes — voie scolaire (${diplomes.length})</h3>`;
-        
-        for (const [categorie, diplomesList] of Object.entries(groupes)) {
-            html += `
-                <div class="diplomes-categorie">
-                    <h4 class="diplomes-categorie-title">${categorie} (${diplomesList.length})</h4>
-                    <ul class="detail-list">`;
-            for (const diplome of diplomesList) {
-                const modalitesStr = diplome.modalites && diplome.modalites.length > 0 
-                    ? ` <span class="diplome-modalite">${diplome.modalites.join(', ')}</span>`
-                    : '';
-                html += `
-                    <li class="detail-item">
-                        <span class="diplome-libelle">
-                            <a href="#" data-libelle="${diplome.libelle}" onclick="event.preventDefault(); showDiplomeDetails(this.dataset.libelle);">${diplome.libelle} ↗</a>
-                        </span>
-                        ${modalitesStr}
-                    </li>`;
+        Object.keys(groupes).forEach(n => groupes[n].sort((a, b) => a.libelle.localeCompare(b.libelle)));
+        let body = '';
+        for (const [categorie, liste] of Object.entries(groupes)) {
+            body += `<div class="diplomes-categorie">
+                <h4 class="diplomes-categorie-title">${categorie} (${liste.length})</h4>
+                <ul class="detail-list">`;
+            for (const d of liste) {
+                const mod = d.modalites?.length ? ` <span class="diplome-modalite">${d.modalites.join(', ')}</span>` : '';
+                body += `<li class="detail-item">
+                    <span class="diplome-libelle">
+                        <a href="#" data-libelle="${d.libelle}" onclick="event.preventDefault();showDiplomeDetails(this.dataset.libelle);">${d.libelle} ↗</a>
+                    </span>${mod}</li>`;
             }
-            html += `</ul></div>`;
+            body += `</ul></div>`;
         }
-        html += `</div>`;
+        html += accordionSection('🏫', 'Diplômes — voie scolaire', diplomes.length, body, true);
     }
 
-    // SECTION 3 : DIPLÔMES VOIE APPRENTISSAGE
+    // ── SECTION 3 : DIPLÔMES VOIE APPRENTISSAGE ────────────────────────
     if (diplomes_apprentissage && diplomes_apprentissage.length > 0) {
-        const sorted = [...diplomes_apprentissage].sort((a, b) =>
-            (a.libelle || '').localeCompare(b.libelle || '', 'fr')
-        );
-
-        // Grouper par niveau (3 (CAP...) / 4 (BAC...))
+        const sorted = [...diplomes_apprentissage].sort((a, b) => (a.libelle||''). localeCompare(b.libelle||'', 'fr'));
         const niveaux = {};
         for (const d of sorted) {
             const niv = d.niveau || 'Autre';
             if (!niveaux[niv]) niveaux[niv] = [];
             niveaux[niv].push(d);
         }
-
-        html += `<div class="detail-section">
-            <h3 class="detail-section-title">🎓 Diplômes — voie apprentissage (${diplomes_apprentissage.length})</h3>`;
-
+        let body = '';
         for (const [niv, liste] of Object.entries(niveaux)) {
-            html += `
-                <div class="diplomes-categorie">
-                    <h4 class="diplomes-categorie-title">${niv} (${liste.length})</h4>
-                    <ul class="detail-list">`;
+            body += `<div class="diplomes-categorie">
+                <h4 class="diplomes-categorie-title">${niv} (${liste.length})</h4>
+                <ul class="detail-list">`;
             for (const d of liste) {
-                const certifBadge = d.certifieQualite
+                const qBadge = d.certifieQualite
                     ? ` <span class="voie-badge voie-badge--qualite" title="Certifié Qualiopi">✓ Qualiopi</span>`
                     : '';
-                html += `
-                    <li class="detail-item">
-                        <a href="#" onclick="event.preventDefault(); window.openDiplomeApprentissageDetailsFromModal('${d.id}')">
-                            <span class="diplome-libelle">${d.libelle || 'N/A'}</span>
-                            ${certifBadge} ↗
-                        </a>
-                    </li>`;
+                body += `<li class="detail-item">
+                    <a href="#" onclick="event.preventDefault();window.openDiplomeApprentissageDetailsFromModal('${d.id}')">
+                        <span class="diplome-libelle">${d.libelle||'N/A'}</span>${qBadge} ↗
+                    </a></li>`;
             }
-            html += `</ul></div>`;
+            body += `</ul></div>`;
         }
-        html += `</div>`;
+        html += accordionSection('🎓', 'Diplômes — voie apprentissage', diplomes_apprentissage.length, body, true);
     }
-    
-    // SECTION 4 : DISPOSITIFS
+
+    // ── SECTION 4 : DISPOSITIFS (replié) ─────────────────────────────
     if (dispositifs && dispositifs.length > 0) {
-        // Tri alphabétique des dispositifs
         dispositifs.sort((a, b) => a.libelle.localeCompare(b.libelle));
-        
-        html += `
-<div class="detail-section">
-    <h3 class="detail-section-title">🎯 Dispositifs (${dispositifs.length})</h3>
-    <ul class="detail-list">`;
-        for (const dispositif of dispositifs) {
-            // Afficher les éléments d'enseignement sur une 2ème ligne s'ils existent
-            let elementsHtml = '';
-            if (dispositif.elementsDenseignement) {
-                elementsHtml = `<div style="display: block; margin-top: 5px; color: #666; font-size: 0.9em;">
-                    📋 Eléments d'enseignement : ${dispositif.elementsDenseignement}
-                </div>`;
-            }
-            if (dispositif.modalitesAccueil) {
-                elementsHtml = `<div style="display: block; margin-top: 5px; color: #666; font-size: 0.9em;">
-                    📋 Modalités : ${dispositif.modalitesAccueil}   
-                </div>`;
-            }
-            if (dispositif.sports) {
-                elementsHtml = `<div style="display: block; margin-top: 5px; color: #666; font-size: 0.9em;">
-                    📋 Sports : ${dispositif.sports}   
-                </div>`;
-            }
-            
-            html += `
-                <li class="detail-item" data-libelle="${dispositif.libelle}" onclick="showDispositifDetails(this.dataset.libelle)" style="cursor: pointer;">
-                    <div>
-                        <strong>${dispositif.libelle}</strong>
-                        ${dispositif.typeDispositif ? `<span class="dispositif-type">${dispositif.typeDispositif}</span>` : ''}
-                    </div>
-                    ${elementsHtml}
-                </li>`;
+        let body = '<ul class="detail-list">';
+        for (const d of dispositifs) {
+            let extra = '';
+            if (d.elementsDenseignement) extra = `<div style="margin-top:5px;color:#666;font-size:.9em">📋 Éléments : ${d.elementsDenseignement}</div>`;
+            else if (d.modalitesAccueil)  extra = `<div style="margin-top:5px;color:#666;font-size:.9em">📋 Modalités : ${d.modalitesAccueil}</div>`;
+            else if (d.sports)            extra = `<div style="margin-top:5px;color:#666;font-size:.9em">📋 Sports : ${d.sports}</div>`;
+            body += `<li class="detail-item" data-libelle="${d.libelle}" onclick="showDispositifDetails(this.dataset.libelle)">
+                <div><strong>${d.libelle}</strong>${d.typeDispositif ? ` <span class="dispositif-type">${d.typeDispositif}</span>` : ''}</div>
+                ${extra}</li>`;
         }
-        html += `
-    </ul>
-</div>`;
+        body += '</ul>';
+        html += accordionSection('🎯', 'Dispositifs', dispositifs.length, body, true);
     }
-    
-    // SECTION 5 : OPTIONS 2NDE GT
+
+    // ── SECTION 5 : OPTIONS 2NDE GT (replié) ──────────────────────────
     if (options2ndeGT && options2ndeGT.length > 0) {
-        // Tri alphabétique des options
-        options2ndeGT.sort((a, b) => (a.libelle || '').localeCompare(b.libelle || ''));
-        
-        html += `
-<div class="detail-section">
-    <h3 class="detail-section-title">📚 Options 2nde Générale et Technologique (${options2ndeGT.length})</h3>
-    <ul class="detail-list">`;
-        for (const option of options2ndeGT) {
-            const libelle = option.libelle || 'Option inconnue';
-            html += `
-        <li class="detail-item">${libelle}</li>`;
-        }
-        html += `
-    </ul>
-</div>`;
+        options2ndeGT.sort((a, b) => (a.libelle||''). localeCompare(b.libelle||''));
+        let body = '<ul class="detail-list">';
+        for (const o of options2ndeGT) body += `<li class="detail-item">${o.libelle||'Option inconnue'}</li>`;
+        body += '</ul>';
+        html += accordionSection('📚', 'Options 2nde GT', options2ndeGT.length, body, true);
     }
-    
-    // SECTION 6 : SPÉCIALITÉS 1ÈRE G
+
+    // ── SECTION 6 : SPÉCIALITÉS 1ÈRE G (replié) ──────────────────────
     if (specialites1ereG && specialites1ereG.length > 0) {
-        // Tri alphabétique des spécialités
-        specialites1ereG.sort((a, b) => (a.libelle || '').localeCompare(b.libelle || ''));
-        
-        html += `
-<div class="detail-section">
-    <h3 class="detail-section-title">🔬 Spécialités 1ère Générale (${specialites1ereG.length})</h3>
-    <ul class="detail-list">`;
-        for (const specialite of specialites1ereG) {
-            const libelle = specialite.libelle || 'Spécialité inconnue';
-            html += `
-        <li class="detail-item">${libelle}</li>`;
-        }
-        html += `
-    </ul>
-</div>`;
+        specialites1ereG.sort((a, b) => (a.libelle||''). localeCompare(b.libelle||''));
+        let body = '<ul class="detail-list">';
+        for (const s of specialites1ereG) body += `<li class="detail-item">${s.libelle||'Spécialité inconnue'}</li>`;
+        body += '</ul>';
+        html += accordionSection('🔬', 'Spécialités 1ère Générale', specialites1ereG.length, body, true);
     }
-    
-    // En savoir plus ONISEP
+
+    // ── SECTION : JOURNÉES PORTES OUVERTES ──────────────────────────────
+    if (etablissement.journeesPortesOuvertes) {
+        const jpos = etablissement.journeesPortesOuvertes
+            .split(' | ')
+            .map(j => j.trim())
+            .filter(Boolean);
+        if (jpos.length > 0) {
+            const jpoBody = `<ul class="detail-list">
+                ${jpos.map(j => `<li class="detail-item">📅 ${j}</li>`).join('')}
+            </ul>`;
+            html += accordionSection('📅', 'Journées portes ouvertes', jpos.length, jpoBody, true);
+        }
+    }
+
+    // ── SECTION : LANGUES ENSEIGNÉES ────────────────────────────────────
+    if (etablissement.languesEnseignees) {
+        const langues = etablissement.languesEnseignees
+            .split(', ')
+            .map(l => l.trim())
+            .filter(Boolean);
+        if (langues.length > 0) {
+            const languesBody = `<div class="detail-badges">
+                ${langues.map(l => `<span class="badge badge--langue">🌍 ${l}</span>`).join('')}
+            </div>`;
+            html += accordionSection('🌍', 'Langues enseignées', langues.length, languesBody, true);
+        }
+    }
+
+    // ── SECTION : RÉSEAU / ÉTABLISSEMENTS LIÉS ──────────────────────────
+    if (etablissement.etablissementsLies) {
+        const lies = etablissement.etablissementsLies
+            .split(' | ')
+            .map(l => l.trim())
+            .filter(Boolean);
+        if (lies.length > 0) {
+            const liesBody = `<ul class="detail-list">
+                ${lies.map(l => `<li class="detail-item">🏛️ ${l}</li>`).join('')}
+            </ul>`;
+            html += accordionSection('🏛️', 'Réseau / établissements liés', lies.length, liesBody, true);
+        }
+    }
+
+    // ── SECTION : ACCESSIBILITÉ & INFORMATIONS COMPLÉMENTAIRES ──────────
+    if (etablissement.accessibilite || etablissement.opcoNom || etablissement.formeJuridique || etablissement.nda) {
+        const compBody = `<div class="detail-info-grid">
+            ${etablissement.accessibilite ? buildInfoRow('♿ Accessibilité', etablissement.accessibilite) : ''}
+            ${etablissement.opcoNom ? buildInfoRow('OPCO', etablissement.opcoNom) : ''}
+            ${etablissement.formeJuridique ? buildInfoRow('Forme juridique', etablissement.formeJuridique) : ''}
+            ${etablissement.nda ? buildInfoRow('NDA', etablissement.nda) : ''}
+        </div>`;
+        html += accordionSection('ℹ️', 'Informations complémentaires', '', compBody, true);
+    }
+
+    // ── En savoir plus ONISEP ─────────────────────────────────────────
     if (etablissement.urlOnisep) {
         const onisepUrl = etablissement.urlOnisep.split('|')[1] || etablissement.urlOnisep;
-        html += `
-        <div class="onisep-section" style="margin-top: 20px; padding: 20px; background: #f5f5f5; border-radius: 8px;">
+        html += `<div class="onisep-section" style="margin-top:20px;padding:20px;background:#f5f5f5;border-radius:8px">
             <h4>🔗 En savoir plus</h4>
-            <a href="${onisepUrl}" target="_blank" style="display: inline-block; padding: 10px 20px; background: var(--primary); color: white; text-decoration: none; border-radius: 6px;">
+            <a href="${onisepUrl}" target="_blank" style="display:inline-block;padding:10px 20px;background:var(--primary);color:white;text-decoration:none;border-radius:6px">
                 📖 Fiche ONISEP
             </a>
         </div>`;
     }
-    
+
     return html;
 }
 
+/**
+ * Génère une ligne HTML 'label : valeur' pour les fiches détail.
+ * @param {string} label
+ * @param {string} value
+ * @returns {string} HTML ou chaîne vide si valeur absente
+ */
 function buildInfoRow(label, value) {
     if (!value) return '';
     return `
@@ -1369,6 +1452,11 @@ function buildInfoRow(label, value) {
         </div>`;
 }
 
+/**
+ * Groupe les diplômes par catégorie (niveauSortie), dans l'ordre canonique.
+ * @param {Object[]} diplomes
+ * @returns {Object} { categorie: diplome[] }
+ */
 function groupDiplomesByCategorie(diplomes) {
     console.log('[groupDiplomesByCategorie] Groupement diplômes, premier diplôme:', diplomes[0]);
     const groupes = {};
@@ -1391,6 +1479,11 @@ function groupDiplomesByCategorie(diplomes) {
     return result;
 }
 
+/**
+ * Formate un numéro de téléphone français en XX XX XX XX XX.
+ * @param {string} tel
+ * @returns {string}
+ */
 function formatTelephone(tel) {
     if (!tel) return '';
     const cleaned = tel.replace(/[\s\.\-]/g, '');
@@ -1411,102 +1504,74 @@ function buildDiplomeDetailsHTML(diplomeEnrichi) {
 
     // Badge voie croisée
     if (diplomeEnrichi._aussiEnApprentissage) {
-        html += `
-    <div style="margin-bottom:12px; padding:10px 14px; background:#e8f4fd; border-left:4px solid #3b82f6; border-radius:6px; font-size:0.92em; color:#1e40af; font-weight:500;">
+        html += `<div class="detail-badge-croise detail-badge-croise--apprentissage">
         🔄 Ce diplôme est <strong>également accessible par voie d'apprentissage</strong> dans les établissements de la zone.
     </div>`;
     }
-    
-    // SECTION 0 : Informations générales
-    html += `
-    <div class="detail-section">
-        <h3 class="detail-section-title"> Informations générales</h3>`;
-    html += `<div class="detail-item">Type : ${diplome.type || 'Non renseigné'}</div>`;
-    html += `<div class="detail-item">Nature : ${diplome.natureCertificat || 'Non renseigné'}</div>`;
-    html += `<div class="detail-item">Niveau : ${diplome.niveauSortie || 'Non renseigné'}</div>`;
-    html += '</div>';
 
-    // SECTION 1 : PARCOURS (si Bac Pro)
+    // Section 0 : Informations générales (ouverte)
+    const infoBody = `
+        <div class="detail-info-grid">
+            <div class="info-row"><span class="info-label">Type :</span><span class="info-value">${diplome.type || 'Non renseigné'}</span></div>
+            <div class="info-row"><span class="info-label">Nature :</span><span class="info-value">${diplome.natureCertificat || 'Non renseigné'}</span></div>
+            <div class="info-row"><span class="info-label">Niveau :</span><span class="info-value">${diplome.niveauSortie || 'Non renseigné'}</span></div>
+        </div>`;
+    html += accordionSection('📋', 'Informations générales', '', infoBody, true);
+
+    // Section 1 : Parcours Bac Pro (ouverte si présente)
     if (diplomeEnrichi.parcours) {
-        html += generateParcoursProHtml(parcours);
+        html += accordionSection('🗺️', 'Parcours', '', generateParcoursProHtml(parcours), true);
     }
-    
-    // SECTION 2 : DOMAINES PROFESSIONNELS
+
+    // Section 2 : Domaines professionnels (repliée)
     if (diplome.domaines && diplome.domaines.length > 0) {
         const parDomaine = {};
         diplome.domaines.forEach(d => {
-            if (!parDomaine[d.domaine]) {
-                parDomaine[d.domaine] = [];
-            }
-            if (d.categorie && d.categorie.trim() !== '') {
-                parDomaine[d.domaine].push(d.categorie);
-            }
+            if (!parDomaine[d.domaine]) parDomaine[d.domaine] = [];
+            if (d.categorie && d.categorie.trim()) parDomaine[d.domaine].push(d.categorie);
         });
-        
         if (Object.keys(parDomaine).length > 0) {
-            html += `
-            <div class="detail-section">
-                <h3 class="detail-section-title">🏷️ Domaines professionnels</h3>
-                <div class="diplomes-groupes">`;
-            
+            let domainesBody = '<div class="diplomes-groupes">';
             Object.entries(parDomaine).forEach(([domaine, categories]) => {
                 if (categories.length > 0) {
-                    html += `
-                        <div class="diplomes-categorie">
-                            <h4 class="diplomes-categorie-title">${domaine}</h4>
-                            <div class="detail-list">
-                                ${categories.map(categorie => `
-                                    <div class="detail-item">${categorie}</div>
-                                `).join('')}
-                            </div>
-                        </div>`;
+                    domainesBody += `<div class="diplomes-categorie">
+                        <h4 class="diplomes-categorie-title">${domaine}</h4>
+                        <div class="detail-list">${categories.map(c => `<div class="detail-item">${c}</div>`).join('')}</div>
+                    </div>`;
                 }
             });
-            
-            html += `
-                </div>
-            </div>`;
+            domainesBody += '</div>';
+            html += accordionSection('🏷️', 'Domaines professionnels', '', domainesBody, true);
         }
     }
-    
-    // SECTION 3 : ÉTABLISSEMENTS
-    html += `
-    <div class="detail-section">
-        <h3 class="detail-section-title">🏫 Établissements proposant ce diplôme (${etablissements?.length || 0})</h3>`;
-    
-    if (etablissements && etablissements.length > 0) {
-        // Tri alphabétique des établissements par nom
+
+    // Section 3 : Établissements (ouverte)
+    const nbEtab = etablissements?.length || 0;
+    let etabBody = '';
+    if (nbEtab > 0) {
         etablissements.sort((a, b) => a.nom.localeCompare(b.nom));
-        
-        html += '<ul class="detail-list">';
+        etabBody += '<ul class="detail-list">';
         for (const etab of etablissements) {
-            html += `
-                <li class="detail-item" style="cursor: pointer;">
+            etabBody += `<li class="detail-item" style="cursor:pointer;">
                     <a href="#" onclick="event.preventDefault(); window.openEtablissementDetailsFromModal('${etab._id}')">
                         <strong>${etab.nom}</strong> — ${etab.commune}
                         <span class="badge ${etab.statut === 'public' ? 'badge--primary' : 'badge--success'}">${etab.statut}</span> ↗
-                    </a>
-                </li>`;
+                    </a></li>`;
         }
-        html += '</ul>';
+        etabBody += '</ul>';
     } else {
-        html += '<p style="color: #999;">Aucun établissement ne propose ce diplôme</p>';
+        etabBody = '<p class="u-text-light">Aucun établissement ne propose ce diplôme</p>';
     }
-    
-    html += '</div>';
-    
-    // SECTION 4 : LIEN ONISEP
+    html += accordionSection('🏫', 'Établissements proposant ce diplôme', nbEtab, etabBody, true);
+
+    // Lien ONISEP (pas en accordéon, toujours visible)
     if (diplome.urlOnisep) {
         const onisepUrl = diplome.urlOnisep.split('|')[1] || diplome.urlOnisep;
-        html += `
-        <div class="onisep-section" style="margin-top: 20px; padding: 20px; background: #f5f5f5; border-radius: 8px;">
-            <h4>🔗 En savoir plus</h4>
-            <a href="${onisepUrl}" target="_blank" style="display: inline-block; padding: 10px 20px; background: var(--primary); color: white; text-decoration: none; border-radius: 6px;">
-                📖 Fiche ONISEP
-            </a>
+        html += `<div class="detail-onisep-link">
+            <a href="${onisepUrl}" target="_blank" class="btn btn--primary">📖 Fiche ONISEP ↗</a>
         </div>`;
     }
-    
+
     return html;
 }
 
@@ -1518,95 +1583,320 @@ function buildDiplomeDetailsHTML(diplomeEnrichi) {
 function buildDispositifDetailsHTML(dispositifEnrichi) {
     const { dispositif, etablissements } = dispositifEnrichi;
     let html = '';
-    
-    // SECTION 1 : DOMAINES
+
+    // Section 1 : Domaines (repliée)
     if (dispositif.domaines && dispositif.domaines.length > 0) {
         const parDomaine = {};
         dispositif.domaines.forEach(d => {
-            if (!parDomaine[d.domaine]) {
-                parDomaine[d.domaine] = [];
-            }
-            if (d.categorie && d.categorie.trim() !== '') {
-                parDomaine[d.domaine].push(d.categorie);
-            }
+            if (!parDomaine[d.domaine]) parDomaine[d.domaine] = [];
+            if (d.categorie && d.categorie.trim()) parDomaine[d.domaine].push(d.categorie);
         });
-        
         if (Object.keys(parDomaine).length > 0) {
-            html += `
-            <div class="detail-section">
-                <h3 class="detail-section-title">🏷️ Domaines</h3>
-                <div class="diplomes-groupes">`;
-            
+            let domainesBody = '<div class="diplomes-groupes">';
             Object.entries(parDomaine).forEach(([domaine, categories]) => {
                 if (categories.length > 0) {
-                    html += `
-                        <div class="diplomes-categorie">
-                            <h4 class="diplomes-categorie-title">${domaine}</h4>
-                            <div class="detail-list">
-                                ${categories.map(categorie => `
-                                    <div class="detail-item">${categorie}</div>
-                                `).join('')}
-                            </div>
-                        </div>`;
+                    domainesBody += `<div class="diplomes-categorie">
+                        <h4 class="diplomes-categorie-title">${domaine}</h4>
+                        <div class="detail-list">${categories.map(c => `<div class="detail-item">${c}</div>`).join('')}</div>
+                    </div>`;
                 }
             });
-            
-            html += `
-                </div>
-            </div>`;
+            domainesBody += '</div>';
+            html += accordionSection('🏷️', 'Domaines', '', domainesBody, true);
         }
     }
 
-    // SECTION 2 : ÉTABLISSEMENTS
-    html += `
-    <div class="detail-section">
-        <h3 class="detail-section-title">🏫 Établissements proposant ce dispositif (${etablissements?.length || 0})</h3>`;
-    
-    if (etablissements && etablissements.length > 0) {
-        // Tri alphabétique des établissements par nom
+    // Section 2 : Établissements (ouverte)
+    const nbEtab = etablissements?.length || 0;
+    let etabBody = '';
+    if (nbEtab > 0) {
         etablissements.sort((a, b) => a.nom.localeCompare(b.nom));
-        
-        html += '<ul class="detail-list">';
+        etabBody += '<ul class="detail-list">';
         for (const etab of etablissements) {
-            // Afficher les éléments d'enseignement spécifiques à cet établissement
-            let elementsHtml = '';
-            if (etab.elementsDenseignement) {
-                elementsHtml = `<div style="display: block; margin-top: 5px; color: #666; font-size: 0.9em;">
-                    📋 ${etab.elementsDenseignement}
-                </div>`;
-            }
-            
-            html += `
-                <li class="detail-item" style="cursor: pointer;">
+            const elementsHtml = etab.elementsDenseignement
+                ? `<div class="detail-item-note">📋 ${etab.elementsDenseignement}</div>` : '';
+            etabBody += `<li class="detail-item" style="cursor:pointer;">
                     <a href="#" onclick="event.preventDefault(); window.openEtablissementDetailsFromModal('${etab._id}')">
                         <strong>${etab.nom}</strong> — ${etab.commune}
                         <span class="badge ${etab.statut === 'public' ? 'badge--primary' : 'badge--success'}">${etab.statut}</span> ↗
-                    </a>
-                    ${elementsHtml}
-                </li>`;
+                    </a>${elementsHtml}</li>`;
         }
-        html += '</ul>';
+        etabBody += '</ul>';
     } else {
-        html += '<p style="color: #999;">Aucun établissement ne propose ce dispositif</p>';
+        etabBody = '<p class="u-text-light">Aucun établissement ne propose ce dispositif</p>';
     }
-    
-    html += '</div>';
-    
-    // SECTION 2 : LIEN ONISEP
+    html += accordionSection('🏫', 'Établissements proposant ce dispositif', nbEtab, etabBody, true);
+
+    // Lien ONISEP
     if (dispositif.urlOnisep) {
-        const urlParts = dispositif.urlOnisep.split('|');
-        const onisepUrl = urlParts[1] || dispositif.urlOnisep;
-        
-        html += `
-        <div class="onisep-section" style="margin-top: 20px; padding: 20px; background: #f5f5f5; border-radius: 8px;">
-            <h4>🔗 En savoir plus</h4>
-            <a href="${onisepUrl}" target="_blank" style="display: inline-block; padding: 10px 20px; background: var(--primary); color: white; text-decoration: none; border-radius: 6px;">
-                📖 Fiche ONISEP
-            </a>
+        const onisepUrl = dispositif.urlOnisep.split('|')[1] || dispositif.urlOnisep;
+        html += `<div class="detail-onisep-link">
+            <a href="${onisepUrl}" target="_blank" class="btn btn--primary">📖 Fiche ONISEP ↗</a>
         </div>`;
     }
-    
+
     return html;
+}
+
+
+// =====================================
+// HELPER PARTAGÉ : SECTION ACCORDÉON
+// =====================================
+
+/**
+ * Génère le HTML d'une section repliable (accordéon) pour les fiches détail.
+ * Partagé par tous les builders : établissements, diplômes, dispositifs, options.
+ * @param {string} icon   - Emoji icône
+ * @param {string} titre  - Titre de la section
+ * @param {string|number} count - Nombre affiché entre parenthèses ('' pour masquer)
+ * @param {string} bodyHtml - Contenu HTML de la section
+ * @param {boolean} collapsed - true = replié par défaut
+ * @returns {string} HTML de la section accordéon
+ */
+function accordionSection(icon, titre, count, bodyHtml, collapsed = false) {
+    const cls      = collapsed ? ' detail-section--collapsed' : '';
+    const countStr = count !== '' ? ` (${count})` : '';
+    return `
+<div class="detail-section${cls}">
+    <h3 class="detail-section-title detail-section-title--accordion"
+        onclick="toggleDetailSection(this.parentElement)">
+        ${icon} ${titre}${countStr}
+    </h3>
+    <div class="detail-section__body">${bodyHtml}</div>
+</div>`;
+}
+
+// =====================================
+// ACCORDÉON — SECTIONS REPLIABLES
+// =====================================
+
+/**
+ * Bascule l'état replié/déplié d'une section accordéon dans les fiches détail.
+ * Appelé par onclick sur .detail-section-title--accordion.
+ * @param {HTMLElement} sectionEl - L'élément .detail-section parent
+ * @returns {void}
+ */
+function toggleDetailSection(sectionEl) {
+    if (!sectionEl) return;
+    sectionEl.classList.toggle('detail-section--collapsed');
+}
+
+// =====================================
+// FAVORIS — ÉTABLISSEMENTS
+// =====================================
+
+const _FAVORIS_ETAB_KEY  = 'favoris_etablissements';
+const _MAX_FAVORIS_ETAB  = 20;
+const _FAVORIS_DIVERS_KEY = 'favoris_divers';
+const _MAX_FAVORIS_DIVERS = 50;
+
+// =====================================
+// FAVORIS DIVERS (diplômes, dispositifs, options 2nde GT)
+// =====================================
+
+/**
+ * Charge la liste des favoris divers depuis localStorage.
+ * @returns {Object[]} [{id, titre, typeObjet, date}]
+ */
+function loadFavorisDivers() {
+    try { return JSON.parse(localStorage.getItem(_FAVORIS_DIVERS_KEY) || '[]'); }
+    catch { return []; }
+}
+
+/**
+ * Vérifie si un item est dans les favoris divers.
+ * @param {string} id - Identifiant unique (ex: "diplome__CAP Boucher")
+ * @returns {boolean}
+ */
+function isFavoriDivers(id) {
+    return loadFavorisDivers().some(f => f.id === id);
+}
+
+/**
+ * Wrapper appelé par le bouton étoile (data-* attributes).
+ * @param {HTMLElement} btn
+ */
+function toggleFavoriDiversFromBtn(btn) {
+    toggleFavoriDivers(
+        btn.dataset.favoriId      || '',
+        btn.dataset.favoriNom     || '',
+        btn.dataset.favoriTypeObjet || ''
+    );
+}
+
+/**
+ * Ajoute ou retire un favori divers.
+ * @param {string} id
+ * @param {string} titre
+ * @param {string} typeObjet - 'diplome' | 'diplome_apprentissage' | 'dispositif' | 'option2ndeGT'
+ */
+function toggleFavoriDivers(id, titre, typeObjet) {
+    const favoris = loadFavorisDivers();
+    const idx = favoris.findIndex(f => f.id === id);
+
+    if (idx >= 0) {
+        favoris.splice(idx, 1);
+        localStorage.setItem(_FAVORIS_DIVERS_KEY, JSON.stringify(favoris));
+        _updateBtnFavoriDivers(id, false);
+        showAlert(`✅ "${titre}" retiré des favoris`, 'success');
+    } else {
+        if (favoris.length >= _MAX_FAVORIS_DIVERS) {
+            showAlert(`❌ Limite de ${_MAX_FAVORIS_DIVERS} favoris atteinte`, 'error');
+            return;
+        }
+        favoris.push({ id, titre, typeObjet, date: new Date().toISOString() });
+        localStorage.setItem(_FAVORIS_DIVERS_KEY, JSON.stringify(favoris));
+        _updateBtnFavoriDivers(id, true);
+        showAlert(`⭐ "${titre}" ajouté aux favoris`, 'success');
+    }
+    // Rafraîchir le panneau favoris si ouvert (toutes les catégories)
+    if (typeof window.afficherListeFavoris === 'function') window.afficherListeFavoris();
+    if (typeof window._updateMenuStatuses === 'function') window._updateMenuStatuses();
+}
+
+/**
+ * Met à jour le bouton étoile d'un favori divers après toggle.
+ * @private
+ */
+function _updateBtnFavoriDivers(id, isFav) {
+    const btn = document.getElementById(`btn-favori-${id}`);
+    if (!btn) return;
+    btn.classList.toggle('detail-header-action--star-active', isFav);
+    btn.textContent = isFav ? '⭐' : '☆';
+    btn.title = isFav ? 'Retirer des favoris' : 'Ajouter aux favoris';
+    btn.setAttribute('aria-label', btn.title);
+}
+
+/**
+ * Charge la liste des établissements favoris depuis localStorage.
+ * @returns {Object[]} tableau de { id, nom, commune, type, date }
+ */
+function loadFavorisEtablissements() {
+    try { return JSON.parse(localStorage.getItem(_FAVORIS_ETAB_KEY) || '[]'); }
+    catch { return []; }
+}
+
+/**
+ * Vérifie si un établissement est dans les favoris.
+ * @param {string} id - _id interne de l'établissement
+ * @returns {boolean}
+ */
+function isEtablissementFavori(id) {
+    return loadFavorisEtablissements().some(f => f.id === id);
+}
+
+/**
+ * Ajoute ou retire un établissement des favoris.
+ * Met à jour le bouton dans la fiche ouverte en temps réel.
+ * @param {string} id      - _id interne
+ * @param {string} nom     - Nom de l'établissement
+ * @param {string} commune - Commune
+ * @param {string} type    - Type d'établissement
+ * @returns {void}
+ */
+/**
+ * Wrapper appelé par le bouton étoile (data-* attributes).
+ * Lit id/nom/commune/type depuis les attributs data-favori-* du bouton cliqué.
+ * Évite les erreurs de syntaxe avec apostrophes dans les noms d'établissements.
+ * @param {HTMLElement} btn - Le bouton ⭐/☆ cliqué
+ */
+function toggleEtablissementFavoriFromBtn(btn) {
+    toggleEtablissementFavori(
+        btn.dataset.favoriId      || '',
+        btn.dataset.favoriNom     || '',
+        btn.dataset.favoriCommune || '',
+        btn.dataset.favoriType    || ''
+    );
+}
+
+function toggleEtablissementFavori(id, nom, commune, type) {
+    const favoris = loadFavorisEtablissements();
+    const idx     = favoris.findIndex(f => f.id === id);
+
+    if (idx >= 0) {
+        // Retirer
+        favoris.splice(idx, 1);
+        localStorage.setItem(_FAVORIS_ETAB_KEY, JSON.stringify(favoris));
+        _updateBtnFavoriEtab(id, false);
+        showAlert(`✅ "${nom}" retiré des favoris`, 'success');
+    } else {
+        // Ajouter
+        if (favoris.length >= _MAX_FAVORIS_ETAB) {
+            showAlert(`❌ Limite de ${_MAX_FAVORIS_ETAB} favoris atteinte`, 'error');
+            return;
+        }
+        favoris.push({ id, nom, commune, type, date: new Date().toISOString() });
+        localStorage.setItem(_FAVORIS_ETAB_KEY, JSON.stringify(favoris));
+        _updateBtnFavoriEtab(id, true);
+        showAlert(`⭐ "${nom}" ajouté aux favoris`, 'success');
+    }
+    // Rafraîchir la liste dans les paramètres si le panneau est ouvert.
+    // window.afficherListeFavoris (gestion_params.js) recharge les deux sous-sections
+    // (établissements + recherches) — correction du bug v0.48 : seule la sous-section
+    // établissements était rafraîchie, pas le panneau complet.
+    if (typeof window.afficherListeFavoris === 'function') {
+        window.afficherListeFavoris();
+    }
+    if (typeof window._updateMenuStatuses === 'function') {
+        window._updateMenuStatuses();
+    }
+}
+
+/**
+ * Met à jour l'apparence du bouton favori dans la fiche détail ouverte.
+ * @private
+ */
+function _updateBtnFavoriEtab(id, isFav) {
+    const btn = document.getElementById(`btn-favori-${id}`);
+    if (!btn) return;
+    btn.classList.toggle('btn--favori--active', isFav);
+    btn.textContent = isFav ? '⭐' : '☆';
+    btn.title       = isFav ? 'Retirer des favoris' : 'Ajouter aux favoris';
+    btn.setAttribute('aria-label', isFav ? 'Retirer des favoris' : 'Ajouter aux favoris');
+}
+
+/**
+ * Affiche la liste des établissements favoris dans la section paramètres.
+ * Appelé par gestion_params.js quand on ouvre le panneau Favoris.
+ * @returns {void}
+ */
+function afficherListeFavorisEtablissements() {
+    const favoris   = loadFavorisEtablissements();
+    const container = document.getElementById('favoris-etablissements-list');
+    if (!container) return;
+
+    if (favoris.length === 0) {
+        container.innerHTML = `<p class="u-text-muted u-text-sm" style="padding:12px 0">
+            Aucun établissement favori. Ouvrez la fiche d'un établissement et cliquez sur ☆ Ajouter aux favoris.
+        </p>`;
+        return;
+    }
+
+    let html = '';
+    favoris.forEach(f => {
+        const date = new Date(f.date).toLocaleDateString('fr-FR');
+        html += `
+        <div class="favori-card--etab">
+            <div class="favori-card--etab__nom">🏫 ${f.nom}</div>
+            <div class="favori-card--etab__meta">${f.type || ''} · ${f.commune || ''} · ajouté le ${date}</div>
+            <div class="favori-card--etab__actions">
+                <button class="setting-button" style="flex:1;padding:8px;font-size:13px"
+                    data-etab-id="${f.id}"
+                    onclick="toggleSettings();setTimeout(()=>showEtablissementDetails(this.dataset.etabId),200)">
+                    👁️ Voir la fiche
+                </button>
+                <button class="setting-button secondary" style="flex:1;padding:8px;font-size:13px"
+                    data-favori-id="${f.id}"
+                    data-favori-nom="${(f.nom||'').replace(/"/g,'&quot;')}"
+                    data-favori-commune="${(f.commune||'').replace(/"/g,'&quot;')}"
+                    data-favori-type="${(f.type||'').replace(/"/g,'&quot;')}"
+                    onclick="toggleEtablissementFavoriFromBtn(this)">
+                    🗑️
+                </button>
+            </div>
+        </div>`;
+    });
+    container.innerHTML = html;
 }
 
 // =====================================
@@ -1615,6 +1905,7 @@ function buildDispositifDetailsHTML(dispositifEnrichi) {
 if (typeof window !== 'undefined') {
     window.switchView = switchView;
     window.loadStats = loadStats;
+    window.loadCurrentView = loadView; // pour rafraîchissement après db:ready
     window.resetFilters = resetFilters;
     window.showEtablissementDetails = showEtablissementDetails;
     window.initResultsTab = initResultsTab;
@@ -1627,6 +1918,18 @@ if (typeof window !== 'undefined') {
     window.buildDiplomeApprentissageDetailsHTML = buildDiplomeApprentissageDetailsHTML;
     window.buildDispositifDetailsHTML = buildDispositifDetailsHTML;
     window.buildOption2ndeGTDetailsHTML = buildOption2ndeGTDetailsHTML;
+    // Accordéon (sections repliables dans les fiches détail)
+    window.toggleDetailSection = toggleDetailSection;
+    // Favoris établissements
+    window.toggleEtablissementFavoriFromBtn  = toggleEtablissementFavoriFromBtn;
+    window.toggleFavoriDiversFromBtn         = toggleFavoriDiversFromBtn;
+    window.toggleFavoriDivers               = toggleFavoriDivers;
+    window.isFavoriDivers                   = isFavoriDivers;
+    window.loadFavorisDivers                = loadFavorisDivers;
+    window.toggleEtablissementFavori        = toggleEtablissementFavori;
+    window.isEtablissementFavori            = isEtablissementFavori;
+    window.afficherListeFavorisEtablissements = afficherListeFavorisEtablissements;
+    window.loadFavorisEtablissements        = loadFavorisEtablissements;
 }
 
 // =====================================

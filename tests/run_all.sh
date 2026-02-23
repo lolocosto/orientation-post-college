@@ -1,38 +1,23 @@
-#!/bin/bash
-# ============================================================
-# run_all.sh — Lance toutes les suites de tests CARIF-OREF
-# Exécution : bash tests/run_all.sh
-# ============================================================
-cd "$(dirname "$0")/.."   # Se positionner à la racine du projet
+#!/usr/bin/env bash
+# ══════════════════════════════════════════════════════════
+# run_all.sh — Lance tous les tests de la suite v0.45
+# ══════════════════════════════════════════════════════════
+# Prérequis : Node.js ≥ 18, jest installé (npm install -g jest)
+# Lancement  : bash tests/run_all.sh [--verbose]
+# ══════════════════════════════════════════════════════════
+set -e
+cd "$(dirname "$0")/.."
 
-PASS=0
-FAIL=0
+echo "════════════════════════════════════════════════"
+echo "  Parcours Avenir — Suite de tests v0.45"
+echo "════════════════════════════════════════════════"
 
-run_suite() {
-    local label="$1"
-    local file="$2"
-    echo ""
-    echo "════════════════════════════════════════════"
-    echo "  $label"
-    echo "════════════════════════════════════════════"
-    node "$file" 2>/dev/null
-    if [ $? -eq 0 ]; then
-        PASS=$((PASS + 1))
-    else
-        FAIL=$((FAIL + 1))
-    fi
-}
+VERBOSE=""
+if [[ "$1" == "--verbose" ]]; then VERBOSE="--verbose"; fi
 
-run_suite "01 — Unitaires Parser" "tests/01_unit_parser.test.js"
-run_suite "02 — Unitaires DatabaseService" "tests/02_unit_database.test.js"
-run_suite "03 — Fonctionnels ExtractionController" "tests/03_functional_extraction.test.js"
+jest tests/ $VERBOSE --testPathPattern='\.(test\.js)$' --no-coverage 2>&1 | tee tests/last_run.log
 
 echo ""
-echo "════════════════════════════════════════════"
-if [ $FAIL -eq 0 ]; then
-    echo "  ✅ Toutes les suites sont vertes ($PASS/$((PASS + FAIL)))"
-    exit 0
-else
-    echo "  ⛔ $FAIL suite(s) en échec sur $((PASS + FAIL))"
-    exit 1
-fi
+echo "════════════════════════════════════════════════"
+echo "  Résultats complets → tests/last_run.log"
+echo "════════════════════════════════════════════════"

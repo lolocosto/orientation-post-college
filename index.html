@@ -32,44 +32,45 @@
 	<script src="data/academies_data.js"></script>
 
 	<!-- 2. Classes database, API et parser -->
-    <script src="js/http_client.js?v=1771596491"></script>
-    <script src="js/database_service.js?v=1771596491"></script>
-    <script src="js/systeme_filtres.js?v=1771596491"></script>
-    <script src="js/geo_api.js?v=1771596491"></script>
-    <script src="js/geo_parser.js?v=1771596491"></script>
-    <script src="js/data_education_api.js?v=1771596491"></script>
-    <script src="js/data_education_parser.js?v=1771596491"></script>
-    <script src="js/onisep_api.js?v=1771596491"></script>
-    <script src="js/onisep_parser.js?v=1771596491"></script>
-    <script src="js/carif_oref_api.js?v=1771596491"></script>
-    <script src="js/carif_oref_parser.js?v=1771596491"></script>
+    <script src="js/http_client.js?v=1771858405"></script>
+    <script src="js/database_service.js?v=1771858405"></script>
+    <script src="js/systeme_filtres.js?v=1772100000"></script>
+    <script src="js/geo_api.js?v=1771858405"></script>
+    <script src="js/geo_parser.js?v=1771858405"></script>
+    <script src="js/data_education_api.js?v=1771858405"></script>
+    <script src="js/data_education_parser.js?v=1771858405"></script>
+    <script src="js/onisep_api.js?v=1771858405"></script>
+    <script src="js/onisep_parser.js?v=1771858405"></script>
+    <script src="js/carif_oref_api.js?v=1771858405"></script>
+    <script src="js/carif_oref_parser.js?v=1771858405"></script>
 
 	<!-- 3. Classes contrôleur d'extraction -->
-    <script src="js/geo_extraction_controller.js?v=1771596491"></script>
-    <script src="js/data_education_extraction_controller.js?v=1771596491"></script>
-    <script src="js/onisep_extraction_controller.js?v=1771596491"></script>
-    <script src="js/carif_oref_extraction_controller.js?v=1771596491"></script>
+    <script src="js/geo_extraction_controller.js?v=1771858405"></script>
+    <script src="js/data_education_extraction_controller.js?v=1771858405"></script>
+    <script src="js/onisep_extraction_controller.js?v=1771858405"></script>
+    <script src="js/carif_oref_extraction_controller.js?v=1771858405"></script>
 
 	<!-- Modale de progrès (NOUVEAU) -->
-    <script src="js/modal.js?v=1771596491"></script>
-    <script src="js/progress_modal.js?v=1771596491"></script>
-    <!-- <script src="js/extraction_modal.js?v=1771596491"></script> → Supprimé v0.27.2 - Utiliser ProgressModal -->
-    <script src="js/details_modal.js?v=1771596491"></script>
+    <script src="js/modal.js?v=1771858405"></script>
+    <script src="js/progress_modal.js?v=1771858405"></script>
+    <!-- <script src="js/extraction_modal.js?v=1771858405"></script> → Supprimé v0.27.2 - Utiliser ProgressModal -->
+    <script src="js/details_modal.js?v=1771858405"></script>
 
     <!-- 4. Modules UI -->
-	<script src="js/gestion_params.js?v=1771596491"></script>
-	<script src="js/itineraire_modal.js?v=1771596491"></script>
-	<script src="js/gestion_onglets.js?v=1771596491"></script>
-	<script src="js/gestion_onglet_recherche.js?v=1771596491"></script>
-	<script src="js/gestion_onglet_resultats.js?v=1771596491"></script>
-	<script src="js/gestion_onglet_carte.js?v=1771596491"></script>
+	<script src="js/gestion_params.js?v=1772100000"></script>
+	<script src="js/tour_guide.js?v=1772000000"></script>
+	<script src="js/itineraire_modal.js?v=1771858405"></script>
+	<script src="js/gestion_onglets.js?v=1771858405"></script>
+	<script src="js/gestion_onglet_recherche.js?v=1771858405"></script>
+	<script src="js/gestion_onglet_resultats.js?v=1772100000"></script>
+	<script src="js/gestion_onglet_carte.js?v=1771858405"></script>
 
 	<!-- 5. Export (PDF via CDN) -->
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-	<script src="js/export_service.js?v=1771596491"></script>
+	<script src="js/export_service.js?v=1771858405"></script>
 
 	<!-- 6. Utilitaires -->
-	<script src="js/utils.js?v=1771596491"></script>
+	<script src="js/utils.js?v=1771858405"></script>
 	
 	<!-- 7. Initialisation -->
 	<script>
@@ -105,243 +106,178 @@
     <!-- ========================================= -->
     <div class="settings-overlay" id="settings-overlay" onclick="toggleSettings()"></div>
     <div class="settings-panel" id="settings-panel">
-        <div class="settings-header">
-            <h2>⚙️ Paramètres</h2>
-            <button class="settings-close" onclick="toggleSettings()">×</button>
+        <!-- En-tête dynamique : titre + bouton retour ou fermer -->
+        <div class="settings-header" id="settings-header">
+            <button class="settings-back u-hidden" id="settings-back-btn" onclick="settingsGoBack()" aria-label="Retour au menu">
+                ← Retour
+            </button>
+            <h2 id="settings-title">⚙️ Paramètres</h2>
+            <button class="settings-close" onclick="toggleSettings()" aria-label="Fermer">×</button>
         </div>
-        <div class="settings-content">
-            <!-- Section Connexion Onisep -->
-            <div class="settings-section">
-                <div class="settings-section-header" onclick="toggleSection(this)">
-                    <span class="icon">🔐</span>
-                    <span>Connexion Onisep</span>
-                    <span class="chevron">▼</span>
-                </div>
-                <div class="settings-section-content">
-                    <div class="form-group">
-                        <label class="setting-label">Email</label>
-                        <input type="email" class="setting-input" id="settings-email" placeholder="votre.email@example.com">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="setting-label">Mot de passe</label>
-                        <input type="password" class="setting-input" id="settings-password" placeholder="••••••••">
-                        <div class="setting-help">⚠️ Le mot de passe est stocké en clair dans le localStorage. N'utilisez pas de mot de passe sensible.</div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="setting-label">Application ID</label>
-                        <input type="text" class="setting-input" id="settings-app-id" placeholder="Votre Application ID Onisep">
-                        <div class="setting-help">💡 L'Application ID est fourni par Onisep avec vos identifiants API. Nécessaire pour que les requêtes fonctionnent.</div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <div class="setting-checkbox-group">
-                            <input type="checkbox" id="settings-auto-connect">
-                            <label for="settings-auto-connect">Connexion automatique au démarrage</label>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <button class="setting-button" onclick="saveOnisepCredentials()">💾 Enregistrer les identifiants</button>
-                    </div>
-                    
-                    <div class="form-group">
-                        <button class="setting-button" id="btn-connect-settings" onclick="connectFromSettings()">🔐 Se connecter</button>
-                    </div>
-                    
-                    <div class="form-group">
-                        <button class="setting-button secondary u-hidden" id="btn-disconnect-settings" onclick="logoutOnisep()">🚪 Se déconnecter</button>
-                    </div>
-                    
-                    <div class="form-group">
-                        <div class="connection-status disconnected" id="connection-status">
-                            <span class="dot"></span>
-                            <span>Non connecté</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-                        
-            <!-- Section Favoris -->            
-            <div class="settings-section">
-                <div class="settings-section-header" onclick="toggleSection(this)">
-                    <span class="icon">⭐</span>
-                    <span>Favoris</span>
-                    <span class="chevron">▼</span>
-                </div>
-                <div class="settings-section-content">
-                    <div class="setting-help u-mb-3">
-                        💡 Les favoris permettent de sauvegarder vos recherches pour les relancer rapidement.
-                    </div>
-                    
-                    <div id="favoris-list">
-                        <!-- Liste générée dynamiquement -->
-                    </div>
+
+        <!-- Conteneur à deux couches : menu + sections -->
+        <div class="settings-slider" id="settings-slider">
+
+            <!-- ── VUE MENU (toujours rendu, déplacée par CSS) ── -->
+            <div class="settings-view settings-view--menu" id="settings-menu-view">
+                <nav class="settings-nav" aria-label="Sections des paramètres">
+                    <button class="settings-nav__item" onclick="settingsOpenSection('connexion')">
+                        <span class="settings-nav__icon">🔐</span>
+                        <span class="settings-nav__label">Connexion Onisep</span>
+                        <span class="settings-nav__status" id="nav-status-connexion"></span>
+                        <span class="settings-nav__arrow">›</span>
+                    </button>
+                    <button class="settings-nav__item" onclick="settingsOpenSection('preferences')">
+                        <span class="settings-nav__icon">🏫</span>
+                        <span class="settings-nav__label">Mon établissement &amp; domicile</span>
+                        <span class="settings-nav__status" id="nav-status-preferences"></span>
+                        <span class="settings-nav__arrow">›</span>
+                    </button>
+                    <button class="settings-nav__item" onclick="settingsOpenSection('favoris')">
+                        <span class="settings-nav__icon">⭐</span>
+                        <span class="settings-nav__label">Favoris</span>
+                        <span class="settings-nav__status" id="nav-status-favoris"></span>
+                        <span class="settings-nav__arrow">›</span>
+                    </button>
+                    <button class="settings-nav__item" onclick="settingsOpenSection('donnees')">
+                        <span class="settings-nav__icon">💾</span>
+                        <span class="settings-nav__label">Import / Export</span>
+                        <span class="settings-nav__arrow">›</span>
+                    </button>
+                    <button class="settings-nav__item" onclick="settingsOpenSection('aide')">
+                        <span class="settings-nav__icon">❓</span>
+                        <span class="settings-nav__label">Aide &amp; À propos</span>
+                        <span class="settings-nav__arrow">›</span>
+                    </button>
+                    <button class="settings-nav__item settings-nav__item--tour" onclick="lancerTourGuide()">
+                        <span class="settings-nav__icon">🚀</span>
+                        <span class="settings-nav__label">Tour guidé</span>
+                        <span class="settings-nav__badge">Rejouer</span>
+                    </button>
+                </nav>
+
+                <div class="settings-danger-zone">
+                    <button class="setting-button setting-button--danger" onclick="confirmResetDatabase()">
+                        🗑️ Vider la base locale
+                    </button>
+                    <div class="setting-help u-mt-3">⚠️ Supprime toutes les données stockées localement</div>
                 </div>
             </div>
 
-            <!-- Section Import/Export -->
-            <div class="settings-section">
-                <div class="settings-section-header" onclick="toggleSection(this)">
-                    <span class="icon">💾</span>
-                    <span>Import / Export des données</span>
-                    <span class="chevron">▼</span>
-                </div>
-                <div class="settings-section-content">
-                    <div class="setting-help u-mb-4">
-                        💡 Sauvegardez vos données ou importez une base existante.
-                    </div>
-                    
-                    <!-- Export -->
-                    <div class="form-group">
-                        <h4 class="u-mb-2">📤 Export</h4>
-                        <button class="setting-button" onclick="exporterDonnees()">
-                            💾 Exporter les données
-                        </button>
-                        <div class="setting-help u-mt-3">
-                            Le fichier sera téléchargé. Déplacez-le dans le même répertoire que l'application pour pouvoir l'importer.
+            <!-- ── VUE SECTION (glisse depuis la droite) ── -->
+            <div class="settings-view settings-view--section" id="settings-section-view">
+
+                <!-- Section : Connexion Onisep -->
+                <div class="settings-section-pane u-hidden" id="settings-pane-connexion">
+                    <div class="settings-content">
+                        <div class="form-group">
+                            <label class="setting-label">Email</label>
+                            <input type="email" class="setting-input" id="settings-email" placeholder="votre.email@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label class="setting-label">Mot de passe</label>
+                            <input type="password" class="setting-input" id="settings-password" placeholder="••••••••">
+                            <div class="setting-help">⚠️ Le mot de passe est stocké en clair dans le localStorage. N'utilisez pas de mot de passe sensible.</div>
+                        </div>
+                        <div class="form-group">
+                            <label class="setting-label">Application ID</label>
+                            <input type="text" class="setting-input" id="settings-app-id" placeholder="Votre Application ID Onisep">
+                            <div class="setting-help">💡 L'Application ID est fourni par Onisep avec vos identifiants API.</div>
+                        </div>
+                        <div class="form-group">
+                            <div class="setting-checkbox-group">
+                                <input type="checkbox" id="settings-auto-connect">
+                                <label for="settings-auto-connect">Connexion automatique au démarrage</label>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <button class="setting-button" onclick="saveOnisepCredentials()">💾 Enregistrer les identifiants</button>
+                        </div>
+                        <div class="form-group">
+                            <button class="setting-button" id="btn-connect-settings" onclick="connectFromSettings()">🔐 Se connecter</button>
+                        </div>
+                        <div class="form-group">
+                            <button class="setting-button secondary u-hidden" id="btn-disconnect-settings" onclick="logoutOnisep()">🚪 Se déconnecter</button>
+                        </div>
+                        <div class="form-group">
+                            <div class="connection-status disconnected" id="connection-status">
+                                <span class="dot"></span>
+                                <span>Non connecté</span>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="settings-separator"></div>
-                    
-                    <!-- Import -->
-                    <div class="form-group">
-                        <h4 class="u-mb-2">📥 Import</h4>
-                        
-                        <button class="setting-button" onclick="importerFichier()">
-                            📂 Importer un fichier
-                        </button>
-                        
-                        <div class="setting-help u-mt-3">
-                            ⚠️ L'import écrasera toutes les données actuelles
+                </div>
+
+                <!-- Section : Préférences (établissement + domicile) -->
+                <div class="settings-section-pane u-hidden" id="settings-pane-preferences">
+                    <div class="settings-content">
+                        <div class="form-group">
+                            <label class="setting-label">📒 Mon établissement</label>
+                            <div class="search-input-group">
+                                <label class="u-text-sm u-mt-3 u-block">UAI</label>
+                                <input type="text" id="pref-user-uai" class="setting-input" placeholder="0350056C" maxlength="8" value="">
+                                <button class="setting-button setting-button--nowrap" onclick="fetchOnisepEstablishment()">🔍 Rechercher</button>
+                            </div>
+                            <label class="u-text-sm u-mt-3 u-block">Nom de l'établissement</label>
+                            <input type="text" id="pref-user-nom" class="setting-input" placeholder="Renseigné automatiquement" value="" readonly>
+                            <label class="u-text-sm u-mt-3 u-block">Latitude (GPS)</label>
+                            <input type="number" id="pref-user-lat" class="setting-input" placeholder="Renseignée automatiquement" step="0.000001" value="" readonly>
+                            <label class="u-text-sm u-mt-3 u-block">Longitude (GPS)</label>
+                            <input type="number" id="pref-user-lon" class="setting-input" placeholder="Renseignée automatiquement" step="0.000001" value="" readonly>
+                            <div class="setting-help u-mt-3">💡 Saisissez l'UAI puis cliquez sur "🔍 Rechercher".<br>📒 Votre établissement sera affiché avec un marqueur orange pulsant sur la carte.</div>
+                            <button class="setting-button u-mt-3" onclick="saveUserEstablishment()">💾 Sauvegarder</button>
+                        </div>
+                        <div class="settings-separator"></div>
+                        <div class="form-group">
+                            <label class="setting-label">🏠 Mon domicile</label>
+                            <label class="u-text-sm u-mt-3 u-block">Adresse</label>
+                            <div class="search-input-group">
+                                <input type="text" id="pref-domicile-adresse" class="setting-input" placeholder="12 rue de la Paix, Rennes">
+                                <button class="setting-button setting-button--nowrap" id="btn-geocoder-domicile" onclick="geocoderDomicile()">📍 Géolocaliser</button>
+                            </div>
+                            <label class="u-text-sm u-mt-3 u-block">Latitude (GPS)</label>
+                            <input type="number" id="pref-domicile-lat" class="setting-input" placeholder="Renseignée automatiquement" step="0.000001" readonly>
+                            <label class="u-text-sm u-mt-3 u-block">Longitude (GPS)</label>
+                            <input type="number" id="pref-domicile-lon" class="setting-input" placeholder="Renseignée automatiquement" step="0.000001" readonly>
+                            <div class="setting-help u-mt-3">💡 Saisissez votre adresse puis cliquez sur "📍 Géolocaliser" — coordonnées GPS calculées via OpenStreetMap.</div>
+                            <div class="u-flex u-gap-md u-mt-3">
+                                <button class="btn btn--secondary u-flex-1" onclick="clearUserDomicile()">🗑️ Effacer</button>
+                                <button class="setting-button u-flex-1" onclick="saveUserDomicile()">💾 Sauvegarder</button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Section Préférences -->
-            <div class="settings-section">
-                <div class="settings-section-header" onclick="toggleSection(this)">
-                    <span class="icon">⚙️</span>
-                    <span>Préférences</span>
-                    <span class="chevron">▼</span>
-                </div>
-                <div class="settings-section-content">
-                    <!-- Mon établissement -->
-                    <div class="form-group">
-                        <label class="setting-label">📒 Mon établissement</label>
-                        <div class="search-input-group">
-                            <label class="u-text-sm u-mt-3 u-block">UAI</label>
-                            <input type="text" 
-                                   id="pref-user-uai" 
-                                   class="setting-input" 
-                                   placeholder="0350056C"
-                                   maxlength="8"
-                                   value=""
-                                   class="setting-input setting-input--mono">
-                            <button class="setting-button setting-button--nowrap" onclick="fetchOnisepEstablishment()">
-                                🔍 Rechercher
-                            </button>
-                        </div>
-                        <label class="u-text-sm u-mt-3 u-block">Nom de l'établissement</label>
-                        <input type="text" 
-                               id="pref-user-nom" 
-                               class="setting-input" 
-                               placeholder="Renseigné automatiquement"
-                               value=""
-                               readonly
-                               class="bg-light cursor-not-allowed">
-                        
-                        <label class="u-text-sm u-mt-3 u-block">Latitude (GPS)</label>
-                        <input type="number" 
-                               id="pref-user-lat" 
-                               class="setting-input" 
-                               placeholder="Renseignée automatiquement"
-                               step="0.000001"
-                               value=""
-                               readonly
-                               class="bg-light cursor-not-allowed">
-                        
-                        <label class="u-text-sm u-mt-3 u-block">Longitude (GPS)</label>
-                        <input type="number" 
-                               id="pref-user-lon" 
-                               class="setting-input" 
-                               placeholder="Renseignée automatiquement"
-                               step="0.000001"
-                               value=""
-                               readonly
-                               class="bg-light cursor-not-allowed">
-                        
-                        <div class="setting-help u-mt-3">
-                            💡 Saisissez l'UAI puis cliquez sur "🔍 Rechercher" pour récupérer automatiquement les informations depuis Onisep.
-                            <br>📒 Votre établissement sera affiché avec un marqueur orange pulsant sur la carte.
-                        </div>
-                        
-                        <button class="setting-button u-mt-3" onclick="saveUserEstablishment()">
-                            💾 Sauvegarder
-                        </button>
+                <!-- Section : Favoris -->
+                <div class="settings-section-pane u-hidden" id="settings-pane-favoris">
+                    <div class="settings-content">
+                        <div class="setting-help u-mb-3">💡 Les favoris permettent de sauvegarder vos recherches pour les relancer rapidement.</div>
+                        <div id="favoris-list"></div>
                     </div>
+                </div>
 
-                    <div class="settings-separator"></div>
-
-                    <!-- Mon domicile -->
-                    <div class="form-group">
-                        <label class="setting-label">🏠 Mon domicile</label>
-                        <label class="u-text-sm u-mt-3 u-block">Adresse</label>
-                        <div class="search-input-group">
-                            <input type="text"
-                                   id="pref-domicile-adresse"
-                                   class="setting-input"
-                                   placeholder="12 rue de la Paix, Rennes">
-                            <button class="setting-button setting-button--nowrap" id="btn-geocoder-domicile" onclick="geocoderDomicile()">
-                                📍 Géolocaliser
-                            </button>
+                <!-- Section : Import / Export -->
+                <div class="settings-section-pane u-hidden" id="settings-pane-donnees">
+                    <div class="settings-content">
+                        <div class="setting-help u-mb-4">💡 Sauvegardez vos données ou importez une base existante.</div>
+                        <div class="form-group">
+                            <h4 class="u-mb-2">📤 Export</h4>
+                            <button class="setting-button" onclick="exporterDonnees()">💾 Exporter les données</button>
+                            <div class="setting-help u-mt-3">Le fichier sera téléchargé au format JSON.</div>
                         </div>
-
-                        <label class="u-text-sm u-mt-3 u-block">Latitude (GPS)</label>
-                        <input type="number"
-                               id="pref-domicile-lat"
-                               class="setting-input"
-                               placeholder="Renseignée automatiquement"
-                               step="0.000001"
-                               readonly>
-
-                        <label class="u-text-sm u-mt-3 u-block">Longitude (GPS)</label>
-                        <input type="number"
-                               id="pref-domicile-lon"
-                               class="setting-input"
-                               placeholder="Renseignée automatiquement"
-                               step="0.000001"
-                               readonly>
-
-                        <div class="setting-help u-mt-3">
-                            💡 Saisissez votre adresse puis cliquez sur "📍 Géolocaliser" — les coordonnées GPS sont calculées automatiquement via OpenStreetMap.
-                        </div>
-
-                        <div class="u-flex u-gap-md u-mt-3">
-                            <button class="btn btn--secondary u-flex-1" onclick="clearUserDomicile()">
-                                🗑️ Effacer
-                            </button>
-                            <button class="setting-button u-flex-1" onclick="saveUserDomicile()">
-                                💾 Sauvegarder
-                            </button>
+                        <div class="settings-separator"></div>
+                        <div class="form-group">
+                            <h4 class="u-mb-2">📥 Import</h4>
+                            <button class="setting-button" onclick="importerFichier()">📂 Importer un fichier</button>
+                            <div class="setting-help u-mt-3">⚠️ L'import écrasera toutes les données actuelles</div>
                         </div>
                     </div>
-
                 </div>
-            </div>
 
-            <!-- Section Aide -->
-            <div class="settings-section">
-                <div class="settings-section-header" onclick="toggleSection(this)">
-                    <span class="icon">❓</span>
-                    <span>Aide</span>
-                    <span class="chevron">▼</span>
-                </div>
-                <div class="settings-section-content">
-                    <div class="form-group">
+                <!-- Section : Aide & À propos -->
+                <div class="settings-section-pane u-hidden" id="settings-pane-aide">
+                    <div class="settings-content">
+                        <div class="form-group">
                         <label class="setting-label">Créer un compte Onisep</label>
                         <div class="help-content">
                             <h3>📝 Comment créer un compte</h3>
@@ -365,9 +301,42 @@
                     <div class="form-group">
                         <label class="setting-label">À propos</label>
                         <div class="about-text">
-                            <p><strong>Orientation Post-Collège v0.43</strong></p>
+                            <p><strong>Orientation Post-Collège v0.52</strong></p>
                             <p class="u-mt-3"><strong>📓 Historique des versions</strong></p>
                             <div class="changelog-scroll">
+                                <p><strong>v0.52</strong> (23 février 2026) - Corrections de bugs</p>
+                                <ul class="u-ml-4 u-mt-1">
+                                    <li>Corrigé : bouton "Voir la fiche" toujours large dans les cartes favoris (spécificité CSS renforcée)</li>
+                                    <li>Corrigé : suppression d'un favori (diplôme, dispositif, option) bien reflétée dans le panneau</li>
+                                    <li>Corrigé : filtre textuel robuste sur les accents ("theatre" trouve "Théâtre") pour toutes les vues</li>
+                                    <li>Corrigé : rang et taille de liste dans l'en-tête des modales corrects après filtrage</li>
+                                </ul>
+                                <p><strong>v0.51</strong> (23 février 2026) - Favoris multi-catégories, corrections UX, navigation modale</p>
+                                <ul class="u-ml-4 u-mt-1">
+                                    <li>Nouveau : favoris pour toutes les catégories (diplômes scolaires, diplômes apprentissage, dispositifs, options 2nde GT)</li>
+                                    <li>Nouveau : panneau Favoris structuré en 6 sections distinctes</li>
+                                    <li>Corrigé : rang N/Total dans les modales reflète désormais la liste filtrée</li>
+                                    <li>Corrigé : filtre textuel fonctionnel sur les Options 2nde GT</li>
+                                    <li>Corrigé : bouton "Voir la fiche" toujours large dans les cartes favoris</li>
+                                    <li>Amélioré : padding réduit dans les sections accordéon des fiches détail</li>
+                                    <li>Supprimé : bouton "Purger données CARIF" (zone danger simplifiée)</li>
+                                </ul>
+                                <p><strong>v0.50</strong> (23 février 2026) - Modales unifiées & favoris établissements</p>
+                                <ul class="u-ml-4 u-mt-1">
+                                    <li>Nouveau : bouton étoile ☆ dans l'en-tête de toutes les modales de détail</li>
+                                    <li>Nouveau : favoris établissements (max 20) dans les préférences</li>
+                                    <li>Corrigé : structure d'en-tête unifiée entre tous les types de modale</li>
+                                    <li>Corrigé : navigation Précédent/Suivant et guard anti-double ouverture</li>
+                                </ul>
+                                <p><strong>v0.45</strong> (février 2026) - Responsive complet, séparation des responsabilités, tests CU</p>
+                                <p><strong>v0.44</strong> (22 février 2026) - Panneau paramètres & Tour guidé</p>
+                                <ul class="u-ml-4 u-mt-1">
+                                    <li>Nouveau : panneau de paramètres redessiné — navigation menu/section avec glissement latéral (slide)</li>
+                                    <li>Nouveau : indicateurs de statut dans le menu (connexion Onisep, nb favoris, préférences)</li>
+                                    <li>Nouveau : tour guidé de première utilisation (driver.js) — 8 étapes couvrant tous les cas d'usage</li>
+                                    <li>Nouveau : entrée "🚀 Tour guidé" dans les paramètres pour rejouer le tour</li>
+                                    <li>Documentation : JSDoc complet sur l'ensemble du codebase (474 JSDoc)</li>
+                                </ul>
                                 <p><strong>v0.43</strong> (21 février 2026) - Itinéraire & Mon domicile</p>
                                 <ul class="u-ml-4 u-mt-1">
                                     <li>Nouveau : "Mon domicile" dans les paramètres (géocodage Nominatim/OSM)</li>
@@ -525,24 +494,16 @@
                                     <li>Stockage SQLite local</li>
                                     <li>Interface de base</li>
                                 </ul>
-                            </div>
-                            <p>Application web pour gérer l'orientation post-collège.</p>
-                            <p>Sources des données : API Onisep Open Data (https://opendata.onisep.fr/) et API du découpage administratif (https://www.geo.api.gouv.fr) </p>
-                            <p>© 2026 - Développé avec Claude</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div> <!-- Fin settings-content -->
-        
-        <!-- Bouton Vider la base (niveau principal) -->
-        <div class="settings-danger-zone">
-            <button class="setting-button setting-button--danger" onclick="confirmResetDatabase()">
-                🗑️ Vider la base locale
-            </button>
-            <div class="setting-help u-mt-3">⚠️ Supprime toutes les données stockées localement</div>
-        </div>
-        
+
+                        </div><!-- Fin changelog-scroll -->
+                        </div><!-- Fin about-text -->
+                        </div><!-- Fin form-group À propos -->
+                    </div><!-- Fin settings-content -->
+                </div><!-- Fin settings-pane-aide -->
+            </div> <!-- Fin settings-view--section -->
+
+        </div> <!-- Fin settings-slider -->
+
     </div> <!-- Fin settings-panel -->
     
     <!-- ========================================= -->

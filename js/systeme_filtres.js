@@ -1,6 +1,17 @@
 // =====================================
-// SYSTÈME DE FILTRES v0.35 — MULTI-SÉLECTION
+// SYSTÈME DE FILTRES v0.52 — MULTI-SÉLECTION
 // =====================================
+
+/**
+ * Normalise une chaîne pour la recherche textuelle : minuscules + suppression des accents.
+ * Utilisée par tous les filtres textuels pour une recherche robuste (sans casse ni accents).
+ * @param {string|null|undefined} s
+ * @returns {string}
+ */
+function _normRecherche(s) {
+    return (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
 
 /**
  * État des filtres — tableau de valeurs pour multi-sélection
@@ -23,7 +34,7 @@ function initFilters() {
     const filterSearch = document.getElementById('filter-search');
     if (filterSearch) {
         filterSearch.addEventListener('input', (e) => {
-            filtersState.search = e.target.value.toLowerCase();
+            filtersState.search = _normRecherche(e.target.value);
             applyFilters();
         });
     }
@@ -129,6 +140,13 @@ function resetFiltersState() {
 // POPULATE HELPERS — peuplent les <select multiple>
 // =========================================================================
 
+/**
+ * Remplit un <select multiple> avec une liste de valeurs.
+ * @param {HTMLSelectElement} selectEl
+ * @param {string[]} values
+ * @param {string} emptyLabel - Label pour la sélection vide
+ * @returns {void}
+ */
 function _populateSelect(selectEl, values, emptyLabel) {
     selectEl.innerHTML = '';
     // Pas d'option "Tous" dans un multi-select — l'absence de sélection = pas de filtre
@@ -142,36 +160,60 @@ function _populateSelect(selectEl, values, emptyLabel) {
     selectEl.size = Math.min(values.length, 4);
 }
 
+/**
+ * Remplit le filtre 'Type' avec les types d'établissements en base.
+ * @returns {Promise<void>}
+ */
 async function populateTypeFilter() {
     const etablissements = await window.databaseService.getAllEtablissements();
     const types = [...new Set(etablissements.map(e => e.type).filter(Boolean))].sort();
     _populateSelect(document.getElementById('filter-type'), types, 'Tous les types');
 }
 
+/**
+ * Remplit le filtre 'Commune' avec les communes des établissements.
+ * @returns {Promise<void>}
+ */
 async function populateCommuneFilter() {
     const etablissements = await window.databaseService.getAllEtablissements();
     const communes = [...new Set(etablissements.map(e => e.commune).filter(Boolean))].sort();
     _populateSelect(document.getElementById('filter-commune'), communes, 'Toutes les communes');
 }
 
+/**
+ * Remplit le filtre 'Statut' (public/privé) avec les valeurs en base.
+ * @returns {Promise<void>}
+ */
 async function populateStatutFilter() {
     const etablissements = await window.databaseService.getAllEtablissements();
     const statuts = [...new Set(etablissements.map(e => e.statut).filter(Boolean))].sort();
     _populateSelect(document.getElementById('filter-statut'), statuts, 'Tous les statuts');
 }
 
+/**
+ * Remplit le filtre 'Niveau' avec les niveaux des diplômes scolaires.
+ * @returns {Promise<void>}
+ */
 async function populateNiveauDiplomeFilter() {
     const diplomes = await window.databaseService.getAllDiplomes();
     const niveaux = [...new Set(diplomes.map(d => d.niveauSortie).filter(Boolean))].sort();
     _populateSelect(document.getElementById('filter-niveau'), niveaux, 'Tous les niveaux');
 }
 
+/**
+ * Remplit le filtre 'Type' avec les types de diplômes scolaires.
+ * @returns {Promise<void>}
+ */
 async function populateTypeDiplomeFilter() {
     const diplomes = await window.databaseService.getAllDiplomes();
     const types = [...new Set(diplomes.map(d => d.type).filter(Boolean))].sort();
     _populateSelect(document.getElementById('filter-type'), types, 'Tous les types');
 }
 
+/**
+ * Remplit le filtre 'Catégorie' avec les catégories de diplômes scolaires.
+ * @returns {Promise<void>}
+ */
 async function populateCategorieFilter() {
     const diplomes = await window.databaseService.getAllDiplomes();
     const categories = [...new Set(diplomes.map(d => d.niveauSortie).filter(Boolean))];
@@ -186,18 +228,30 @@ async function populateCategorieFilter() {
     _populateSelect(document.getElementById('filter-categorie'), categories, 'Toutes les catégories');
 }
 
+/**
+ * Remplit le filtre 'Catégorie' pour les dispositifs pédagogiques.
+ * @returns {Promise<void>}
+ */
 async function populateCategorieDispositifFilter() {
     const dispositifs = await window.databaseService.getAllDispositifs();
     const categories = [...new Set(dispositifs.map(d => d.type).filter(Boolean))].sort();
     _populateSelect(document.getElementById('filter-categorie'), categories, 'Toutes les catégories');
 }
 
+/**
+ * Remplit le filtre 'Niveau' avec les niveaux des diplômes apprentissage.
+ * @returns {Promise<void>}
+ */
 async function populateNiveauDiplomeApprentissageFilter() {
     const diplomes = await window.databaseService.getAllDiplomesApprentissage();
     const niveaux = [...new Set(diplomes.map(d => d.niveau).filter(Boolean))].sort();
     _populateSelect(document.getElementById('filter-niveau'), niveaux, 'Tous les niveaux');
 }
 
+/**
+ * Remplit le filtre 'Type' avec les types de diplômes apprentissage.
+ * @returns {Promise<void>}
+ */
 async function populateTypeDiplomeApprentissageFilter() {
     const diplomes = await window.databaseService.getAllDiplomesApprentissage();
     const types = [...new Set(diplomes.map(d => d.typeDiplome).filter(Boolean))].sort();
@@ -216,6 +270,10 @@ function _passesMultiFilter(filterArray, value) {
     return filterArray.includes(value);
 }
 
+/**
+ * Applique les filtres actifs à la vue courante.
+ * @returns {void}
+ */
 function applyFilters() {
     console.log('[Filtres] Application des filtres:', filtersState);
     const view = currentView;
@@ -224,18 +282,25 @@ function applyFilters() {
         case 'diplomes_scolaire':       filterDiplomes(); break;
         case 'diplomes_apprentissage':  filterDiplomesApprentissage(); break;
         case 'dispositifs':             filterDispositifs(); break;
-        case 'options_2nde_gt':         filterOptions(); break;
+        case 'options2ndeGT':           filterOptions(); break;
         case 'specialites_1ereG':       filterSpecialites(); break;
     }
+    // Synchronise filteredData avec les lignes DOM visibles
+    // → garantit que le rang N/Total dans les modales reflète la liste filtrée
+    if (typeof window._syncFilteredData === 'function') window._syncFilteredData();
     updateResultsCount();
 }
 
+/**
+ * Filtre les lignes de la vue Établissements (texte, type, commune, statut).
+ * @returns {void}
+ */
 function filterEtablissements() {
-    const rows = document.querySelectorAll('#results-body tr[data-uai]');
+    const rows = document.querySelectorAll('#results-body tr[data-id]');
     let visibleCount = 0;
 
     rows.forEach(row => {
-        const nom    = row.querySelector('td:nth-child(1)')?.textContent.toLowerCase() || '';
+        const nom    = _normRecherche(row.querySelector('td:nth-child(1)')?.textContent) || '';
         const type   = row.dataset.type    || '';
         const commune= row.dataset.commune || '';
         const statut = row.dataset.statut  || '';
@@ -253,12 +318,16 @@ function filterEtablissements() {
     console.log(`[Filtres] ${visibleCount} établissements visibles`);
 }
 
+/**
+ * Filtre les lignes de la vue Diplômes scolaires (texte, niveau, type, catégorie).
+ * @returns {void}
+ */
 function filterDiplomes() {
     const rows = document.querySelectorAll('#results-body tr[data-libelle]');
     let visibleCount = 0;
 
     rows.forEach(row => {
-        const libelle  = row.querySelector('td:nth-child(1)')?.textContent.toLowerCase() || '';
+        const libelle  = _normRecherche(row.querySelector('td:nth-child(1)')?.textContent) || '';
         const niveau   = row.dataset.niveau   || '';
         const type     = row.dataset.type     || '';
         const categorie= row.dataset.categorie|| '';
@@ -276,12 +345,16 @@ function filterDiplomes() {
     console.log(`[Filtres] ${visibleCount} diplômes visibles`);
 }
 
+/**
+ * Filtre les lignes de la vue Diplômes apprentissage (texte, niveau, type).
+ * @returns {void}
+ */
 function filterDiplomesApprentissage() {
     const rows = document.querySelectorAll('#results-body tr[data-id]');
     let visibleCount = 0;
 
     rows.forEach(row => {
-        const libelle = row.querySelector('td:nth-child(1)')?.textContent.toLowerCase() || '';
+        const libelle = _normRecherche(row.querySelector('td:nth-child(1)')?.textContent) || '';
         const niveau  = row.dataset.niveau || '';
         const type    = row.dataset.type   || '';
 
@@ -297,12 +370,16 @@ function filterDiplomesApprentissage() {
     console.log(`[Filtres] ${visibleCount} diplômes apprentissage visibles`);
 }
 
+/**
+ * Filtre les lignes de la vue Dispositifs par texte.
+ * @returns {void}
+ */
 function filterDispositifs() {
     const rows = document.querySelectorAll('#results-body tr[data-libelle]');
     let visibleCount = 0;
 
     rows.forEach(row => {
-        const libelle  = row.querySelector('td:nth-child(1)')?.textContent.toLowerCase() || '';
+        const libelle  = _normRecherche(row.querySelector('td:nth-child(1)')?.textContent) || '';
         const categorie= row.dataset.type || '';
 
         const visible =
@@ -316,12 +393,16 @@ function filterDispositifs() {
     console.log(`[Filtres] ${visibleCount} dispositifs visibles`);
 }
 
+/**
+ * Filtre les lignes de la vue Options 2nde GT par texte.
+ * @returns {void}
+ */
 function filterOptions() {
     const rows = document.querySelectorAll('#results-body tr[data-libelle]');
     let visibleCount = 0;
 
     rows.forEach(row => {
-        const libelle = row.querySelector('td:nth-child(1)')?.textContent.toLowerCase() || '';
+        const libelle = _normRecherche(row.querySelector('td:nth-child(1)')?.textContent) || '';
         const visible = !filtersState.search || libelle.includes(filtersState.search);
         row.style.display = visible ? '' : 'none';
         if (visible) visibleCount++;
@@ -330,12 +411,16 @@ function filterOptions() {
     console.log(`[Filtres] ${visibleCount} options visibles`);
 }
 
+/**
+ * Filtre les lignes de la vue Spécialités 1ère G par texte.
+ * @returns {void}
+ */
 function filterSpecialites() {
     const rows = document.querySelectorAll('#results-body tr[data-libelle]');
     let visibleCount = 0;
 
     rows.forEach(row => {
-        const libelle = row.querySelector('td:nth-child(1)')?.textContent.toLowerCase() || '';
+        const libelle = _normRecherche(row.querySelector('td:nth-child(1)')?.textContent) || '';
         const visible = !filtersState.search || libelle.includes(filtersState.search);
         row.style.display = visible ? '' : 'none';
         if (visible) visibleCount++;
@@ -349,7 +434,7 @@ function filterSpecialites() {
  */
 function updateResultsCount() {
     const visibleRows = document.querySelectorAll('#results-body tr:not([style*="display: none"])');
-    const totalRows   = document.querySelectorAll('#results-body tr[data-uai], #results-body tr[data-libelle]');
+    const totalRows   = document.querySelectorAll('#results-body tr[data-id], #results-body tr[data-libelle]');
 
     const countElement = document.getElementById('results-count');
     if (countElement) {

@@ -6,6 +6,33 @@
  * Version : 2.0
  ************************************************/
 
+// ── Couche d'abstraction préférences (v0.45) ──────────────────────────────────
+// Délègue à db_service si disponible, sinon localStorage (fallback v0.44).
+
+/**
+ * Lit une préférence via db_service si disponible, sinon localStorage.
+ * @param {string} cle - Clé de préférence
+ * @returns {string|null}
+ */
+function _prefLireRecherche(cle) {
+    if (window.databaseService && window.databaseService.lirePreference) {
+        return window.databaseService.lirePreference(cle);
+    }
+    return localStorage.getItem(cle);
+}
+
+/**
+ * Sauvegarde une préférence via db_service + localStorage (double écriture pour compatibilité).
+ * @param {string} cle - Clé de préférence
+ * @param {string} val - Valeur à stocker
+ */
+function _prefSauverRecherche(cle, val) {
+    if (window.databaseService && window.databaseService.sauvegarderPreference) {
+        window.databaseService.sauvegarderPreference(cle, val);
+    }
+    localStorage.setItem(cle, val);
+}
+
 // =====================================
 // VARIABLES D'ÉTAT
 // =====================================
@@ -52,10 +79,9 @@ let itemsGeoDisplay = null;
  */
 async function initSearchTab() {
     console.log('[Recherche] Initialisation de l\'onglet');
-    
-    // Plus besoin de créer extractionModal ici - le controller gère sa propre ProgressModal
-    
-    document.getElementById('tab-mode-geo').click();
+    // Pas de .click() ici : le radio tab-mode-geo est déjà checked dans le HTML.
+    // Un .click() programmatique sur un radio déjà sélectionné peut provoquer
+    // des effets de bord (changement de mode, déclenchement d'onchange) selon le navigateur.
 }
 
 // =====================================
@@ -373,9 +399,9 @@ async function lancerExtractionGeo() {
     }
     
     // Sauvegarder les critères
-    localStorage.setItem('geo_criteria_type', geoType);
-    localStorage.setItem('geo_criteria_value', geoValue);
-    localStorage.setItem('geo_criteria_display', geoDisplay);
+    _prefSauverRecherche('geo_criteria_type', geoType);
+    _prefSauverRecherche('geo_criteria_value', geoValue);
+    _prefSauverRecherche('geo_criteria_display', geoDisplay);
     
     console.log(`[Recherche] Extraction : ${geoType} = ${geoValue}`);
     
@@ -453,12 +479,9 @@ async function lancerExtractionGeo() {
         }
 
         // ── Succès ────────────────────────────────────────────────────────
-        localStorage.setItem('last_extraction_date', new Date().toISOString());
+        _prefSauverRecherche('last_extraction_date', new Date().toISOString());
         if (typeof loadStats === 'function') loadStats();
         if (typeof loadView === 'function') loadView();
-        if (typeof switchToResults === 'function') {
-            setTimeout(() => switchToResults(), 10000);
-        }
 
         const voiesLabel = voies.join(' + ');
         showAlert(
@@ -637,15 +660,31 @@ async function lancerExtractionItems(type) {
         // Appeler le bon CONTROLLER - il gère toute la modale
         let result = null;
         if (type === 'diplomes') {
-            // Les voies sont déduites des diplômes cochés (pas d'un sélecteur manuel) :
-            // si au moins un diplôme sélectionné a des étab scolaires → on extrait la voie scolaire
-            // si au moins un diplôme sélectionné a des étab apprentissage → on extrait l'apprentissage
+            // Déduire quelles voies extraire ET quels diplômes concernent chaque voie.
+            // availableItems contient nbEtablissements (scolaire) et nbEtablissementsApprentissage
+            // pour chaque diplôme — on filtre pour n'envoyer à chaque source que les diplômes pertinents.
             const voies = getVoiesDiplomesSelectionnes(selectedItems);
 
-            // ── VOIE SCOLAIRE (ONISEP) ────────────────────────────────────
-            if (voies.includes('scolaire')) {
+            // Partitionner les libellés sélectionnés selon la voie
+            const libbellesScolaires       = selectedItems.filter(lib => {
+                const item = availableItems.find(i => i.libelle === lib);
+                return !item || (item.nbEtablissements || 0) > 0;
+                // Inclure aussi les diplômes sans données (fallback : ONISEP tentera quand même)
+            });
+            const libbelllesApprentissage  = selectedItems.filter(lib => {
+                const item = availableItems.find(i => i.libelle === lib);
+                return !item || (item.nbEtablissementsApprentissage || 0) > 0;
+            });
+
+            console.log(`[lancerExtractionItems] 📊 Partition voies :`,
+                `scolaire: ${libbellesScolaires.length}/${selectedItems.length}`,
+                `apprentissage: ${libbelllesApprentissage.length}/${selectedItems.length}`
+            );
+
+            // ── VOIE SCOLAIRE (ONISEP) — uniquement les diplômes scolaires ────
+            if (voies.includes('scolaire') && libbellesScolaires.length > 0) {
                 result = await window.onisepExtractionController.extractByDiplomes({
-                    libelles: selectedItems,
+                    libelles: libbellesScolaires,  // ✅ filtrés voie scolaire
                     type: itemsGeoType,
                     value: itemsGeoValue,
                     displayInfo: { nom: itemsGeoValue },
@@ -658,13 +697,15 @@ async function lancerExtractionItems(type) {
                 }
             }
 
-            // ── VOIE APPRENTISSAGE (CARIF-OREF) ──────────────────────────
-            if (voies.includes('apprentissage') && window.carifOrefExtractionController) {
+            // ── VOIE APPRENTISSAGE (CARIF-OREF) — uniquement les diplômes apprentissage ──
+            if (voies.includes('apprentissage') && window.carifOrefExtractionController && libbelllesApprentissage.length > 0) {
                 // Les UAI sont déjà connus depuis l'étape 1 (stockés dans tabContexteItems)
                 const uaisParLibelle = window.tabContexteItems?.uaisCarifParLibelle || {};
                 const carifResult = await window.carifOrefExtractionController.extractByDiplomesLibelles(
-                    selectedItems,
-                    uaisParLibelle
+                    libbelllesApprentissage,  // ✅ filtrés voie apprentissage
+                    uaisParLibelle,
+                    // Contexte géographique pour filtrage post-récupération des établissements hors périmètre
+                    itemsGeoType === 'departement' ? { type: 'departement', value: itemsGeoValue } : null
                 );
                 if (carifResult && !carifResult.success) {
                     if (btnStop) btnStop.classList.add('u-hidden');
@@ -705,14 +746,11 @@ async function lancerExtractionItems(type) {
         };
 
         // Sauvegarder la date
-        localStorage.setItem('last_extraction_date', new Date().toISOString());
+        _prefSauverRecherche('last_extraction_date', new Date().toISOString());
         
-        // Recharger les stats et basculer vers résultats
+        // Recharger les stats
         if (typeof loadStats === 'function') loadStats();
         if (typeof loadView === 'function') loadView();
-        if (typeof switchToResults === 'function') {
-            setTimeout(() => switchToResults(), 10000);
-        }
         
         // Message succès
         showAlert(`✅ ${data.etablissements.length} établissements et ${data.diplomes_par_etablissement.length} diplômes (dont ${data.diplomes.length} uniques) !`, 'success');
@@ -753,6 +791,9 @@ function resetItemsSearch(type) {
     updateItemsGeoFields(type);
 }
 
+// Verrou anti-doublon : empêche un 2ème appel pendant qu'une extraction est en cours
+let _chargerItemsEnCours = false;
+
 /**
  * Charge les items disponibles dans la zone sélectionnée
  * ⚠️ Noms de facettes de 'actions_lycee' :
@@ -769,6 +810,15 @@ async function chargerItemsDisponibles(type) {
         console.warn('[chargerItemsDisponibles] Type d\'items inconnu : ', type);
         return;
     }
+
+    // Verrou anti-doublon : si une extraction est déjà en cours, ignorer
+    if (_chargerItemsEnCours) {
+        console.warn('[chargerItemsDisponibles] ⚠️ Extraction déjà en cours, appel ignoré.');
+        showAlert('⚠️ Un chargement est déjà en cours, veuillez patienter.', 'warning');
+        return;
+    }
+    _chargerItemsEnCours = true;
+
     console.log('[chargerItemsDisponibles] Chargement des items disponibles pour : ', type);
 
     // Récupérer le périmètre géographique choisi
@@ -785,9 +835,8 @@ async function chargerItemsDisponibles(type) {
         return;
     }
 
-    const btn = document.getElementById(`tab-btn-charger-options`);
-    btn.disabled = true;
-    btn.textContent = '⏳ Chargement...';
+    const btn = document.getElementById(`tab-btn-charger-${type}`);
+    if (btn) { btn.disabled = true; btn.textContent = '⏳ Chargement...'; }
 
     try {
         // Construire la facette avec les noms propres à chaque dataset
@@ -899,8 +948,14 @@ async function chargerItemsDisponibles(type) {
         console.error('[chargerItemsDisponibles] Erreur chargement items:', error);
         showAlert(`❌ Erreur: ${error.message}`, 'error');
     } finally {
-        btn.disabled = false;
-        btn.textContent = '➡️ Charger les items disponibles';
+        // Libérer le verrou anti-doublon dans tous les cas
+        _chargerItemsEnCours = false;
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = type === 'diplomes'
+                ? '➡️ Charger les diplômes disponibles'
+                : '➡️ Charger les options disponibles';
+        }
     }
 }
 

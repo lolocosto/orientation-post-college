@@ -16,12 +16,14 @@ let currentTab = 'resultats';
 // =====================================
 
 /**
- * Change d'onglet principal
+ * Change d'onglet principal.
  * @param {'recherche'|'resultats'|'carte'} tabName - Nom de l'onglet
+ * @param {boolean} [skipInit=false] - Si true, bascule visuelle uniquement sans rappeler initResultsTab.
+ *   Utilisé au démarrage quand _onDbReady a déjà rendu les données.
  * @returns {void}
  */
-function switchTab(tabName) {
-    console.log(`[Onglets] Basculement vers onglet: ${tabName}`);
+function switchTab(tabName, skipInit = false) {
+    console.log(`[Onglets] Basculement vers onglet: ${tabName}${skipInit ? ' (skipInit)' : ''}`);
     
     currentTab = tabName;
     
@@ -41,40 +43,29 @@ function switchTab(tabName) {
         btn.classList.add('tabs__item--active');
         content.classList.remove('tabs__panel--hidden');
         
-        // Actions spécifiques par onglet
-        switch (tabName) {
-            case 'recherche':
-                // Initialiser la recherche géographique
-                if (typeof window.initResultsTab === 'function') {
-                    window.initSearchTab();
-                }
-                break;
-            
-            case 'resultats':
-                // Recharger les statistiques et la vue
-                if (typeof window.initResultsTab === 'function') {
-                    window.initResultsTab();
-                }
-                break;
-            
-            case 'carte':
-                // Initialiser ou rafraîchir la carte
-                if (typeof window.initMap === 'function') {
-                    window.initMap();
-                }
-                else {
-                    console.error('[Onglets] ❌ Fonction initMap() non trouvée!');
-                    console.error('[Onglets]    Vérifier que gestion_onglet_carte.js est bien chargé');
-                }
-
-                if (typeof window.refreshMap === 'function') {
-                    window.refreshMap();
-                }
-                else {
-                    console.error('[Onglets] ❌ Fonction refreshMap() non trouvée!');
-                    console.error('[Onglets]    Vérifier que gestion_onglet_carte.js est bien chargé');
-                }
-                break;
+        // Actions spécifiques par onglet (sauf si skipInit demandé)
+        if (!skipInit) {
+            switch (tabName) {
+                case 'recherche':
+                    if (typeof window.initSearchTab === 'function') {
+                        window.initSearchTab();
+                    }
+                    break;
+                
+                case 'resultats':
+                    if (typeof window.initResultsTab === 'function') {
+                        window.initResultsTab();
+                    }
+                    break;
+                
+                case 'carte':
+                    if (typeof window.initMap === 'function') {
+                        window.initMap();
+                    } else {
+                        console.error('[Onglets] ❌ Fonction initMap() non trouvée !');
+                    }
+                    break;
+            }
         }
 
     } else {

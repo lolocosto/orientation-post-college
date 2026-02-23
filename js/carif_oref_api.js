@@ -320,7 +320,14 @@ class CARIFOREFApi {
     // UTILITAIRES PRIVÉS
     // =====================================
 
-    #deduplicateById(items, key) {
+        /**
+         * Dédoublonne une liste d'objets selon une clé.
+         * @private
+         * @param {Object[]} items - Tableau d'objets
+         * @param {string} key - Nom du champ clé d'unicité
+         * @returns {Object[]} Tableau dédoublonné
+         */
+#deduplicateById(items, key) {
         const map = new Map();
         for (const item of items) {
             const k = item[key] || item._id || JSON.stringify(item);

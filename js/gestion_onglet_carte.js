@@ -3,9 +3,9 @@
  * Description : Gestion de la carte Leaflet et des marqueurs
  * Auteur : Laurent COSTE
  * Date : 2026-02-01
- ************************************************/
+ **********************************************/
 
-/** Variables globales **/
+/** Variables globales */
 let map = null;
 let markersLayer = null;
 let userMarker = null;
@@ -125,7 +125,13 @@ function initMap() {
     console.log('[Carte] ═══════════════════════════════════════════════════════');
 }
 
-/** Crée une icône HTML personnalisée pour Leaflet **/
+/**
+ * Crée une icône Leaflet personnalisée avec emoji pour un marqueur.
+ * @param {string} emoji - Emoji affiché dans l'icône
+ * @param {boolean} [isUser=false] - true pour l'établissement de l'utilisateur
+ * @param {'scolaire'|'apprentissage'|'mixte'} [voie='scolaire'] - Voie d'enseignement
+ * @returns {L.DivIcon} Icône Leaflet
+ */
 function createCustomIcon(emoji, isUser = false, voie = 'scolaire') {
     let voieClass = '';
     if (!isUser) {
@@ -142,7 +148,11 @@ function createCustomIcon(emoji, isUser = false, voie = 'scolaire') {
     });
 }
 
-/** Crée le contenu HTML de la popup **/
+/**
+ * Construit le contenu HTML de la popup Leaflet pour un établissement.
+ * @param {Object} lycee - Objet établissement enrichi
+ * @returns {string} HTML de la popup
+ */
 function createPopupContent(lycee) {
     // Compter les diplômes via la base (scolaire + apprentissage)
     let diplomesCount = 0;
@@ -194,7 +204,11 @@ function createPopupContent(lycee) {
     `;
 }
 
-/** Icône selon type établissement **/
+/**
+ * Retourne l'emoji correspondant au type d'établissement.
+ * @param {string} type - Type d'établissement (ex : 'Lycée général')
+ * @returns {string} Emoji
+ */
 function getEtablissementIcon(type) {
     if (!type) return '🏫';
     const typeLower = type.toLowerCase();
@@ -205,7 +219,11 @@ function getEtablissementIcon(type) {
     return '🏫';
 }
 
-/** Charge les établissements sur la carte **/
+/**
+ * Charge et affiche les marqueurs de tous les établissements sur la carte.
+ * Filtre les établissements selon l'état courant des filtres.
+ * @returns {Promise<void>}
+ */
 async function loadMapMarkers() {
     if (!map) {
         console.warn('⚠️ Carte non initialisée');
@@ -280,7 +298,11 @@ async function loadMapMarkers() {
     console.log(`✅ ${visibleCount} marqueurs affichés`);
 }
 
-/** Charge le marqueur de l'établissement utilisateur **/
+/**
+ * Charge et affiche le marqueur de l'établissement de l'utilisateur.
+ * Lit les coordonnées GPS via db_service (fallback localStorage).
+ * @returns {void}
+ */
 function loadUserMarker() {
     console.log('🔍 loadUserMarker appelée');
     
@@ -290,12 +312,17 @@ function loadUserMarker() {
         userMarker = null;
     }
     
-    // Récupérer établissement utilisateur depuis préférences
-    const stored = localStorage.getItem('pref_user_etablissement');
-    console.log('📦 localStorage pref_user_etablissement:', stored);
+    // Lire via db_service si disponible, sinon localStorage
+    const _lirePref = (cle) => {
+        if (window.databaseService?.lirePreference) return window.databaseService.lirePreference(cle);
+        return localStorage.getItem(cle);
+    };
+
+    const stored = _lirePref('pref_user_etablissement');
+    console.log('📦 pref_user_etablissement:', stored);
     
     if (!stored) {
-        console.log('❌ Pas de données établissement dans localStorage');
+        console.log('❌ Pas de données établissement dans les préférences');
         updateMapStats(null, null, '-');
         return;
     }
@@ -382,7 +409,13 @@ function loadUserMarker() {
     console.log(`✅ Marqueur utilisateur finalisé: ${etablissement.nom} (${lat}, ${lon})`);
 }
 
-/** Met à jour les statistiques de la carte **/
+/**
+ * Met à jour les statistiques affichées dans la barre d'info de la carte.
+ * @param {number} total - Nombre total d'établissements
+ * @param {number} visible - Nombre d'établissements visibles
+ * @param {string} userStatus - Statut de l'établissement utilisateur
+ * @returns {void}
+ */
 function updateMapStats(total, visible, userStatus) {
     if (total !== null && total !== undefined) {
         document.getElementById('map-stat-total').textContent = total;
@@ -395,7 +428,10 @@ function updateMapStats(total, visible, userStatus) {
     }
 }
 
-/** Recentre la carte sur l'établissement utilisateur **/
+/**
+ * Centre la carte sur l'établissement de l'utilisateur si ses coordonnées sont connues.
+ * @returns {void}
+ */
 function centerOnUserEstablishment() {
     if (!userMarker) {
         showAlert('⚠️ Aucun établissement utilisateur défini', 'warning');
@@ -407,7 +443,11 @@ function centerOnUserEstablishment() {
     userMarker.openPopup();
 }
 
-/** Recharge la carte (appelé quand on change d'onglet) **/
+/**
+ * Recharge la carte : invalide la taille Leaflet et recharge les marqueurs.
+ * À appeler lors d'un changement d'onglet ou de redimensionnement.
+ * @returns {void}
+ */
 function refreshMap() {
     if (!map) {
         initMap();
@@ -420,7 +460,11 @@ function refreshMap() {
     }, 100);
 }
 
-/** Affiche les détails d'un établissement depuis la carte **/
+/**
+ * Ouvre la modale de détails d'un établissement depuis la carte.
+ * @param {string} id - _id interne de l'établissement
+ * @returns {void}
+ */
 function showLyceeDetailsCarte(id) {
     console.log('[Carte] Affichage détails établissement:', id);
     
@@ -429,4 +473,13 @@ function showLyceeDetailsCarte(id) {
     } else {
         console.error('[Carte] Fonction showEtablissementDetails non disponible');
     }
+}
+
+// ══════════════════════════════════════════════════════════
+// EXPOSITION GLOBALE
+// ══════════════════════════════════════════════════════════
+if (typeof window !== 'undefined') {
+    window.initMap             = initMap;
+    window.loadMarkers         = loadMapMarkers; // pour rafraîchissement après db:ready
+    window.showLyceeDetailsCarte = showLyceeDetailsCarte;
 }

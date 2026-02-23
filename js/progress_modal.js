@@ -16,29 +16,32 @@ class ProgressModal {
     #details = null;
     #modalId = null;
     #onCloseCallback = null;
-    #autoSwitchToResults = true;  // Bascule auto vers Résultats par défaut
+    #autoSwitchToResults = false;  // Bascule auto supprimée (v0.47) — l'utilisateur ferme manuellement
     #successHideCalled = false;   // Protection contre double appel hideWithSuccess
-    
+    #title = 'Extraction en cours'; // Titre affiché dans l'en-tête de la modale
+
     /**
      * Constructeur - Crée la modale dynamiquement
-     * @param {string} modalId - ID unique pour la modale (défaut: 'extraction-progress-modal-' + timestamp)
-     * @param {Function} onClose - Callback appelé à la fermeture (optionnel)
-     * @param {boolean} autoSwitchToResults - Bascule auto vers Résultats en cas de succès (défaut: true)
+     * @param {string|null} modalId            - ID unique (auto-généré si null)
+     * @param {Function|null} onClose          - Callback à la fermeture (optionnel)
+     * @param {boolean} autoSwitchToResults    - Ignoré depuis v0.47 (bascule auto supprimée)
+     * @param {string} title                   - Titre affiché dans l'en-tête (défaut: "Extraction en cours")
      */
-    constructor(modalId = null, onClose = null, autoSwitchToResults = true) {
+    constructor(modalId = null, onClose = null, autoSwitchToResults = false, title = 'Extraction en cours') {
         // Générer ID unique si non fourni
         this.#modalId = modalId || `extraction-progress-modal-${Date.now()}`;
         this.#onCloseCallback = onClose;
         this.#autoSwitchToResults = autoSwitchToResults;
-        
+        this.#title = title;
+
         // Créer la modale dynamiquement
         this.#createElement();
-        
+
         // Récupérer les éléments créés
         this.#fill = this.#modal.querySelector('.progress-fill');
         this.#message = this.#modal.querySelector('.progress-message');
         this.#details = this.#modal.querySelector('.progress-details');
-        
+
         console.log(`[ProgressModal] Instance créée dynamiquement: ${this.#modalId}`);
     }
     
@@ -52,7 +55,7 @@ class ProgressModal {
                 <div class="modal__dialog">
                     <div class="modal__content">
                         <div class="modal__header">
-                            <h2 class="modal__title">Extraction en cours</h2>
+                            <h2 class="modal__title">${this.#title}</h2>
                             <button class="modal__close">&times;</button>
                         </div>
                         <div class="modal__body">
@@ -263,29 +266,17 @@ class ProgressModal {
             this.#modal.dataset.success = 'true';
         }
         
-        // Si autoSwitch = true : fermer ET basculer
-        if (this.#autoSwitchToResults) {
-            console.log(`[ProgressModal] ✅ Fermeture auto + bascule dans ${delay + 500}ms`);
-            
-            // Fermer la modale
-            this.hide(delay);
-            
-            // Basculer vers résultats
-            setTimeout(() => {
-                console.log(`[ProgressModal] 🔄 BASCULE AUTOMATIQUE vers résultats (modalId: ${this.#modalId})`);
-                if (typeof switchTab === 'function') {
-                    switchTab('resultats');
-                }
-            }, delay + 500);
-        } else {
-            // Si autoSwitch = false : NE PAS fermer, laisser l'utilisateur lire
-            console.log('[ProgressModal] 📌 Modale reste ouverte (autoSwitchToResults = false)');
-            console.log('[ProgressModal] 👉 Utilisateur peut fermer manuellement pour voir les résultats');
-            
-            // Changer le message final pour indiquer comment fermer
-            if (this.#message) {
-                this.#message.textContent = '✅ Extraction terminée ! Fermez cette fenêtre pour voir les résultats.';
-            }
+        // Depuis v0.47 : toujours laisser la modale ouverte après succès.
+        // L'utilisateur ferme manuellement et consulte les résultats quand il le souhaite.
+        console.log('[ProgressModal] ✅ Extraction terminée — modale reste ouverte pour lecture.');
+
+        // Mettre à jour le titre et le message final
+        const titleEl = this.#modal?.querySelector('.modal__title');
+        if (titleEl) {
+            titleEl.textContent = '✅ Extraction terminée';
+        }
+        if (this.#message) {
+            this.#message.textContent = 'Fermez cette fenêtre pour consulter les résultats.';
         }
     }
     

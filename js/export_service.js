@@ -9,7 +9,13 @@ class ExportService {
     // EXPORT CSV
     // =========================================================================
 
-    static exportToCSV(viewName, data) {
+        /**
+         * Exporte les données de la vue active vers un fichier CSV téléchargeable.
+         * @param {string} viewName - Nom de la vue active ('etablissements', 'diplomes', etc.)
+         * @param {Object[]} data - Données à exporter
+         * @returns {void}
+         */
+static exportToCSV(viewName, data) {
         if (!data || data.length === 0) { showAlert('Aucune donnée à exporter', 'warning'); return; }
 
         let csv = '', filename = '';
@@ -24,7 +30,13 @@ class ExportService {
         this.#downloadFile(blob, filename);
     }
 
-    static #generateEtablissementsCSV(data) {
+        /**
+         * Génère le contenu CSV pour la vue Établissements.
+         * @private
+         * @param {Object[]} data - Tableau des établissements
+         * @returns {string} Contenu CSV (UTF-8 BOM inclus)
+         */
+static #generateEtablissementsCSV(data) {
         const headers = ['Nom', 'UAI', 'Type', 'Statut', 'Commune', 'Code Postal', 'Département', 'Académie'];
         let csv = headers.join(';') + '\n';
         data.forEach(etab => {
@@ -42,7 +54,13 @@ class ExportService {
         return csv;
     }
 
-    static #generateDiplomesCSV(data) {
+        /**
+         * Génère le contenu CSV pour la vue Diplômes.
+         * @private
+         * @param {Object[]} data
+         * @returns {string} Contenu CSV
+         */
+static #generateDiplomesCSV(data) {
         const headers = ['Libellé', 'Type', 'Niveau', 'Nb Établissements'];
         let csv = headers.join(';') + '\n';
         data.forEach(diplome => {
@@ -56,7 +74,13 @@ class ExportService {
         return csv;
     }
 
-    static #generateDispositifsCSV(data) {
+        /**
+         * Génère le contenu CSV pour la vue Dispositifs.
+         * @private
+         * @param {Object[]} data
+         * @returns {string} Contenu CSV
+         */
+static #generateDispositifsCSV(data) {
         const headers = ['Libellé', 'Type', 'Nb Établissements'];
         let csv = headers.join(';') + '\n';
         data.forEach(dispositif => {
@@ -69,7 +93,14 @@ class ExportService {
         return csv;
     }
 
-    static #escapeCSV(value) {
+        /**
+         * Échappe une valeur pour l'inclusion dans une cellule CSV.
+         * Encadre de guillemets si la valeur contient une virgule, un guillemet ou un saut de ligne.
+         * @private
+         * @param {*} value - Valeur à échapper
+         * @returns {string}
+         */
+static #escapeCSV(value) {
         const str = String(value ?? '');
         if (str.includes(';') || str.includes('"') || str.includes('\n')) {
             return '"' + str.replace(/"/g, '""') + '"';
@@ -81,7 +112,14 @@ class ExportService {
     // EXPORT PDF
     // =========================================================================
 
-    static async exportToPDF(viewName, data) {
+        /**
+         * Exporte les données de la vue active vers un fichier PDF téléchargeable.
+         * Utilise jsPDF. Génère une page de titre, une table des matières et des fiches enrichies.
+         * @param {string} viewName - Nom de la vue active
+         * @param {Object[]} data - Données à exporter
+         * @returns {Promise<void>}
+         */
+static async exportToPDF(viewName, data) {
         if (!data || data.length === 0) { showAlert('Aucune donnée à exporter', 'warning'); return; }
         if (typeof window.jspdf === 'undefined') { showAlert('Bibliothèque PDF non chargée. Rechargez la page.', 'error'); return; }
 
@@ -127,7 +165,16 @@ class ExportService {
     // PAGE DE TITRE
     // =========================================================================
 
-    static #drawTitlePage(doc, mainTitle, subTitle, dateStr, count) {
+        /**
+         * Dessine la page de titre du PDF.
+         * @private
+         * @param {jsPDF} doc
+         * @param {string} mainTitle
+         * @param {string} subTitle
+         * @param {string} dateStr
+         * @param {number} count - Nombre d'enregistrements
+         */
+static #drawTitlePage(doc, mainTitle, subTitle, dateStr, count) {
         const W = doc.internal.pageSize.getWidth();
         const H = doc.internal.pageSize.getHeight();
 
@@ -162,7 +209,15 @@ class ExportService {
     // SOMMAIRE
     // =========================================================================
 
-    static #drawTOC(doc, entries, title, dateStr) {
+        /**
+         * Dessine la table des matières du PDF.
+         * @private
+         * @param {jsPDF} doc
+         * @param {Array<{label:string, page:number}>} entries - Entrées de la TDM
+         * @param {string} title
+         * @param {string} dateStr
+         */
+static #drawTOC(doc, entries, title, dateStr) {
         const W = doc.internal.pageSize.getWidth();
         let y = 20;
 
@@ -224,7 +279,14 @@ class ExportService {
     // PIED DE PAGE
     // =========================================================================
 
-    static #drawFooter(doc, pageNum, dateStr) {
+        /**
+         * Dessine le pied de page d'une page PDF.
+         * @private
+         * @param {jsPDF} doc
+         * @param {number} pageNum - Numéro de la page
+         * @param {string} dateStr
+         */
+static #drawFooter(doc, pageNum, dateStr) {
         const W = doc.internal.pageSize.getWidth();
         const H = doc.internal.pageSize.getHeight();
 
@@ -241,7 +303,14 @@ class ExportService {
         doc.setTextColor(0, 0, 0);
     }
 
-    static #addPageWithFooter(doc, dateStr) {
+        /**
+         * Ajoute une nouvelle page PDF avec pied de page.
+         * @private
+         * @param {jsPDF} doc
+         * @param {string} dateStr
+         * @returns {number} Ordinate Y de départ (marge haute)
+         */
+static #addPageWithFooter(doc, dateStr) {
         doc.addPage();
         const pageNum = doc.internal.getNumberOfPages();
         // Le footer sera ajouté en fin de traitement pour avoir le bon numéro
@@ -264,7 +333,13 @@ class ExportService {
     // SANITISATION (supprime les emojis et caractères non-Latin1)
     // =========================================================================
 
-    static #sanitize(str) {
+        /**
+         * Remplace les caractères non-Latin1 pour compatibilité jsPDF (sans plugin UTF-8).
+         * @private
+         * @param {string} str
+         * @returns {string}
+         */
+static #sanitize(str) {
         if (!str) return '';
         // Supprimer les emojis et caractères hors BMP (> U+FFFF)
         return str
@@ -278,7 +353,15 @@ class ExportService {
     // HELPERS D'ÉCRITURE PDF
     // =========================================================================
 
-    static #sectionTitle(doc, text, y) {
+        /**
+         * Dessine un titre de section dans le PDF.
+         * @private
+         * @param {jsPDF} doc
+         * @param {string} text
+         * @param {number} y - Position verticale
+         * @returns {number} Nouvelle position Y
+         */
+static #sectionTitle(doc, text, y) {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(11);
         doc.setTextColor(46, 80, 144);
@@ -289,13 +372,33 @@ class ExportService {
         return y + 5;
     }
 
-    static #bulletLine(doc, text, y, indent = 18, maxW = 170) {
+        /**
+         * Dessine une ligne de puce dans le PDF, avec retour à la ligne automatique.
+         * @private
+         * @param {jsPDF} doc
+         * @param {string} text
+         * @param {number} y
+         * @param {number} [indent=18]
+         * @param {number} [maxW=170]
+         * @returns {number} Nouvelle position Y
+         */
+static #bulletLine(doc, text, y, indent = 18, maxW = 170) {
         const lines = doc.splitTextToSize('- ' + this.#sanitize(text), maxW);
         doc.text(lines, indent, y);
         return y + 4 * lines.length;
     }
 
-    static #subLine(doc, label, value, y, indent = 22) {
+        /**
+         * Dessine une ligne 'label : valeur' dans le PDF.
+         * @private
+         * @param {jsPDF} doc
+         * @param {string} label
+         * @param {string} value
+         * @param {number} y
+         * @param {number} [indent=22]
+         * @returns {number} Nouvelle position Y
+         */
+static #subLine(doc, label, value, y, indent = 22) {
         if (!value) return y;
         const lines = doc.splitTextToSize(`${label}: ${this.#sanitize(value)}`, 165);
         doc.setFontSize(9);
@@ -306,7 +409,16 @@ class ExportService {
         return y + 3.5 * lines.length;
     }
 
-    static #checkPage(doc, y, dateStr, threshold = 270) {
+        /**
+         * Ajoute une nouvelle page si la position Y dépasse le seuil.
+         * @private
+         * @param {jsPDF} doc
+         * @param {number} y - Position verticale courante
+         * @param {string} dateStr
+         * @param {number} [threshold=270] - Seuil en mm
+         * @returns {number} Nouvelle position Y
+         */
+static #checkPage(doc, y, dateStr, threshold = 270) {
         if (y > threshold) {
             doc.addPage();
             return 20;
@@ -315,7 +427,13 @@ class ExportService {
     }
 
     // Formate l'adresse avec CEDEX
-    static #formatAdresse(etab) {
+        /**
+         * Formate l'adresse complète d'un établissement en une ligne.
+         * @private
+         * @param {Object} etab - Objet établissement
+         * @returns {string}
+         */
+static #formatAdresse(etab) {
         if (!etab.adresse) return '';
         let adr = etab.adresse;
         if (etab.codePostal) adr += ', ' + etab.codePostal;
@@ -328,7 +446,15 @@ class ExportService {
     // ÉTABLISSEMENTS — PDF ENRICHI
     // =========================================================================
 
-    static async #generateEnrichedEtablissementsPDF(doc, data, dateStr) {
+        /**
+         * Génère les pages du PDF pour la vue Établissements (fiche enrichie par établissement).
+         * @private
+         * @param {jsPDF} doc
+         * @param {Object[]} data
+         * @param {string} dateStr
+         * @returns {Promise<Array<{label:string,page:number}>>} Entrées TDM
+         */
+static async #generateEnrichedEtablissementsPDF(doc, data, dateStr) {
         for (let i = 0; i < data.length; i++) {
             const etab = data[i];
             doc.addPage();
@@ -420,7 +546,15 @@ class ExportService {
     // DIPLÔMES — PDF ENRICHI
     // =========================================================================
 
-    static async #generateEnrichedDiplomesPDF(doc, data, dateStr) {
+        /**
+         * Génère les pages du PDF pour la vue Diplômes.
+         * @private
+         * @param {jsPDF} doc
+         * @param {Object[]} data
+         * @param {string} dateStr
+         * @returns {Promise<Array<{label:string,page:number}>>}
+         */
+static async #generateEnrichedDiplomesPDF(doc, data, dateStr) {
         for (let i = 0; i < data.length; i++) {
             const diplome = data[i];
             doc.addPage();
@@ -458,7 +592,15 @@ class ExportService {
     // DISPOSITIFS — PDF ENRICHI
     // =========================================================================
 
-    static async #generateEnrichedDispositifsPDF(doc, data, dateStr) {
+        /**
+         * Génère les pages du PDF pour la vue Dispositifs.
+         * @private
+         * @param {jsPDF} doc
+         * @param {Object[]} data
+         * @param {string} dateStr
+         * @returns {Promise<Array<{label:string,page:number}>>}
+         */
+static async #generateEnrichedDispositifsPDF(doc, data, dateStr) {
         for (let i = 0; i < data.length; i++) {
             const dispositif = data[i];
             doc.addPage();
@@ -498,7 +640,13 @@ class ExportService {
     // UTILITAIRES
     // =========================================================================
 
-    static #downloadFile(blob, filename) {
+        /**
+         * Déclenche le téléchargement d'un Blob dans le navigateur.
+         * @private
+         * @param {Blob} blob
+         * @param {string} filename - Nom du fichier proposé au téléchargement
+         */
+static #downloadFile(blob, filename) {
         const url  = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href     = url;

@@ -105,7 +105,7 @@ class OnisepExtractionController {
      * @returns {Promise<Object>}
      */
     async #runExtraction(extractFn) {
-        this.#currentProgressModal = new ProgressModal(null, null, false);
+        this.#currentProgressModal = new ProgressModal(null, null, false, '🏫 Extraction voie scolaire en cours…');
 
         try {
             this.#currentProgressModal.show();
@@ -128,8 +128,10 @@ class OnisepExtractionController {
 
         } catch (error) {
             console.error('[OnisepExtractionController] ❌ Erreur:', error);
-            this.#currentProgressModal.update('❌ Erreur lors de l\'extraction', 100, 100);
-            this.#addProgressDetail(error.message || 'Erreur inconnue');
+            if (this.#currentProgressModal) {
+                this.#currentProgressModal.update('❌ Erreur lors de l\'extraction', 100, 100);
+                this.#addProgressDetail(error.message || 'Erreur inconnue');
+            }
             throw error;
         } finally {
             this.#currentProgressModal = null;
@@ -430,7 +432,7 @@ class OnisepExtractionController {
         console.log('[ExtractionController] 🚀 Extraction liste diplômes disponibles par zone : ', filters);
         
         // Créer modale AVEC bascule auto (simple liste, pas vraiment une extraction)
-        this.#currentProgressModal = new ProgressModal(null, null, true);
+        this.#currentProgressModal = new ProgressModal(null, null, true, '🔍 Recherche des diplômes disponibles…');
         
         try {
             const allDiplomes = [];
@@ -556,9 +558,12 @@ class OnisepExtractionController {
         } catch (error) {
             console.error('[ExtractionController] ❌ Erreur extraction diplômes:', error);
             
-            // Afficher erreur dans la modale
-            this.#currentProgressModal.update('❌ Erreur lors de la recherche', 100, 100);
-            this.#addProgressDetail(error.message || 'Erreur inconnue');
+            // Afficher erreur dans la modale (si elle existe encore — elle peut avoir été
+            // détruite par un appel concurrent ou un timeout de la ModalStack)
+            if (this.#currentProgressModal) {
+                this.#currentProgressModal.update('❌ Erreur lors de la recherche', 100, 100);
+                this.#addProgressDetail(error.message || 'Erreur inconnue');
+            }
             
             throw error;
         } finally {
@@ -592,7 +597,7 @@ class OnisepExtractionController {
         console.log('[ExtractionController] 🚀 Extraction liste options 2nde GT disponibles par zone :', filters);
 
         // Modale AVEC bascule auto (simple liste de chargement, pas une extraction)
-        this.#currentProgressModal = new ProgressModal(null, null, true);
+        this.#currentProgressModal = new ProgressModal(null, null, true, '🔍 Recherche des options 2nde GT…');
 
         try {
             this.#currentProgressModal.show();
@@ -951,6 +956,10 @@ class OnisepExtractionController {
             await this.#enrichirRelationsAvecEtabId(uaiToId);
             this.#databaseService.flush(); // 💾 1 save après étabs + enrichissement
 
+            // ÉTAPE 3bis : Enrichir les établissements avec ens_hebergement, ens_site_web, ens_accessibilite
+            // Collectés dans enrichissements_etab lors du parsing actionsLycee/actionsSup
+            await this.#enrichirEtablissementsDepuisActions(rawData, uaiToId);
+
             // ÉTAPE 4 : Construire la map des relation dispositifs-etablissements valides,
             // puis les stocker dans la base
             const dispositifsParEtablissementMap = await this.#buildDispositifsParEtablissementMap(rawData, etablissementsUniquesMap);
@@ -1018,6 +1027,59 @@ class OnisepExtractionController {
         }
     }
     
+    /**
+     * Enrichit les établissements stockés avec hebergement, siteWeb, accessibilite
+     * extraits des actions lycée/sup (ens_... fields).
+     * Stratégie : première valeur rencontrée par UAI, ne pas écraser si déjà renseigné.
+     * @param {Object} rawData
+     * @param {Map<string,string>} uaiToId  - UAI → _id interne (construit à l'étape 3)
+     * @private
+     */
+    async #enrichirEtablissementsDepuisActions(rawData, uaiToId) {
+        // Collecter les enrichissements de actionsLycee ET actionsSup
+        const enrichRaw = [
+            ...(rawData.actionsLycee?.enrichissements_etab || []),
+            ...(rawData.actionsSup?.enrichissements_etab   || []),
+            ...(rawData.dispositifs?.enrichissements_etab  || [])
+        ];
+
+        if (enrichRaw.length === 0) return;
+
+        // Dédupliquer par UAI — première valeur rencontrée
+        const byUai = new Map();
+        for (const e of enrichRaw) {
+            if (!byUai.has(e.uai)) byUai.set(e.uai, e);
+            else {
+                // Fusionner sans écraser les champs déjà présents
+                const existing = byUai.get(e.uai);
+                if (!existing.hebergement   && e.hebergement)   existing.hebergement   = e.hebergement;
+                if (!existing.siteWeb       && e.siteWeb)       existing.siteWeb       = e.siteWeb;
+                if (!existing.accessibilite && e.accessibilite) existing.accessibilite = e.accessibilite;
+            }
+        }
+
+        let nbEnrichis = 0;
+        for (const [uai, enrich] of byUai) {
+            const id = uaiToId?.get(uai);
+            if (!id) continue;
+            const existing = await this.#databaseService.getEtablissement(id);
+            if (!existing) continue;
+
+            const updates = {};
+            if (!existing.hebergement   && enrich.hebergement)   updates.hebergement   = enrich.hebergement;
+            if (!existing.siteWeb       && enrich.siteWeb)       updates.siteWeb       = enrich.siteWeb;
+            if (!existing.accessibilite && enrich.accessibilite) updates.accessibilite = enrich.accessibilite;
+
+            if (Object.keys(updates).length > 0) {
+                await this.#databaseService.updateEtablissement(id, updates);
+                nbEnrichis++;
+            }
+        }
+
+        if (nbEnrichis > 0) this.#databaseService.flush();
+        console.log(`[OnisepExtractionController] ✅ ${nbEnrichis} étab(s) enrichis (hébergement/siteWeb/accessibilité)`);
+    }
+
     /**
      * Construit un array des diplômes valides : GARDE uniquement CAP et Bac ou équivalent
      */

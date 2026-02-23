@@ -45,7 +45,11 @@ class CARIFOREFExtractionController {
     // CONSTRUCTEUR
     // =====================================
 
-    constructor() {
+        /**
+         * Crée une instance du contrôleur d'extraction CARIF-OREF.
+         * Nécessite init() pour connecter le DatabaseService.
+         */
+constructor() {
         console.log('[CARIFOREFExtractionController] 🏗️ Initialisation...');
         this.#carifOrefApi = new CARIFOREFApi();
         this.#databaseService = null;
@@ -57,12 +61,21 @@ class CARIFOREFExtractionController {
     // INITIALISATION
     // =====================================
 
-    init() {
+        /**
+         * Connecte le DatabaseService partagé (window.databaseService).
+         * @returns {void}
+         */
+init() {
         this.#databaseService = window.databaseService;
         console.log('[CARIFOREFExtractionController] 🔗 DatabaseService connecté');
     }
 
-    setGeoController(geoController) {
+        /**
+         * Connecte le GeoExtractionController pour accéder aux codes INSEE.
+         * @param {GeoExtractionController} geoController
+         * @returns {void}
+         */
+setGeoController(geoController) {
         this.#geoController = geoController;
         console.log('[CARIFOREFExtractionController] 🔗 GeoController connecté');
     }
@@ -132,11 +145,24 @@ class CARIFOREFExtractionController {
      * Les UAI sont déjà connus (issus de getDiplomesDisponibles() à l'étape 1).
      * On passe directement à l'étape établissements → formations.
      *
-     * @param {string[]} libelles     - Libellés des diplômes sélectionnés
-     * @param {Object}   uaisParLibelle - Map libelle → Set<uai> (depuis getDiplomesDisponibles)
+     * Les établissements sont construits depuis les champs etablissement_formateur_*
+     * des formations — adresse de l'antenne locale (département cible), pas du siège.
+     * Un GRETA ou CFA régional dont le siège est hors périmètre sera ainsi représenté
+     * avec l'adresse correcte de son antenne locale.
+     *
+     * TODO (v0.48+) : Certains établissements "nationaux" (AFPA, grands organismes)
+     *   apparaissent dans les résultats alors qu'ils n'ont pas de formation physique
+     *   dans le périmètre demandé. Il faudra ajouter un filtre post-extraction sur
+     *   le champ num_departement des formations pour exclure ces établissements
+     *   hors-périmètre et ne conserver que ceux ayant au moins une formation locale.
+     *   Tracking : issue #hors-perimetre-carif
+     *
+     * @param {string[]} libelles       - Libellés des diplômes sélectionnés
+     * @param {Object}   uaisParLibelle - Map libelle → string[] (UAI CARIF depuis getDiplomesDisponibles)
+     * @param {Object}   [geoContext]   - Réservé (non utilisé). Conservé pour compatibilité API.
      * @returns {Promise<Object>} { success, stats, extractionInfo }
      */
-    async extractByDiplomesLibelles(libelles, uaisParLibelle) {
+    async extractByDiplomesLibelles(libelles, uaisParLibelle, geoContext = null) {
         console.log(`[CARIFOREFExtractionController] 🚀 Extraction par ${libelles.length} diplôme(s)`);
 
         return await this.#runExtraction(async () => {
@@ -162,6 +188,9 @@ class CARIFOREFExtractionController {
                 };
             }
 
+            // Les établissements sont maintenant construits depuis les champs
+            // etablissement_formateur_* des formations — adresse de l'antenne locale,
+            // pas du siège. Aucun filtre géographique post-récupération nécessaire.
             const stats = await this.#extractEtabsEtDiplomesByUAIs(uais, 10, 100);
             if (stats.cancelled) return { cancelled: true };
 
@@ -268,7 +297,7 @@ class CARIFOREFExtractionController {
 
     async #runExtraction(extractFn) {
         this.#isStopped = false;
-        this.#currentProgressModal = new ProgressModal(null, null, false);
+        this.#currentProgressModal = new ProgressModal(null, null, false, '🎓 Extraction voie apprentissage en cours…');
 
         try {
             this.#currentProgressModal.show();
@@ -377,28 +406,33 @@ class CARIFOREFExtractionController {
     // =====================================
 
     /**
-     * Étape 1 : /etablissements par UAI → établissements
-     * Étape 2 : /formations par UAI → diplômes + relations
+     * Récupère les formations par UAI, puis :
+     *  - Étape 1 : construit les établissements depuis les champs etablissement_formateur_*
+     *              des formations (adresse de l'antenne locale, pas du siège)
+     *  - Étape 2 : parse et stocke diplômes + relations
      * @private
      */
     async #extractEtabsEtDiplomesByUAIs(uais, startPercent = 10, endPercent = 90) {
-        const mid1 = Math.round(startPercent + (endPercent - startPercent) * 0.2);
-        const mid2 = Math.round(startPercent + (endPercent - startPercent) * 0.4);
+        const mid1 = Math.round(startPercent + (endPercent - startPercent) * 0.3);
+        const mid2 = Math.round(startPercent + (endPercent - startPercent) * 0.5);
 
-        // ── ÉTAPE 1 : Établissements ────────────────────────────────────
-        this.#update('🏫 Récupération des données établissements...', startPercent, 100);
+        // ── ÉTAPE UNIQUE : Formations (contiennent toutes les données formateur) ──
+        this.#update('🎓 Récupération des formations et données établissements...', startPercent, 100);
+        this.#detail(`🔍 Formations pour ${uais.length} établissement(s)...`);
 
-        const etabsBruts = await this.#carifOrefApi.getEtablissementsByUAIs(
+        const formationsBrutes = await this.#carifOrefApi.getFormationsByUAIs(
             uais,
             (d) => this.#detail(d)
         );
         if (this.#checkStopped()) return { cancelled: true };
 
-        this.#detail(`✅ ${etabsBruts.length} établissements trouvés`);
+        this.#detail(`✅ ${formationsBrutes.length} formations récupérées`);
 
-        // Parser + fusionner
-        this.#update('🔄 Analyse des établissements...', mid1, 100);
-        const etablissements = CARIFOREFParser.parseEtablissements(etabsBruts);
+        // ── ÉTAPE 1 : Établissements depuis les formations ───────────────
+        // On utilise les champs etablissement_formateur_* qui reflètent
+        // l'adresse de l'antenne locale (et non du siège)
+        this.#update('🏫 Construction des établissements depuis les formations...', mid1, 100);
+        const etablissements = CARIFOREFParser.parseEtablissementsDepuisFormations(formationsBrutes);
 
         this.#update('💾 Stockage des établissements...', mid2, 100);
         let nbEtabStockes = 0;
@@ -412,11 +446,11 @@ class CARIFOREFExtractionController {
                 this.#detail(`⚠️ Établissement refusé (UAI et SIRET absents): ${e.nom || '?'}`, 'warning');
             }
         }
-        this.#detail(`${etablissements.length} établissements → ${nbEtabStockes} fusionnés${nbEtabRefuses > 0 ? ` (${nbEtabRefuses} refusés)` : ''}`);
+        this.#detail(`${etablissements.length} établissements → ${nbEtabStockes} stockés${nbEtabRefuses > 0 ? ` (${nbEtabRefuses} refusés)` : ''}`);
         this.#databaseService.flush(); // 💾 batch save établissements
 
-        // ── ÉTAPE 2 : Formations → Diplômes ────────────────────────────
-        const statsStep2 = await this.#extractDiplomesByUAIs(uais, mid2 + 5, endPercent);
+        // ── ÉTAPE 2 : Parser formations → Diplômes ─────────────────────
+        const statsStep2 = await this.#parseEtStoreDiplomesDepuisFormations(formationsBrutes, mid2 + 5, endPercent);
         if (statsStep2.cancelled) return { cancelled: true };
 
         // ── ÉTAPE 3 : Enrichissement type/statut via ONISEP ────────────
@@ -448,6 +482,28 @@ class CARIFOREFExtractionController {
      * Utilisé par les deux flux (géo et diplômes).
      * @private
      */
+    /**
+     * Parse et stocke les diplômes + relations depuis un tableau de formations brutes
+     * déjà récupérées. Évite un second appel API quand les formations sont connues.
+     * @private
+     * @param {Object[]} formationsBrutes
+     * @param {number} startPercent
+     * @param {number} endPercent
+     * @returns {Promise<{ diplomes: number, relations: number, cancelled?: boolean }>}
+     */
+    async #parseEtStoreDiplomesDepuisFormations(formationsBrutes, startPercent, endPercent) {
+        const midPercent = Math.round((startPercent + endPercent) / 2);
+
+        if (this.#checkStopped()) return { cancelled: true };
+        this.#detail(`✅ Analyse de ${formationsBrutes.length} formations...`);
+
+        this.#update('🔄 Analyse des formations...', midPercent, 100);
+        const parsed = CARIFOREFParser.parseFormations(formationsBrutes);
+
+        this.#update('💾 Stockage diplômes apprentissage...', endPercent - 5, 100);
+        return await this.#storeDiplomes(parsed);
+    }
+
     async #extractDiplomesByUAIs(uais, startPercent, endPercent) {
         const midPercent = Math.round((startPercent + endPercent) / 2);
 

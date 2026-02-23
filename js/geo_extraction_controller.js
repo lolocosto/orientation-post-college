@@ -199,17 +199,26 @@ class GeoExtractionController {
         console.log(`[GeoExtractionController] 📋 Récupération tous EPCI`);
         
         try {
+            const t0 = performance.now();
             const EPCIRaw = await this.#geoAPI.searchEPCIs();
+            console.log(`[GeoExtractionController] ⏱️ Fetch EPCI: ${Math.round(performance.now()-t0)}ms`);
+
+            const t1 = performance.now();
             const EPCIs = GeoDataParser.parseEPCIs(EPCIRaw);
+            console.log(`[GeoExtractionController] ⏱️ Parse EPCI: ${Math.round(performance.now()-t1)}ms`);
             
-            console.log(`[GeoExtractionController] ✅ ${EPCIs.length} EPCI trouvés : `, EPCIs);
-            console.log(`[GeoExtractionController] Effacement des données en base et stockage des nouveaux EPCI`);
+            console.log(`[GeoExtractionController] ✅ ${EPCIs.length} EPCI trouvés`);
+
+            const t2 = performance.now();
             this.#databaseService.clearGeoData();
-            for (const epci of EPCIs){
+            for (const epci of EPCIs) {
                 await this.#databaseService.insertEPCI(epci);
-            }            
+            }
+            // Un seul flush après toute la boucle (1255 EPCI → 1 seul accès localStorage)
+            this.#databaseService.flush();
+            console.log(`[GeoExtractionController] ⏱️ Insert+flush ${EPCIs.length} EPCI: ${Math.round(performance.now()-t2)}ms`);
         } catch (error) {
-            console.error('[GeoExtractionController] ❌ Erreur récupération départements:', error);
+            console.error('[GeoExtractionController] ❌ Erreur récupération EPCI:', error);
             throw error;
         }
     }

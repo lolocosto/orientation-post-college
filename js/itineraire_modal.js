@@ -176,18 +176,41 @@ function openItineraireModal({ nom, latitude, longitude }) {
     };
 }
 
-// ── Helpers lecture localStorage ─────────────────────────────────────────────
+// ── Helpers lecture préférences (v0.45 : via db_service, fallback localStorage) ──
 
+/**
+ * Lit une préférence via db_service si disponible, sinon localStorage.
+ * @private
+ * @param {string} cle
+ * @returns {string|null}
+ */
+function _lirePref(cle) {
+    if (window.databaseService?.lirePreference) return window.databaseService.lirePreference(cle);
+    return localStorage.getItem(cle);
+}
+
+/**
+ * Charge les coordonnées du domicile utilisateur.
+ * Délègue à db_service (fallback localStorage).
+ * @private
+ * @returns {{lat:number, lon:number}|null}
+ */
 function _loadDomicile() {
     try {
-        const s = localStorage.getItem('pref_user_domicile');
+        const s = _lirePref('pref_user_domicile');
         return s ? JSON.parse(s) : null;
     } catch { return null; }
 }
 
+/**
+ * Charge les coordonnées de l'établissement utilisateur.
+ * Délègue à db_service (fallback localStorage).
+ * @private
+ * @returns {{lat:number, lon:number}|null}
+ */
 function _loadEtablissement() {
     try {
-        const s = localStorage.getItem('pref_user_etablissement');
+        const s = _lirePref('pref_user_etablissement');
         return s ? JSON.parse(s) : null;
     } catch { return null; }
 }
