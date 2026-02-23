@@ -21,6 +21,14 @@ class DetailsModal extends Modal {
     #currentIndex = -1;     // Index courant
 
     /**
+     * Pile statique des modales de détails empilées.
+     * Corrige le bug v0.52 : fermer une modale enfant cassait les handlers
+     * de la modale parent car window.currentDetailsModal était un singleton écrasé.
+     * @type {DetailsModal[]}
+     */
+    static #detailsStack = [];
+
+    /**
      * @param {string} modalId  - ID de base de la modale
      * @param {string|null} uniqueId - Suffixe unique (timestamp) pour instanciation dynamique
      */
@@ -30,6 +38,36 @@ class DetailsModal extends Modal {
         this.baseModalId = modalId;
         this.isUnique    = !!uniqueId;
         console.log(`[DetailsModal] Instance créée: ${finalId}${this.isUnique ? ' (unique)' : ''}`);
+    }
+
+    /**
+     * Surcharge de close() pour gérer la pile de modales empilées.
+     * Retire cette modale de la pile et restaure le parent comme modale courante.
+     * Corrige le bug v0.52 : après fermeture d'une modale enfant,
+     * les handlers (croix, navigation) de la modale parent fonctionnent à nouveau.
+     */
+    close() {
+        // Retirer de la pile de détails
+        const idx = DetailsModal.#detailsStack.indexOf(this);
+        if (idx > -1) {
+            DetailsModal.#detailsStack.splice(idx, 1);
+            console.log(`[DetailsModal] Dépilée. Pile restante: ${DetailsModal.#detailsStack.length}`);
+        }
+
+        // Restaurer le parent comme modale courante
+        const parent = DetailsModal.#detailsStack.length > 0
+            ? DetailsModal.#detailsStack[DetailsModal.#detailsStack.length - 1]
+            : null;
+        window.currentDetailsModal = parent;
+
+        if (parent) {
+            console.log(`[DetailsModal] Parent restauré: ${parent.modalId}`);
+        } else {
+            console.log(`[DetailsModal] Pile vide, currentDetailsModal = null`);
+        }
+
+        // Appeler Modal.close() (dépile ModalStack + détruit après 300ms)
+        super.close();
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -57,6 +95,7 @@ class DetailsModal extends Modal {
             content:   window.buildEtablissementDetailsHTML?.(etablissementEnrichi) ?? ''
         });
 
+        DetailsModal.#detailsStack.push(this);
         window.currentDetailsModal = this;
         this.open();
         if (typeof window._detailsModalOpening !== 'undefined') window._detailsModalOpening = false;
@@ -83,6 +122,7 @@ class DetailsModal extends Modal {
             content:    window.buildDiplomeDetailsHTML?.(diplomeEnrichi) ?? ''
         });
 
+        DetailsModal.#detailsStack.push(this);
         window.currentDetailsModal = this;
         this.open();
         if (typeof window._detailsModalOpening !== 'undefined') window._detailsModalOpening = false;
@@ -109,6 +149,7 @@ class DetailsModal extends Modal {
             content:     window.buildDiplomeApprentissageDetailsHTML?.(diplomeEnrichi) ?? ''
         });
 
+        DetailsModal.#detailsStack.push(this);
         window.currentDetailsModal = this;
         this.open();
         if (typeof window._detailsModalOpening !== 'undefined') window._detailsModalOpening = false;
@@ -135,6 +176,7 @@ class DetailsModal extends Modal {
             content:     window.buildDispositifDetailsHTML?.(dispositifEnrichi) ?? ''
         });
 
+        DetailsModal.#detailsStack.push(this);
         window.currentDetailsModal = this;
         this.open();
         if (typeof window._detailsModalOpening !== 'undefined') window._detailsModalOpening = false;
@@ -161,6 +203,7 @@ class DetailsModal extends Modal {
             content:     window.buildOption2ndeGTDetailsHTML?.(optionEnrichie) ?? ''
         });
 
+        DetailsModal.#detailsStack.push(this);
         window.currentDetailsModal = this;
         this.open();
         if (typeof window._detailsModalOpening !== 'undefined') window._detailsModalOpening = false;

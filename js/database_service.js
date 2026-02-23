@@ -831,7 +831,7 @@ async getDiplomeEnrichi(libelle) {
             return { ...etab, ...(rel || {}) };
         });
 
-        return { diplome, etablissements: etabsAvecRelation };
+        return { diplome, etablissements: etabsAvecRelation, parcours: this.#lookupParcoursBacPro(libelle) };
     }
 
         /**
@@ -861,6 +861,49 @@ async getDispositifEnrichi(libelle) {
         });
 
         return { dispositif, etablissements: etabsAvecRelation };
+    }
+
+    /**
+     * Recherche le parcours de formation (famille de métiers) pour un diplôme bac pro.
+     * Utilise la variable globale PARCOURS_BAC_PRO (data/parcours_bac_pro.js).
+     * @param {string} libelle - Libellé du diplôme (ex: "Bac pro Aéronautique option avionique")
+     * @returns {Object|null} { famille, seconde, premiere, terminale } ou null
+     * @private
+     */
+    #lookupParcoursBacPro(libelle) {
+        if (typeof PARCOURS_BAC_PRO === 'undefined' || !libelle) return null;
+
+        const search = libelle.toLowerCase().trim();
+
+        for (const famille of PARCOURS_BAC_PRO) {
+            for (const p of famille.parcours) {
+                if (p.diplome && p.diplome.toLowerCase().trim() === search) {
+                    return {
+                        famille:   famille.famille,
+                        seconde:   famille.seconde,
+                        premiere:  p.premiere  || null,
+                        terminale: p.terminale || null
+                    };
+                }
+            }
+        }
+
+        // Recherche plus souple : le libellé contient le nom du diplôme ou l'inverse
+        for (const famille of PARCOURS_BAC_PRO) {
+            for (const p of famille.parcours) {
+                const diplomeLow = (p.diplome || '').toLowerCase().trim();
+                if (diplomeLow && (search.includes(diplomeLow) || diplomeLow.includes(search))) {
+                    return {
+                        famille:   famille.famille,
+                        seconde:   famille.seconde,
+                        premiere:  p.premiere  || null,
+                        terminale: p.terminale || null
+                    };
+                }
+            }
+        }
+
+        return null;
     }
 
     // =====================================

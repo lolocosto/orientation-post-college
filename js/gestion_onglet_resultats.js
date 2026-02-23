@@ -465,7 +465,7 @@ function renderDiplomesTable(data) {
         return;
     }
     
-    const html = `
+    const tableHtml = `
         <table class="resultat-table">
             <thead>
                 <tr>
@@ -514,8 +514,35 @@ function renderDiplomesTable(data) {
             </tbody>
         </table>
     `;
+
+    // ── Vue cartes (téléphone) ─────────────────────────────
+    const cardsHtml = `
+        <div class="results-cards">
+            ${data.map(diplome => {
+                let categorie = 'Autre';
+                const niveau = diplome.niveauSortie || '';
+                if (niveau.includes('CAP')) categorie = 'CAP';
+                else if (niveau.includes('bac')) categorie = 'Bac';
+                else if (niveau.includes('BTS') || niveau.includes('BUT')) categorie = 'Bac+2';
+                else if (niveau.includes('licence')) categorie = 'Bac+3';
+
+                return `
+                <div class="result-card" onclick="showDiplomeDetails('${(diplome.libelle||'').replace(/'/g, "\\'")}')"
+                     data-libelle="${diplome.libelle}">
+                    <div class="result-card__titre">${diplome.libelle || 'N/A'} <span class="link-icon">↗</span></div>
+                    <div class="result-card__meta">
+                        ${diplome.niveauSortie || ''} · ${diplome.type || ''}
+                    </div>
+                    <div class="result-card__badges">
+                        <span class="badge badge--info">${categorie}</span>
+                        <span class="badge badge--info">${diplome.nbEtablissements || 0} étab.</span>
+                    </div>
+                </div>
+            `}).join('')}
+        </div>
+    `;
     
-    tableContainer.innerHTML = html;
+    tableContainer.innerHTML = tableHtml + cardsHtml;
 }
 
 
@@ -573,7 +600,7 @@ function renderDiplomesApprentissageTable(data) {
         return;
     }
 
-    tableContainer.innerHTML = `
+    const tableHtml = `
         <table class="resultat-table">
             <thead>
                 <tr>
@@ -600,6 +627,26 @@ function renderDiplomesApprentissageTable(data) {
                     </tr>`).join('')}
             </tbody>
         </table>`;
+
+    // ── Vue cartes (téléphone) ─────────────────────────────
+    const cardsHtml = `
+        <div class="results-cards">
+            ${data.map(d => `
+                <div class="result-card" onclick="showDiplomeApprentissageDetails('${d.id}')"
+                     data-id="${d.id}">
+                    <div class="result-card__titre">${d.libelle} <span class="link-icon">↗</span></div>
+                    <div class="result-card__meta">
+                        ${d.typeDiplome} · ${d.niveau}
+                    </div>
+                    <div class="result-card__badges">
+                        ${d.rncpCode ? `<span class="badge badge--rncp">${d.rncpCode}</span>` : ''}
+                        <span class="badge badge--info">${d.nbEtablissements} étab.</span>
+                    </div>
+                </div>
+            `).join('')}
+        </div>`;
+
+    tableContainer.innerHTML = tableHtml + cardsHtml;
 }
 
 /**
@@ -660,7 +707,7 @@ function buildDiplomeApprentissageDetailsHTML(diplomeEnrichi) {
     let infoBody = '<div class="detail-info-grid">';
     if (diplome.typeDiplome) infoBody += buildInfoRow('Type', diplome.typeDiplome);
     if (diplome.niveau)      infoBody += buildInfoRow('Niveau', diplome.niveau);
-    if (diplome.rncpCode)    infoBody += buildInfoRow('Code RNCP', `<a href="https://www.francecompetences.fr/recherche/rncp/${diplome.rncpCode.replace('RNCP','')}" target="_blank" rel="noopener">${diplome.rncpCode} ↗</a>`);
+    if (diplome.rncpCode)    infoBody += buildInfoRow('Code RNCP', diplome.rncpCode);
     infoBody += '</div>';
     html += accordionSection('📋', 'Informations générales', '', infoBody, true);
 
@@ -714,6 +761,17 @@ function buildDiplomeApprentissageDetailsHTML(diplomeEnrichi) {
         }
         blocsBody += '</div>';
         html += accordionSection('📚', 'Blocs de compétences', blocs.length, blocsBody, true);
+    }
+
+    // Lien France Compétences (en bas, comme le lien ONISEP pour les diplômes scolaires)
+    if (diplome.rncpCode) {
+        const rncpNum = diplome.rncpCode.replace('RNCP', '');
+        html += `<div class="detail-onisep-link">
+            <a href="https://www.francecompetences.fr/recherche/rncp/${rncpNum}" 
+               target="_blank" rel="noopener" class="btn btn--primary">
+               📖 Fiche France Compétences ↗
+            </a>
+        </div>`;
     }
 
     return html;
@@ -790,7 +848,7 @@ function renderDispositifsTable(data) {
         return;
     }
     
-    const html = `
+    const tableHtml = `
         <table class="resultat-table">
             <thead>
                 <tr>
@@ -807,15 +865,30 @@ function renderDispositifsTable(data) {
                     <tr data-libelle="${dispositif.libelle}"
                         onclick="showDispositifDetails(this.dataset.libelle)" 
                         style="cursor: pointer;">
-                        <td><strong>${dispositif.libelle || 'N/A'}</strong></td>
+                        <td><strong>${dispositif.libelle || 'N/A'}</strong> <span class="link-icon">↗</span></td>
                         <td class="resultat-col-info">${dispositif.nbEtablissements || 0}</td>
                     </tr>
                 `).join('')}
             </tbody>
         </table>
     `;
+
+    // ── Vue cartes (téléphone) ─────────────────────────────
+    const cardsHtml = `
+        <div class="results-cards">
+            ${data.map(dispositif => `
+                <div class="result-card" onclick="showDispositifDetails('${(dispositif.libelle||'').replace(/'/g, "\\'")}')"
+                     data-libelle="${dispositif.libelle}">
+                    <div class="result-card__titre">${dispositif.libelle || 'N/A'} <span class="link-icon">↗</span></div>
+                    <div class="result-card__badges">
+                        <span class="badge badge--info">${dispositif.nbEtablissements || 0} étab.</span>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
     
-    tableContainer.innerHTML = html;
+    tableContainer.innerHTML = tableHtml + cardsHtml;
 }
 
 // =====================================
@@ -860,7 +933,7 @@ function renderOptions2ndeGTTable(data) {
         return;
     }
 
-    const html = `
+    const tableHtml = `
         <table class="resultat-table">
             <thead>
                 <tr>
@@ -876,7 +949,7 @@ function renderOptions2ndeGTTable(data) {
                 ${data.map(option => `
                     <tr data-libelle="${(option.libelle || '').replace(/"/g, '&quot;')}"
                         onclick="showOption2ndeGTDetails(this.dataset.libelle)" style="cursor: pointer;">
-                        <td><strong>${option.libelle}</strong></td>
+                        <td><strong>${option.libelle}</strong> <span class="link-icon">↗</span></td>
                         <td class="resultat-col-info">${option.nbEtablissements || 0}</td>
                     </tr>
                 `).join('')}
@@ -884,7 +957,23 @@ function renderOptions2ndeGTTable(data) {
         </table>
     `;
 
-    tableContainer.innerHTML = html;
+    // ── Vue cartes (téléphone) ─────────────────────────────
+    const cardsHtml = `
+        <div class="results-cards">
+            ${data.map(option => `
+                <div class="result-card" 
+                     onclick="showOption2ndeGTDetails('${(option.libelle||'').replace(/'/g, "\\'")}')"
+                     data-libelle="${(option.libelle||'').replace(/"/g, '&quot;')}">
+                    <div class="result-card__titre">${option.libelle} <span class="link-icon">↗</span></div>
+                    <div class="result-card__badges">
+                        <span class="badge badge--info">${option.nbEtablissements || 0} étab.</span>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+
+    tableContainer.innerHTML = tableHtml + cardsHtml;
 }
 
 // =====================================
@@ -1341,11 +1430,12 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
         let body = '<ul class="detail-list">';
         for (const d of dispositifs) {
             let extra = '';
-            if (d.elementsDenseignement) extra = `<div style="margin-top:5px;color:#666;font-size:.9em">📋 Éléments : ${d.elementsDenseignement}</div>`;
-            else if (d.modalitesAccueil)  extra = `<div style="margin-top:5px;color:#666;font-size:.9em">📋 Modalités : ${d.modalitesAccueil}</div>`;
-            else if (d.sports)            extra = `<div style="margin-top:5px;color:#666;font-size:.9em">📋 Sports : ${d.sports}</div>`;
-            body += `<li class="detail-item" data-libelle="${d.libelle}" onclick="showDispositifDetails(this.dataset.libelle)">
-                <div><strong>${d.libelle}</strong>${d.typeDispositif ? ` <span class="dispositif-type">${d.typeDispositif}</span>` : ''}</div>
+            if (d.elementsDenseignement) extra = `<div class="detail-item-note">📋 Éléments : ${d.elementsDenseignement}</div>`;
+            else if (d.modalitesAccueil)  extra = `<div class="detail-item-note">📋 Modalités : ${d.modalitesAccueil}</div>`;
+            else if (d.sports)            extra = `<div class="detail-item-note">📋 Sports : ${d.sports}</div>`;
+            const libEscaped = (d.libelle || '').replace(/'/g, "\\'");
+            body += `<li class="detail-item detail-item--link" onclick="showDispositifDetails('${libEscaped}')">
+                <div><strong>${d.libelle}</strong>${d.typeDispositif ? ` <span class="dispositif-type">${d.typeDispositif}</span>` : ''} ↗</div>
                 ${extra}</li>`;
         }
         body += '</ul>';
@@ -1356,7 +1446,14 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
     if (options2ndeGT && options2ndeGT.length > 0) {
         options2ndeGT.sort((a, b) => (a.libelle||''). localeCompare(b.libelle||''));
         let body = '<ul class="detail-list">';
-        for (const o of options2ndeGT) body += `<li class="detail-item">${o.libelle||'Option inconnue'}</li>`;
+        for (const o of options2ndeGT) {
+            const lib = (o.libelle || 'Option inconnue').replace(/'/g, "\\'");
+            body += `<li class="detail-item detail-item--link">
+                <a href="#" onclick="event.preventDefault(); showOption2ndeGTDetails('${lib}')">
+                    ${o.libelle || 'Option inconnue'} ↗
+                </a>
+            </li>`;
+        }
         body += '</ul>';
         html += accordionSection('📚', 'Options 2nde GT', options2ndeGT.length, body, true);
     }
@@ -1365,7 +1462,7 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
     if (specialites1ereG && specialites1ereG.length > 0) {
         specialites1ereG.sort((a, b) => (a.libelle||''). localeCompare(b.libelle||''));
         let body = '<ul class="detail-list">';
-        for (const s of specialites1ereG) body += `<li class="detail-item">${s.libelle||'Spécialité inconnue'}</li>`;
+        for (const s of specialites1ereG) body += `<li class="detail-item detail-item--info">${s.libelle||'Spécialité inconnue'}</li>`;
         body += '</ul>';
         html += accordionSection('🔬', 'Spécialités 1ère Générale', specialites1ereG.length, body, true);
     }
