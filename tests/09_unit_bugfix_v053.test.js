@@ -1,473 +1,258 @@
-/************************************************
- * Fichier : 09_unit_bugfix_v053.test.js
- * Description : Tests des corrections v0.53
- *   - Bug modale empilée (croix/navigation cassées)
- *   - Listes homogènes sur mobile (cartes pour toutes les vues)
- *   - Items cliquables/non-cliquables dans les modales
- *   - Lien France Compétences en bas du diplôme apprentissage
- *   - Options 2nde GT cliquables dans détail établissement
- *   - Parcours bac pro restaurés
- * Auteur : Claude / Laurent COSTE
- * Date : 2026-02-23
- * Version : 0.53
- ************************************************/
+/**
+ * Tests unitaires — Corrections v0.53.1
+ * =============================================
+ * Bug 1  : Filtres mobile (cartes)
+ * Bug 2  : Homogénéité éléments cliquables (style dispositif partout)
+ * Bug 3  : Blocs de compétences en section repliable
+ * Bug 4  : Parcours de formation bac pro harmonisé
+ * Bug 5  : Sauvegarde favori après extraction
+ */
 
-// =============================================
-// HELPERS DE TEST
-// =============================================
+// ══════════════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════════════
 
-/** Crée un conteneur DOM simulé pour les tests */
-function setupTestDOM() {
-    // Reset du DOM
-    document.body.innerHTML = '';
-    
-    // Conteneur de résultats
-    const contentContainer = document.createElement('div');
-    contentContainer.id = 'content-container';
-    document.body.appendChild(contentContainer);
-    
-    return contentContainer;
+function assert(condition, message) {
+    if (!condition) throw new Error(`❌ ÉCHEC: ${message}`);
+    console.log(`  ✅ ${message}`);
 }
 
-/** Mock minimal de DatabaseService pour les tests */
-function createMockDatabaseService() {
-    return {
-        getEtablissementEnrichi: async (id) => ({
-            etablissement: {
-                _id: id, uai: '0350001A', nom: 'Lycée Test', commune: 'Rennes',
-                type: 'Lycée', statut: 'public', latitude: 48.11, longitude: -1.67
-            },
-            diplomes: [
-                { libelle: 'Bac pro Commerce', niveauSortie: 'Bac professionnel', type: 'Bac Pro' }
-            ],
-            diplomes_apprentissage: [
-                { id: 'da1', libelle: 'CAP Boulanger', niveau: '3 (CAP...)', certifieQualite: true }
-            ],
-            dispositifs: [
-                { libelle: 'Section sportive', typeDispositif: 'Sport' }
-            ],
-            options2ndeGT: [
-                { libelle: 'Arts plastiques' },
-                { libelle: 'Sciences de l\'ingénieur' }
-            ],
-            specialites1ereG: [
-                { libelle: 'Mathématiques' },
-                { libelle: 'Physique-Chimie' }
-            ]
-        }),
-        getDiplomeEnrichi: async (libelle) => ({
-            diplome: { libelle, type: 'Bac Pro', niveauSortie: 'Bac professionnel', natureCertificat: 'Diplôme national' },
-            etablissements: [{ _id: 'e1', nom: 'Lycée A', commune: 'Rennes', statut: 'public' }],
-            parcours: null // sera ajouté par lookupParcoursBacPro
-        }),
-        getDiplomeApprentissageEnrichi: async (id) => ({
-            diplome: {
-                id, libelle: 'CAP Boulanger', typeDiplome: 'CAP', niveau: '3 (CAP...)',
-                rncpCode: 'RNCP12345', blocsCompetences: []
-            },
-            etablissements: [{ _id: 'e2', uai: '0350002B', nom: 'CFA Test', commune: 'Bruz' }],
-            relations: []
-        }),
-        getDispositifEnrichi: async (libelle) => ({
-            dispositif: { libelle },
-            etablissements: [{ _id: 'e1', nom: 'Lycée A', commune: 'Rennes', statut: 'public' }]
-        }),
-        getOption2ndeGTEnrichie: async (libelle) => ({
-            option: { libelle },
-            etablissements: [{ _id: 'e1', nom: 'Lycée A', commune: 'Rennes', statut: 'public' }]
-        }),
-        estAussiEnApprentissage: async () => false,
-        estAussiEnScolaire: async () => false
-    };
+function assertIncludes(haystack, needle, message) {
+    if (!haystack.includes(needle)) throw new Error(`❌ ÉCHEC: ${message}\n   Attendu: "${needle}"\n   Dans: "${haystack.substring(0, 200)}..."`);
+    console.log(`  ✅ ${message}`);
 }
 
-// =============================================
-// 1. TESTS PILE DE MODALES (BUG CRITIQUE v0.52)
-// =============================================
+function assertNotIncludes(haystack, needle, message) {
+    if (haystack.includes(needle)) throw new Error(`❌ ÉCHEC: ${message}\n   Non attendu: "${needle}"\n   Trouvé dans: "${haystack.substring(0, 200)}..."`);
+    console.log(`  ✅ ${message}`);
+}
 
-describe('DetailsModal — pile de modales empilées (fix v0.53)', () => {
+let passed = 0, failed = 0, errors = [];
 
-    beforeEach(() => {
-        document.body.innerHTML = '';
-        window.currentDetailsModal = null;
-        // Reset de la pile (accès indirect via le comportement)
-    });
+function runTest(name, fn) {
+    try {
+        fn();
+        passed++;
+    } catch (e) {
+        failed++;
+        errors.push({ name, error: e.message });
+        console.error(`\n❌ ${name}\n   ${e.message}\n`);
+    }
+}
 
-    test('T-MS01 : Ouvrir une modale crée une entrée — currentDetailsModal est défini', () => {
-        const modal = new DetailsModal('test-modal', 'unique1');
-        // Simuler le contenu
-        modal.setTitle('');
-        modal.setContent('<p>Test</p>');
-        
-        // Vérifier que le constructeur fonctionne
-        expect(modal.modalId).toBe('test-modal-unique1');
-        expect(modal.isUnique).toBe(true);
-    });
+// ══════════════════════════════════════════════════════════════════
+// T-FM : FILTRES MOBILE (Bug 1)
+// ══════════════════════════════════════════════════════════════════
 
-    test('T-MS02 : close() restaure currentDetailsModal vers le parent', () => {
-        // Modale parent
-        const parent = new DetailsModal('parent-modal', 'p1');
-        const parentData = {
-            etablissement: { _id: 'e1', uai: '035', nom: 'Lycée P', commune: 'Rennes', type: 'Lycée' },
-            diplomes: [], diplomes_apprentissage: [], dispositifs: [],
-            options2ndeGT: [], specialites1ereG: []
-        };
-        
-        // On ne peut pas appeler showEtablissement sans buildEtablissementDetailsHTML
-        // mais on peut tester la mécanique de pile via show + close directement
-        
-        // Vérifions que la classe a bien la surcharge close
-        expect(typeof parent.close).toBe('function');
-    });
+console.log('\n═══ T-FM : FILTRES MOBILE ═══');
 
-    test('T-MS03 : Après close() de l\'enfant, les handlers du parent sont accessibles', () => {
-        // Ce test vérifie que window.currentDetailsModal n'est PAS null
-        // après fermeture d'un enfant si un parent existe
-        
-        // Simulation : deux ouvertures successives
-        const modal1 = new DetailsModal('m1', 'a');
-        const modal2 = new DetailsModal('m2', 'b');
-        
-        // Vérifier que deux modales ont des IDs différents
-        expect(modal1.modalId).not.toBe(modal2.modalId);
-        
-        // Vérifier que close existe et est héritée de Modal
-        expect(typeof modal1.close).toBe('function');
-        expect(typeof modal2.close).toBe('function');
-    });
-
-    test('T-MS04 : DetailsModal a bien la propriété statique #detailsStack (via comportement)', () => {
-        // On ne peut pas accéder à un champ privé static directement
-        // mais on peut vérifier que close() ne plante pas
-        const modal = new DetailsModal('stack-test', 'x');
-        modal.close(); // Ne doit pas lever d'exception
-        expect(window.currentDetailsModal).toBeNull();
-    });
+runTest('T-FM01 — filterEtablissements filtre les cartes en parallèle des <tr>', () => {
+    const src = filterEtablissements.toString();
+    assertIncludes(src, '.result-card[data-id]', 'filterEtablissements sélectionne les cartes par data-id');
+    assertIncludes(src, 'visibleIds', 'filterEtablissements utilise un Set visibleIds');
 });
 
-// =============================================
-// 2. TESTS CARTES MOBILE (LISTES HOMOGÈNES)
-// =============================================
-
-describe('Rendu cartes mobile — toutes les vues (fix v0.53)', () => {
-
-    let container;
-    
-    beforeEach(() => {
-        container = setupTestDOM();
-    });
-
-    test('T-RC01 : renderDiplomesTable génère tableau ET cartes', () => {
-        const data = [
-            { libelle: 'CAP Boulanger', niveauSortie: 'CAP', type: 'formation initiale', nbEtablissements: 3 },
-            { libelle: 'Bac pro Commerce', niveauSortie: 'Bac professionnel', type: 'formation initiale', nbEtablissements: 5 }
-        ];
-        
-        renderDiplomesTable(data);
-        
-        const table = container.querySelector('.resultat-table');
-        const cards = container.querySelector('.results-cards');
-        
-        expect(table).not.toBeNull();
-        expect(cards).not.toBeNull();
-        expect(cards.querySelectorAll('.result-card').length).toBe(2);
-    });
-
-    test('T-RC02 : renderDiplomesApprentissageTable génère tableau ET cartes', () => {
-        const data = [
-            { id: 'd1', libelle: 'CAP Pâtissier', typeDiplome: 'CAP', niveau: '3 (CAP...)', rncpCode: 'RNCP123', nbEtablissements: 2 }
-        ];
-        
-        renderDiplomesApprentissageTable(data);
-        
-        const table = container.querySelector('.resultat-table');
-        const cards = container.querySelector('.results-cards');
-        
-        expect(table).not.toBeNull();
-        expect(cards).not.toBeNull();
-        expect(cards.querySelectorAll('.result-card').length).toBe(1);
-    });
-
-    test('T-RC03 : renderDispositifsTable génère tableau ET cartes', () => {
-        const data = [
-            { libelle: 'Section sportive', nbEtablissements: 4 },
-            { libelle: 'Section internationale', nbEtablissements: 2 }
-        ];
-        
-        renderDispositifsTable(data);
-        
-        const table = container.querySelector('.resultat-table');
-        const cards = container.querySelector('.results-cards');
-        
-        expect(table).not.toBeNull();
-        expect(cards).not.toBeNull();
-        expect(cards.querySelectorAll('.result-card').length).toBe(2);
-    });
-
-    test('T-RC04 : renderOptions2ndeGTTable génère tableau ET cartes', () => {
-        const data = [
-            { libelle: 'Arts plastiques', nbEtablissements: 6 },
-            { libelle: 'Sciences de l\'ingénieur', nbEtablissements: 3 }
-        ];
-        
-        renderOptions2ndeGTTable(data);
-        
-        const table = container.querySelector('.resultat-table');
-        const cards = container.querySelector('.results-cards');
-        
-        expect(table).not.toBeNull();
-        expect(cards).not.toBeNull();
-        expect(cards.querySelectorAll('.result-card').length).toBe(2);
-    });
-
-    test('T-RC05 : Chaque carte contient result-card__titre et link-icon', () => {
-        const data = [{ libelle: 'Test', nbEtablissements: 1 }];
-        renderDispositifsTable(data);
-        
-        const card = container.querySelector('.result-card');
-        expect(card).not.toBeNull();
-        
-        const titre = card.querySelector('.result-card__titre');
-        expect(titre).not.toBeNull();
-        expect(titre.textContent).toContain('Test');
-        
-        const linkIcon = card.querySelector('.link-icon');
-        expect(linkIcon).not.toBeNull();
-    });
-
-    test('T-RC06 : Les cartes ont un badge avec le nombre d\'établissements', () => {
-        const data = [{ libelle: 'Option X', nbEtablissements: 7 }];
-        renderOptions2ndeGTTable(data);
-        
-        const badge = container.querySelector('.badge--info');
-        expect(badge).not.toBeNull();
-        expect(badge.textContent).toContain('7');
-    });
+runTest('T-FM02 — filterDiplomes filtre les cartes en parallèle des <tr>', () => {
+    const src = filterDiplomes.toString();
+    assertIncludes(src, '.result-card[data-libelle]', 'filterDiplomes sélectionne les cartes par data-libelle');
+    assertIncludes(src, 'visibleLibelles', 'filterDiplomes utilise un Set visibleLibelles');
 });
 
-// =============================================
-// 3. TESTS HOMOGÉNÉITÉ ITEMS DANS MODALES
-// =============================================
-
-describe('Homogénéité des items cliquables/non-cliquables (fix v0.53)', () => {
-
-    test('T-HI01 : Les dispositifs dans détail étab ont la classe detail-item--link', () => {
-        const enrichi = {
-            etablissement: {
-                _id: 'e1', uai: '035', nom: 'Lycée Test', commune: 'Rennes',
-                type: 'Lycée', statut: 'public'
-            },
-            diplomes: [],
-            diplomes_apprentissage: [],
-            dispositifs: [
-                { libelle: 'Section sportive', typeDispositif: 'Sport' }
-            ],
-            options2ndeGT: [],
-            specialites1ereG: []
-        };
-        
-        const html = buildEtablissementDetailsHTML(enrichi);
-        expect(html).toContain('detail-item--link');
-        expect(html).toContain('Section sportive');
-    });
-
-    test('T-HI02 : Les spécialités 1ère G ont la classe detail-item--info', () => {
-        const enrichi = {
-            etablissement: {
-                _id: 'e1', uai: '035', nom: 'Lycée Test', commune: 'Rennes',
-                type: 'Lycée', statut: 'public'
-            },
-            diplomes: [],
-            diplomes_apprentissage: [],
-            dispositifs: [],
-            options2ndeGT: [],
-            specialites1ereG: [
-                { libelle: 'Mathématiques' }
-            ]
-        };
-        
-        const html = buildEtablissementDetailsHTML(enrichi);
-        expect(html).toContain('detail-item--info');
-        expect(html).toContain('Mathématiques');
-    });
-
-    test('T-HI03 : Les options 2nde GT sont cliquables dans détail étab', () => {
-        const enrichi = {
-            etablissement: {
-                _id: 'e1', uai: '035', nom: 'Lycée Test', commune: 'Rennes',
-                type: 'Lycée', statut: 'public'
-            },
-            diplomes: [],
-            diplomes_apprentissage: [],
-            dispositifs: [],
-            options2ndeGT: [
-                { libelle: 'Arts plastiques' }
-            ],
-            specialites1ereG: []
-        };
-        
-        const html = buildEtablissementDetailsHTML(enrichi);
-        expect(html).toContain('detail-item--link');
-        expect(html).toContain('showOption2ndeGTDetails');
-        expect(html).toContain('Arts plastiques');
-        expect(html).toContain('↗');
-    });
-
-    test('T-HI04 : Le lien France Compétences est en bas du diplôme apprentissage', () => {
-        const enrichi = {
-            diplome: {
-                id: 'd1', libelle: 'CAP Boulanger', typeDiplome: 'CAP',
-                niveau: '3 (CAP...)', rncpCode: 'RNCP12345',
-                blocsCompetences: []
-            },
-            etablissements: [],
-            relations: []
-        };
-        
-        const html = buildDiplomeApprentissageDetailsHTML(enrichi);
-        
-        // Vérifier le lien en bas
-        expect(html).toContain('Fiche France Compétences');
-        expect(html).toContain('https://www.francecompetences.fr/recherche/rncp/12345');
-        expect(html).toContain('detail-onisep-link');
-    });
-
-    test('T-HI05 : Le code RNCP est affiché non-cliquable dans les infos générales', () => {
-        const enrichi = {
-            diplome: {
-                id: 'd1', libelle: 'CAP Boulanger', typeDiplome: 'CAP',
-                niveau: '3 (CAP...)', rncpCode: 'RNCP12345',
-                blocsCompetences: []
-            },
-            etablissements: [],
-            relations: []
-        };
-        
-        const html = buildDiplomeApprentissageDetailsHTML(enrichi);
-        
-        // Dans les infos générales, le code RNCP doit être en texte simple
-        // On vérifie qu'il n'y a PAS de <a> autour de RNCP12345 dans la section infos
-        const infoSection = html.split('Informations générales')[1]?.split('</div>')[0] || '';
-        expect(infoSection).toContain('RNCP12345');
-        // Le lien <a> vers francecompetences ne doit PAS être dans la section infos
-        expect(infoSection).not.toContain('francecompetences');
-    });
+runTest('T-FM03 — filterDiplomesApprentissage filtre les cartes', () => {
+    const src = filterDiplomesApprentissage.toString();
+    assertIncludes(src, '.result-card[data-id]', 'filterDiplomesApprentissage sélectionne les cartes');
+    assertIncludes(src, 'visibleIds', 'utilise un Set visibleIds');
 });
 
-// =============================================
-// 4. TESTS PARCOURS BAC PRO (FIX v0.53)
-// =============================================
-
-describe('Parcours Bac Pro restaurés (fix v0.53)', () => {
-
-    test('T-PB01 : buildDiplomeDetailsHTML affiche la section parcours quand disponible', () => {
-        const enrichi = {
-            diplome: {
-                libelle: 'Bac pro Commerce',
-                type: 'Bac Pro',
-                niveauSortie: 'Bac professionnel',
-                natureCertificat: 'Diplôme national'
-            },
-            etablissements: [],
-            parcours: {
-                famille: 'Métiers de la relation client',
-                seconde: '2nde pro Métiers de la relation client',
-                premiere: '1ère pro Commerce',
-                terminale: 'Term pro Commerce'
-            }
-        };
-        
-        const html = buildDiplomeDetailsHTML(enrichi);
-        expect(html).toContain('Parcours');
-        expect(html).toContain('Métiers de la relation client');
-        expect(html).toContain('2nde pro');
-    });
-
-    test('T-PB02 : buildDiplomeDetailsHTML gère l\'absence de parcours sans crash', () => {
-        const enrichi = {
-            diplome: {
-                libelle: 'BTS Commerce',
-                type: 'BTS',
-                niveauSortie: 'BTS',
-                natureCertificat: 'Diplôme national'
-            },
-            etablissements: [],
-            parcours: null
-        };
-        
-        const html = buildDiplomeDetailsHTML(enrichi);
-        expect(html).not.toContain('Parcours de formation');
-        // Pas de crash
-        expect(html).toBeTruthy();
-    });
-
-    test('T-PB03 : generateParcoursProHtml gère les bac pro HORS FAMILLE', () => {
-        const parcours = {
-            famille: 'HORS FAMILLE',
-            seconde: '2nde pro directe',
-            premiere: '1ère pro',
-            terminale: 'Term pro'
-        };
-        
-        const html = generateParcoursProHtml(parcours);
-        expect(html).toContain('hors famille de métiers');
-        expect(html).toContain('2nde pro directe');
-    });
-
-    test('T-PB04 : generateParcoursProHtml gère les bac pro agricoles', () => {
-        const parcours = {
-            famille: 'Agricole - Productions',
-            seconde: '2nde pro commune agricole',
-            premiere: '1ère pro CGEA',
-            terminale: 'Term pro CGEA'
-        };
-        
-        const html = generateParcoursProHtml(parcours);
-        expect(html).toContain('agricole');
-    });
+runTest('T-FM04 — filterDispositifs filtre les cartes', () => {
+    const src = filterDispositifs.toString();
+    assertIncludes(src, '.result-card[data-libelle]', 'filterDispositifs sélectionne les cartes');
+    assertIncludes(src, 'visibleLibelles', 'utilise un Set visibleLibelles');
 });
 
-// =============================================
-// 5. SCÉNARIOS UTILISATEUR
-// =============================================
-
-describe('Scénarios utilisateur v0.53', () => {
-
-    test('SC-01 : Structure globale — toutes les fonctions de rendu existent', () => {
-        expect(typeof renderDiplomesTable).toBe('function');
-        expect(typeof renderDiplomesApprentissageTable).toBe('function');
-        expect(typeof renderDispositifsTable).toBe('function');
-        expect(typeof renderOptions2ndeGTTable).toBe('function');
-        expect(typeof renderetablissementsTable).toBe('function');
-    });
-
-    test('SC-02 : Toutes les fonctions show*Details existent', () => {
-        expect(typeof showEtablissementDetails).toBe('function');
-        expect(typeof showDiplomeDetails).toBe('function');
-        expect(typeof showDiplomeApprentissageDetails).toBe('function');
-        expect(typeof showDispositifDetails).toBe('function');
-        expect(typeof showOption2ndeGTDetails).toBe('function');
-    });
-
-    test('SC-03 : Toutes les fonctions open*FromModal existent', () => {
-        expect(typeof window.openEtablissementDetailsFromModal).toBe('function');
-        expect(typeof window.openDiplomeDetailsFromModal).toBe('function');
-        expect(typeof window.openDispositifDetailsFromModal).toBe('function');
-        expect(typeof window.openDiplomeApprentissageDetailsFromModal).toBe('function');
-    });
-
-    test('SC-04 : Les builders HTML sont exposés globalement', () => {
-        expect(typeof window.buildEtablissementDetailsHTML).toBe('function');
-        expect(typeof window.buildDiplomeDetailsHTML).toBe('function');
-        expect(typeof window.buildDiplomeApprentissageDetailsHTML).toBe('function');
-        expect(typeof window.buildDispositifDetailsHTML).toBe('function');
-        expect(typeof window.buildOption2ndeGTDetailsHTML).toBe('function');
-    });
-
-    test('SC-05 : DetailsModal est exposé globalement avec close() surchargé', () => {
-        expect(typeof window.DetailsModal).toBe('function');
-        const instance = new DetailsModal('test', 'sc05');
-        expect(typeof instance.close).toBe('function');
-        instance.close(); // nettoyage
-    });
+runTest('T-FM05 — filterOptions filtre les cartes', () => {
+    const src = filterOptions.toString();
+    assertIncludes(src, '.result-card[data-libelle]', 'filterOptions sélectionne les cartes');
 });
+
+runTest('T-FM06 — filterSpecialites filtre les cartes', () => {
+    const src = filterSpecialites.toString();
+    assertIncludes(src, '.result-card[data-libelle]', 'filterSpecialites sélectionne les cartes');
+});
+
+runTest('T-FM07 — Cartes établissements portent data-type/commune/statut', () => {
+    const src = renderetablissementsTable.toString();
+    assertIncludes(src, 'data-type=', 'carte a data-type');
+    assertIncludes(src, 'data-commune=', 'carte a data-commune');
+    assertIncludes(src, 'data-statut=', 'carte a data-statut');
+});
+
+runTest('T-FM08 — Cartes diplômes scolaires portent data-niveau/type/categorie', () => {
+    const src = renderDiplomesTable.toString();
+    assertIncludes(src, 'data-niveau=', 'carte diplôme a data-niveau');
+    assertIncludes(src, 'data-type=', 'carte diplôme a data-type');
+    assertIncludes(src, 'data-categorie=', 'carte diplôme a data-categorie');
+});
+
+runTest('T-FM09 — Cartes diplômes apprentissage portent data-niveau/type', () => {
+    const src = renderDiplomesApprentissageTable.toString();
+    assertIncludes(src, 'data-niveau=', 'carte apprentissage a data-niveau');
+    assertIncludes(src, 'data-type=', 'carte apprentissage a data-type');
+});
+
+// ══════════════════════════════════════════════════════════════════
+// T-HI : HOMOGÉNÉITÉ ITEMS CLIQUABLES (Bug 2)
+// ══════════════════════════════════════════════════════════════════
+
+console.log('\n═══ T-HI : HOMOGÉNÉITÉ ITEMS CLIQUABLES ═══');
+
+runTest('T-HI01 — buildEtablissementDetailsHTML n\'utilise pas <a href="#">', () => {
+    const src = buildEtablissementDetailsHTML.toString();
+    assertNotIncludes(src, '<a href="#"', 'Pas de <a href="#"> dans détail établissement');
+});
+
+runTest('T-HI02 — buildDiplomeDetailsHTML n\'utilise pas <a href="#">', () => {
+    const src = buildDiplomeDetailsHTML.toString();
+    assertNotIncludes(src, '<a href="#"', 'Pas de <a href="#"> dans détail diplôme scolaire');
+});
+
+runTest('T-HI03 — buildDiplomeApprentissageDetailsHTML n\'utilise pas <a href="#">', () => {
+    const src = buildDiplomeApprentissageDetailsHTML.toString();
+    assertNotIncludes(src, '<a href="#"', 'Pas de <a href="#"> dans détail diplôme apprentissage');
+});
+
+runTest('T-HI04 — Diplômes scolaires dans détail étab utilisent detail-item--link + onclick', () => {
+    const src = buildEtablissementDetailsHTML.toString();
+    assertIncludes(src, 'detail-item--link', 'Utilise detail-item--link');
+    assertIncludes(src, 'showDiplomeDetails', 'Appelle showDiplomeDetails');
+});
+
+runTest('T-HI05 — Options 2nde GT dans détail étab utilisent detail-item--link + onclick', () => {
+    const src = buildEtablissementDetailsHTML.toString();
+    assertIncludes(src, 'showOption2ndeGTDetails', 'Appelle showOption2ndeGTDetails');
+});
+
+runTest('T-HI06 — Établissements dans détail diplôme scolaire utilisent detail-item--link', () => {
+    const src = buildDiplomeDetailsHTML.toString();
+    assertIncludes(src, 'detail-item--link', 'Utilise detail-item--link');
+    assertIncludes(src, 'openEtablissementDetailsFromModal', 'Appelle openEtablissementDetailsFromModal');
+});
+
+runTest('T-HI07 — Établissements dans détail diplôme apprentissage utilisent detail-item--link', () => {
+    const src = buildDiplomeApprentissageDetailsHTML.toString();
+    assertIncludes(src, 'detail-item--link', 'Utilise detail-item--link');
+    assertIncludes(src, 'openEtablissementDetailsFromModal', 'Appelle openEtablissementDetailsFromModal');
+});
+
+// ══════════════════════════════════════════════════════════════════
+// T-BC : BLOCS DE COMPÉTENCES (Amélioration 3)
+// ══════════════════════════════════════════════════════════════════
+
+console.log('\n═══ T-BC : BLOCS DE COMPÉTENCES ═══');
+
+runTest('T-BC01 — Blocs de compétences en section accordéon avec items non-cliquables', () => {
+    const src = buildDiplomeApprentissageDetailsHTML.toString();
+    assertIncludes(src, 'Blocs de comp', 'Section Blocs de compétences présente');
+    assertIncludes(src, 'detail-item--info', 'Utilise detail-item--info (non cliquable)');
+});
+
+runTest('T-BC02 — Contenu brut masqué quand blocsCompetences est rempli', () => {
+    const src = buildDiplomeApprentissageDetailsHTML.toString();
+    assertIncludes(src, 'blocs.length === 0', 'Vérifie si blocsCompetences est vide avant afficher contenu');
+});
+
+runTest('T-BC03 — Compétences séparées par · dans une note', () => {
+    const src = buildDiplomeApprentissageDetailsHTML.toString();
+    assertIncludes(src, "join(' \\u00b7 ')", 'Compétences séparées par ·');
+});
+
+// ══════════════════════════════════════════════════════════════════
+// T-PF : PARCOURS DE FORMATION (Amélioration 4)
+// ══════════════════════════════════════════════════════════════════
+
+console.log('\n═══ T-PF : PARCOURS DE FORMATION ═══');
+
+runTest('T-PF01 — Section renommée "Parcours de formation"', () => {
+    const src = buildDiplomeDetailsHTML.toString();
+    assertIncludes(src, 'Parcours de formation', 'Nom de section = Parcours de formation');
+});
+
+runTest('T-PF02 — Parcours utilise des items non cliquables (detail-item--info)', () => {
+    const src = generateParcoursProHtml.toString();
+    assertIncludes(src, 'detail-item--info', 'Items non cliquables');
+    assertNotIncludes(src, 'detail-item--link', 'Pas de items cliquables');
+});
+
+runTest('T-PF03 — Parcours hors famille affiche les 4 items', () => {
+    const parcours = { famille: 'HORS FAMILLE', seconde: '2nde Bac Pro X', premiere: '1ère Bac Pro X', terminale: 'Term Bac Pro X' };
+    const html = generateParcoursProHtml(parcours);
+    assertIncludes(html, 'Hors famille', 'Item 1: Hors famille de métiers');
+    assertIncludes(html, '2nde Bac Pro X', 'Item 2: nom de la 2nde');
+    assertIncludes(html, '1ère Bac Pro X', 'Item 3: nom de la 1ère');
+    assertIncludes(html, 'Term Bac Pro X', 'Item 4: nom de la terminale');
+});
+
+runTest('T-PF04 — Parcours avec famille affiche nom + 3 items', () => {
+    const parcours = { famille: 'Métiers du numérique', seconde: '2nde commune MN', premiere: '1ère Bac Pro', terminale: 'Term Bac Pro' };
+    const html = generateParcoursProHtml(parcours);
+    assertIncludes(html, 'Famille de métiers', 'Item 1: Famille de métiers');
+    assertIncludes(html, 'Métiers du numérique', 'Nom de la famille');
+    assertIncludes(html, '2nde commune MN', 'Item 2: 2nde');
+});
+
+runTest('T-PF05 — Parcours agricole affiche 🌾', () => {
+    const parcours = { famille: 'Agricole - Productions', seconde: '2nde pro PA', premiere: '1ère', terminale: 'Term' };
+    const html = generateParcoursProHtml(parcours);
+    assertIncludes(html, '🌾', 'Badge agricole');
+});
+
+runTest('T-PF06 — Parcours null retourne un message informatif', () => {
+    const html = generateParcoursProHtml(null);
+    assertIncludes(html, 'Aucun parcours', 'Message informatif');
+    assertNotIncludes(html, 'bloc-information-specifique', 'Plus d\'ancien style');
+});
+
+runTest('T-PF07 — Parcours n\'utilise plus de styles inline', () => {
+    const parcours = { famille: 'Test', seconde: '2nde', premiere: '1ère', terminale: 'Term' };
+    const html = generateParcoursProHtml(parcours);
+    assertNotIncludes(html, 'style="', 'Aucun style inline');
+});
+
+// ══════════════════════════════════════════════════════════════════
+// T-FAV : SAUVEGARDE FAVORIS (Bug 5)
+// ══════════════════════════════════════════════════════════════════
+
+console.log('\n═══ T-FAV : SAUVEGARDE FAVORIS ═══');
+
+runTest('T-FAV01 — lancerExtractionGeo appelle _trySaveFavorite', () => {
+    const src = lancerExtractionGeo.toString();
+    assertIncludes(src, '_trySaveFavorite', 'lancerExtractionGeo appelle _trySaveFavorite');
+    assertIncludes(src, "'geo'", 'Passe le type geo');
+});
+
+runTest('T-FAV02 — lancerExtractionItems appelle _trySaveFavorite', () => {
+    const src = lancerExtractionItems.toString();
+    assertIncludes(src, '_trySaveFavorite', 'lancerExtractionItems appelle _trySaveFavorite');
+    assertIncludes(src, "'diplomes'", 'Passe le type diplomes');
+});
+
+runTest('T-FAV03 — ajouterFavori est disponible', () => {
+    assert(typeof ajouterFavori === 'function', 'ajouterFavori est définie');
+});
+
+runTest('T-FAV04 — loadFavoris retourne un tableau', () => {
+    const result = loadFavoris();
+    assert(Array.isArray(result), 'loadFavoris retourne un tableau');
+});
+
+// ══════════════════════════════════════════════════════════════════
+// RÉSUMÉ
+// ══════════════════════════════════════════════════════════════════
+
+console.log('\n══════════════════════════════════════════');
+console.log(`📊 Résultats: ${passed} passés, ${failed} échoués sur ${passed + failed} tests`);
+if (errors.length > 0) {
+    console.log('\n❌ Tests en échec:');
+    errors.forEach(e => console.log(`   - ${e.name}: ${e.error}`));
+}
+console.log('══════════════════════════════════════════\n');

@@ -297,8 +297,11 @@ function applyFilters() {
  */
 function filterEtablissements() {
     const rows = document.querySelectorAll('#results-body tr[data-id]');
+    const cards = document.querySelectorAll('.results-cards .result-card[data-id]');
     let visibleCount = 0;
 
+    // Collecter les IDs visibles en filtrant les lignes tableau
+    const visibleIds = new Set();
     rows.forEach(row => {
         const nom    = _normRecherche(row.querySelector('td:nth-child(1)')?.textContent) || '';
         const type   = row.dataset.type    || '';
@@ -312,7 +315,12 @@ function filterEtablissements() {
             _passesMultiFilter(filtersState.statut,  statut);
 
         row.style.display = visible ? '' : 'none';
-        if (visible) visibleCount++;
+        if (visible) { visibleCount++; visibleIds.add(row.dataset.id); }
+    });
+
+    // Appliquer la même visibilité aux cartes mobile
+    cards.forEach(card => {
+        card.style.display = visibleIds.has(card.dataset.id) ? '' : 'none';
     });
 
     console.log(`[Filtres] ${visibleCount} établissements visibles`);
@@ -324,8 +332,10 @@ function filterEtablissements() {
  */
 function filterDiplomes() {
     const rows = document.querySelectorAll('#results-body tr[data-libelle]');
+    const cards = document.querySelectorAll('.results-cards .result-card[data-libelle]');
     let visibleCount = 0;
 
+    const visibleLibelles = new Set();
     rows.forEach(row => {
         const libelle  = _normRecherche(row.querySelector('td:nth-child(1)')?.textContent) || '';
         const niveau   = row.dataset.niveau   || '';
@@ -339,7 +349,11 @@ function filterDiplomes() {
             _passesMultiFilter(filtersState.categorie, categorie);
 
         row.style.display = visible ? '' : 'none';
-        if (visible) visibleCount++;
+        if (visible) { visibleCount++; visibleLibelles.add(row.dataset.libelle); }
+    });
+
+    cards.forEach(card => {
+        card.style.display = visibleLibelles.has(card.dataset.libelle) ? '' : 'none';
     });
 
     console.log(`[Filtres] ${visibleCount} diplômes visibles`);
@@ -351,8 +365,10 @@ function filterDiplomes() {
  */
 function filterDiplomesApprentissage() {
     const rows = document.querySelectorAll('#results-body tr[data-id]');
+    const cards = document.querySelectorAll('.results-cards .result-card[data-id]');
     let visibleCount = 0;
 
+    const visibleIds = new Set();
     rows.forEach(row => {
         const libelle = _normRecherche(row.querySelector('td:nth-child(1)')?.textContent) || '';
         const niveau  = row.dataset.niveau || '';
@@ -364,7 +380,11 @@ function filterDiplomesApprentissage() {
             _passesMultiFilter(filtersState.type,   type);
 
         row.style.display = visible ? '' : 'none';
-        if (visible) visibleCount++;
+        if (visible) { visibleCount++; visibleIds.add(row.dataset.id); }
+    });
+
+    cards.forEach(card => {
+        card.style.display = visibleIds.has(card.dataset.id) ? '' : 'none';
     });
 
     console.log(`[Filtres] ${visibleCount} diplômes apprentissage visibles`);
@@ -376,8 +396,10 @@ function filterDiplomesApprentissage() {
  */
 function filterDispositifs() {
     const rows = document.querySelectorAll('#results-body tr[data-libelle]');
+    const cards = document.querySelectorAll('.results-cards .result-card[data-libelle]');
     let visibleCount = 0;
 
+    const visibleLibelles = new Set();
     rows.forEach(row => {
         const libelle  = _normRecherche(row.querySelector('td:nth-child(1)')?.textContent) || '';
         const categorie= row.dataset.type || '';
@@ -387,7 +409,11 @@ function filterDispositifs() {
             _passesMultiFilter(filtersState.categorie, categorie);
 
         row.style.display = visible ? '' : 'none';
-        if (visible) visibleCount++;
+        if (visible) { visibleCount++; visibleLibelles.add(row.dataset.libelle); }
+    });
+
+    cards.forEach(card => {
+        card.style.display = visibleLibelles.has(card.dataset.libelle) ? '' : 'none';
     });
 
     console.log(`[Filtres] ${visibleCount} dispositifs visibles`);
@@ -399,13 +425,19 @@ function filterDispositifs() {
  */
 function filterOptions() {
     const rows = document.querySelectorAll('#results-body tr[data-libelle]');
+    const cards = document.querySelectorAll('.results-cards .result-card[data-libelle]');
     let visibleCount = 0;
 
+    const visibleLibelles = new Set();
     rows.forEach(row => {
         const libelle = _normRecherche(row.querySelector('td:nth-child(1)')?.textContent) || '';
         const visible = !filtersState.search || libelle.includes(filtersState.search);
         row.style.display = visible ? '' : 'none';
-        if (visible) visibleCount++;
+        if (visible) { visibleCount++; visibleLibelles.add(row.dataset.libelle); }
+    });
+
+    cards.forEach(card => {
+        card.style.display = visibleLibelles.has(card.dataset.libelle) ? '' : 'none';
     });
 
     console.log(`[Filtres] ${visibleCount} options visibles`);
@@ -417,13 +449,19 @@ function filterOptions() {
  */
 function filterSpecialites() {
     const rows = document.querySelectorAll('#results-body tr[data-libelle]');
+    const cards = document.querySelectorAll('.results-cards .result-card[data-libelle]');
     let visibleCount = 0;
 
+    const visibleLibelles = new Set();
     rows.forEach(row => {
         const libelle = _normRecherche(row.querySelector('td:nth-child(1)')?.textContent) || '';
         const visible = !filtersState.search || libelle.includes(filtersState.search);
         row.style.display = visible ? '' : 'none';
-        if (visible) visibleCount++;
+        if (visible) { visibleCount++; visibleLibelles.add(row.dataset.libelle); }
+    });
+
+    cards.forEach(card => {
+        card.style.display = visibleLibelles.has(card.dataset.libelle) ? '' : 'none';
     });
 
     console.log(`[Filtres] ${visibleCount} spécialités visibles`);

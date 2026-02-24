@@ -489,6 +489,14 @@ async function lancerExtractionGeo() {
             'success'
         );
 
+        // ── Sauvegarde favori si demandé ──────────────────────────────────
+        _trySaveFavorite('geo', {
+            scope: geoType,
+            commune: selectedCommune,
+            epci: selectedScope === 'intercommunalite' ? { code: selectedCommune.codeEpci, nom: geoDisplay } : null,
+            voies
+        });
+
     } catch (error) {
         console.error('[Recherche] Erreur extraction géo:', error);
         if (btnStop) btnStop.classList.add('u-hidden');
@@ -754,6 +762,14 @@ async function lancerExtractionItems(type) {
         
         // Message succès
         showAlert(`✅ ${data.etablissements.length} établissements et ${data.diplomes_par_etablissement.length} diplômes (dont ${data.diplomes.length} uniques) !`, 'success');
+
+        // ── Sauvegarde favori si demandé ──────────────────────────────────
+        _trySaveFavorite('diplomes', {
+            geoType: itemsGeoType,
+            geoValue: itemsGeoValue,
+            items: selectedItems,
+            itemType: type
+        });
         
     } catch (error) {
         console.error('[Recherche] Erreur extraction:', error);
@@ -1117,6 +1133,41 @@ function getVoiesDiplomesSelectionnes(libelles) {
     if (hasApprentissage) voies.push('apprentissage');
     // Si rien trouvé (diplômes sans étab dans la zone), on tente scolaire par défaut
     return voies.length > 0 ? voies : ['scolaire'];
+}
+
+// =====================================
+// SAUVEGARDE FAVORI APRÈS EXTRACTION
+// =====================================
+
+/**
+ * Vérifie si la checkbox favori est cochée et sauvegarde le favori.
+ * Appelée après une extraction réussie (géo ou items).
+ * @param {'geo'|'diplomes'} type - Type de recherche
+ * @param {Object} params - Paramètres de la recherche à sauvegarder
+ */
+function _trySaveFavorite(type, params) {
+    const checkbox = document.getElementById(`save-as-favorite-${type}`);
+    if (!checkbox || !checkbox.checked) return;
+
+    const nameInput = document.getElementById(`favorite-name-${type}`);
+    const nom = (nameInput?.value || '').trim();
+    if (!nom) {
+        showAlert('⚠️ Veuillez saisir un nom pour le favori', 'warning');
+        nameInput?.focus();
+        return;
+    }
+
+    // ajouterFavori est dans gestion_params.js
+    if (typeof ajouterFavori === 'function') {
+        const ok = ajouterFavori(nom, type, params);
+        if (ok) {
+            // Réinitialiser la checkbox et le champ
+            checkbox.checked = false;
+            if (nameInput) nameInput.value = '';
+            const container = document.getElementById(`favorite-name-container-${type}`);
+            if (container) { container.style.display = 'none'; container.classList.add('u-hidden'); }
+        }
+    }
 }
 
 // =====================================

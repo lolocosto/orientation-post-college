@@ -278,7 +278,10 @@ function renderetablissementsTable(data) {
         <div class="results-cards">
             ${data.map(etab => `
                 <div class="result-card" onclick="showEtablissementDetails('${etab._id}')"
-                     data-id="${etab._id}">
+                     data-id="${etab._id}"
+                     data-type="${etab.type || ''}"
+                     data-commune="${etab.commune || ''}"
+                     data-statut="${etab.statut || ''}">
                     <div class="result-card__titre">${etab.nom || 'N/A'} <span class="link-icon">↗</span></div>
                     <div class="result-card__meta">
                         ${etab.type || 'N/A'} · ${etab.commune || 'N/A'}
@@ -528,7 +531,10 @@ function renderDiplomesTable(data) {
 
                 return `
                 <div class="result-card" onclick="showDiplomeDetails('${(diplome.libelle||'').replace(/'/g, "\\'")}')"
-                     data-libelle="${diplome.libelle}">
+                     data-libelle="${diplome.libelle}"
+                     data-niveau="${diplome.niveauSortie || ''}"
+                     data-type="${diplome.type || ''}"
+                     data-categorie="${diplome.niveauSortie || ''}">
                     <div class="result-card__titre">${diplome.libelle || 'N/A'} <span class="link-icon">↗</span></div>
                     <div class="result-card__meta">
                         ${diplome.niveauSortie || ''} · ${diplome.type || ''}
@@ -633,7 +639,9 @@ function renderDiplomesApprentissageTable(data) {
         <div class="results-cards">
             ${data.map(d => `
                 <div class="result-card" onclick="showDiplomeApprentissageDetails('${d.id}')"
-                     data-id="${d.id}">
+                     data-id="${d.id}"
+                     data-niveau="${d.niveau || ''}"
+                     data-type="${d.typeDiplome || ''}">
                     <div class="result-card__titre">${d.libelle} <span class="link-icon">↗</span></div>
                     <div class="result-card__meta">
                         ${d.typeDiplome} · ${d.niveau}
@@ -698,9 +706,15 @@ function buildDiplomeApprentissageDetailsHTML(diplomeEnrichi) {
     </div>`;
     }
 
-    // Description (contenu) — toujours visible, pas en accordéon
+    // Description (contenu) — affichée seulement si elle ne ressemble pas
+    // aux blocs de compétences concaténés (souvent très longs et illisibles)
     if (diplome.contenu) {
-        html += `<div class="detail-description">${diplome.contenu}</div>`;
+        // Heuristique : si le contenu est court (< 500 car.) et que blocsCompetences est vide,
+        // c'est probablement une description utile. Sinon on la masque car les blocs sont en section dédiée.
+        const blocs = diplome.blocsCompetences || [];
+        if (blocs.length === 0 && diplome.contenu.length < 500) {
+            html += `<div class="detail-description">${diplome.contenu}</div>`;
+        }
     }
 
     // Section 1 : Informations générales
@@ -727,10 +741,8 @@ function buildDiplomeApprentissageDetailsHTML(diplomeEnrichi) {
                 ? `<div class="detail-etab-meta">OPCO : ${etab.opcoNom}</div>` : '';
             const courrielInfo = relation.courriel
                 ? `<div class="detail-etab-meta">✉️ <a href="mailto:${relation.courriel}">${relation.courriel}</a></div>` : '';
-            etabBody += `<li class="detail-item">
-                <a href="#" data-etab-id="${etab._id}" onclick="event.preventDefault(); window.openEtablissementDetailsFromModal(this.dataset.etabId)">
-                    <strong>${etab.nom || etab.uai}</strong>${certifBadge}${dureeBadge} — ${etab.commune || ''} ↗
-                </a>
+            etabBody += `<li class="detail-item detail-item--link" onclick="window.openEtablissementDetailsFromModal('${etab._id}')">
+                <div><strong>${etab.nom || etab.uai}</strong>${certifBadge}${dureeBadge} — ${etab.commune || ''} ↗</div>
                 ${opcoInfo}${courrielInfo}
             </li>`;
         }
@@ -740,27 +752,25 @@ function buildDiplomeApprentissageDetailsHTML(diplomeEnrichi) {
     }
     html += accordionSection('🏭', 'Centres de formation', nbEtab, etabBody, true);
 
-    // Section 3 : Blocs de compétences (repliée)
+    // Section 3 : Blocs de compétences (section repliable, masquée si vide)
     const blocs = diplome.blocsCompetences || [];
     if (blocs.length > 0) {
-        let blocsBody = '<div style="display:flex;flex-direction:column;gap:10px;">';
+        let blocsBody = '<ul class="detail-list">';
         for (const bloc of blocs) {
             const titreBloc = bloc.rncp_intitule || bloc.intitule || bloc.libelle || '—';
             const codeBloc  = bloc.rncp_code || '';
             const listeComp = Array.isArray(bloc.competences) ? bloc.competences : [];
-            blocsBody += `<div class="detail-bloc-competence">
-                <div class="detail-bloc-competence__titre">
-                    ${codeBloc ? `<span class="detail-bloc-competence__code">${codeBloc}</span>` : ''}${titreBloc}
-                </div>`;
-            if (listeComp.length > 0) {
-                blocsBody += '<ul class="detail-bloc-competence__liste">';
-                for (const comp of listeComp) blocsBody += `<li>${comp.libelle || comp}</li>`;
-                blocsBody += '</ul>';
-            }
-            blocsBody += '</div>';
+            const codeHtml  = codeBloc ? `<span class="detail-bloc-competence__code">${codeBloc}</span> ` : '';
+            const compHtml  = listeComp.length > 0
+                ? `<div class="detail-item-note">${listeComp.map(c => c.libelle || c).join(' · ')}</div>`
+                : '';
+            blocsBody += `<li class="detail-item detail-item--info">
+                <div>${codeHtml}<strong>${titreBloc}</strong></div>
+                ${compHtml}
+            </li>`;
         }
-        blocsBody += '</div>';
-        html += accordionSection('📚', 'Blocs de compétences', blocs.length, blocsBody, true);
+        blocsBody += '</ul>';
+        html += accordionSection('📚', 'Blocs de compétences', blocs.length, blocsBody, false);
     }
 
     // Lien France Compétences (en bas, comme le lien ONISEP pour les diplômes scolaires)
@@ -1101,48 +1111,50 @@ async function showDiplomeDetails(libelle) {
  */
 function generateParcoursProHtml(parcours) {
     if (!parcours) {
-        return `
-        <div class="bloc-information-specifique" style="margin-top: 15px; padding: 15px; background: #fff3cd; border-left: 4px solid #d9534f; border-radius: 4px;">
-            <h5 style="margin-top: 0; margin-bottom: 10px; color: #856404;"> 📌 Aucun parcours professionnel disponible. </h5>
-        </div>`;
+        return '<p class="u-text-light u-text-sm">📌 Aucun parcours de formation disponible.</p>';
     }
     
     const estHorsFamille = parcours.famille.includes('HORS FAMILLE');
     const estAgricole = parcours.famille.includes('Agricole') || parcours.famille.includes('agricole');
+    const badge = estAgricole ? ' 🌾' : '';
     
+    let items = '<ul class="detail-list">';
+
+    // Item 1 : Famille de métiers ou Hors famille
     if (estHorsFamille) {
-        // Bac Pro HORS famille de métiers (normal ou agricole)
-        const couleur = estAgricole ? '#28a745' : '#d9534f';
-        const badge = estAgricole ? '🌾 agricole' : '';
-        
-        return `
-        <div class="bloc-information-specifique" style="margin-top: 15px; padding: 15px; background: #fff3cd; border-left: 4px solid ${couleur}; border-radius: 4px;">
-            <h5 style="margin-top: 0; margin-bottom: 10px; color: #856404;">
-                📌 Parcours de formation <span style="color: ${couleur};">hors famille de métiers ${badge}</span>
-            </h5>
-            <div style="font-size: 13px;">
-                <strong>2nde :</strong> ${parcours.seconde}<br>
-                <strong>1ère :</strong> ${parcours.premiere || '-'}<br>
-                <strong>Term :</strong> ${parcours.terminale || '-'}
-            </div>
-        </div>`;
+        items += `<li class="detail-item detail-item--info">
+            <div><strong>Hors famille de métiers${badge}</strong></div>
+        </li>`;
+    } else {
+        const famLabel = parcours.famille.replace('Agricole - ', '');
+        items += `<li class="detail-item detail-item--info">
+            <div><strong>Famille de métiers :</strong> ${famLabel}${badge}</div>
+        </li>`;
     }
-    
-    // Bac Pro avec famille de métiers (normal ou agricole)
-    const bgColor = estAgricole ? '#d4edda' : '#fff3cd';
-    const borderColor = estAgricole ? '#28a745' : '#ffc107';
-    const badge = estAgricole ? '<span style="color: #28a745;">🌾 agricole</span>' : '';
-    
-    return `
-    <div class="bloc-information-specifique" style="margin-top: 15px; padding: 15px; background: ${bgColor}; border-left: 4px solid ${borderColor}; border-radius: 4px;">
-        <h5 style="margin-top: 0; margin-bottom: 10px; color: #856404;">📌 Parcours de formation ${badge}</h5>
-        <div style="font-size: 13px;">
-            <strong>Famille de métiers :</strong> ${parcours.famille.replace('Agricole - ', '')}<br>
-            <strong>2nde commune :</strong> ${parcours.seconde}<br>
-            ${parcours.premiere ? `<strong>1ère :</strong> ${parcours.premiere}<br>` : ''}
-            ${parcours.terminale ? `<strong>Term :</strong> ${parcours.terminale}` : ''}
-        </div>
-    </div>`;
+
+    // Item 2 : 2nde
+    if (parcours.seconde) {
+        items += `<li class="detail-item detail-item--info">
+            <div><strong>2nde :</strong> ${parcours.seconde}</div>
+        </li>`;
+    }
+
+    // Item 3 : 1ère
+    if (parcours.premiere) {
+        items += `<li class="detail-item detail-item--info">
+            <div><strong>1ère :</strong> ${parcours.premiere}</div>
+        </li>`;
+    }
+
+    // Item 4 : Terminale
+    if (parcours.terminale) {
+        items += `<li class="detail-item detail-item--info">
+            <div><strong>Terminale :</strong> ${parcours.terminale}</div>
+        </li>`;
+    }
+
+    items += '</ul>';
+    return items;
 }
 
 /**
@@ -1253,11 +1265,10 @@ function buildOption2ndeGTDetailsHTML(optionEnrichie) {
     if (nb > 0) {
         etabBody += '<ul class="detail-list">';
         for (const etab of etablissements) {
-            etabBody += `<li class="detail-item">
-                    <a href="#" onclick="event.preventDefault(); window.openEtablissementDetailsFromModal('${etab._id}')">
-                        <strong>${etab.nom}</strong> — ${etab.commune || ''}
-                        <span class="badge ${etab.statut === 'public' ? 'badge--primary' : 'badge--success'}">${etab.statut || ''}</span> ↗
-                    </a></li>`;
+            etabBody += `<li class="detail-item detail-item--link" onclick="window.openEtablissementDetailsFromModal('${etab._id}')">
+                    <div><strong>${etab.nom}</strong> — ${etab.commune || ''}
+                        <span class="badge ${etab.statut === 'public' ? 'badge--primary' : 'badge--success'}">${etab.statut || ''}</span> ↗</div>
+                </li>`;
         }
         etabBody += '</ul>';
     } else {
@@ -1386,10 +1397,10 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
                 <ul class="detail-list">`;
             for (const d of liste) {
                 const mod = d.modalites?.length ? ` <span class="diplome-modalite">${d.modalites.join(', ')}</span>` : '';
-                body += `<li class="detail-item">
-                    <span class="diplome-libelle">
-                        <a href="#" data-libelle="${d.libelle}" onclick="event.preventDefault();showDiplomeDetails(this.dataset.libelle);">${d.libelle} ↗</a>
-                    </span>${mod}</li>`;
+                const libEscaped = (d.libelle || '').replace(/'/g, "\\'");
+                body += `<li class="detail-item detail-item--link" onclick="showDiplomeDetails('${libEscaped}')">
+                    <div><strong>${d.libelle}</strong>${mod} ↗</div>
+                </li>`;
             }
             body += `</ul></div>`;
         }
@@ -1414,10 +1425,9 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
                 const qBadge = d.certifieQualite
                     ? ` <span class="voie-badge voie-badge--qualite" title="Certifié Qualiopi">✓ Qualiopi</span>`
                     : '';
-                body += `<li class="detail-item">
-                    <a href="#" onclick="event.preventDefault();window.openDiplomeApprentissageDetailsFromModal('${d.id}')">
-                        <span class="diplome-libelle">${d.libelle||'N/A'}</span>${qBadge} ↗
-                    </a></li>`;
+                body += `<li class="detail-item detail-item--link" onclick="window.openDiplomeApprentissageDetailsFromModal('${d.id}')">
+                    <div><strong>${d.libelle||'N/A'}</strong>${qBadge} ↗</div>
+                </li>`;
             }
             body += `</ul></div>`;
         }
@@ -1448,10 +1458,8 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
         let body = '<ul class="detail-list">';
         for (const o of options2ndeGT) {
             const lib = (o.libelle || 'Option inconnue').replace(/'/g, "\\'");
-            body += `<li class="detail-item detail-item--link">
-                <a href="#" onclick="event.preventDefault(); showOption2ndeGTDetails('${lib}')">
-                    ${o.libelle || 'Option inconnue'} ↗
-                </a>
+            body += `<li class="detail-item detail-item--link" onclick="showOption2ndeGTDetails('${lib}')">
+                <div><strong>${o.libelle || 'Option inconnue'}</strong> ↗</div>
             </li>`;
         }
         body += '</ul>';
@@ -1523,11 +1531,8 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
     // ── En savoir plus ONISEP ─────────────────────────────────────────
     if (etablissement.urlOnisep) {
         const onisepUrl = etablissement.urlOnisep.split('|')[1] || etablissement.urlOnisep;
-        html += `<div class="onisep-section" style="margin-top:20px;padding:20px;background:#f5f5f5;border-radius:8px">
-            <h4>🔗 En savoir plus</h4>
-            <a href="${onisepUrl}" target="_blank" style="display:inline-block;padding:10px 20px;background:var(--primary);color:white;text-decoration:none;border-radius:6px">
-                📖 Fiche ONISEP
-            </a>
+        html += `<div class="detail-onisep-link">
+            <a href="${onisepUrl}" target="_blank" class="btn btn--primary">📖 Fiche ONISEP ↗</a>
         </div>`;
     }
 
@@ -1617,7 +1622,7 @@ function buildDiplomeDetailsHTML(diplomeEnrichi) {
 
     // Section 1 : Parcours Bac Pro (ouverte si présente)
     if (diplomeEnrichi.parcours) {
-        html += accordionSection('🗺️', 'Parcours', '', generateParcoursProHtml(parcours), true);
+        html += accordionSection('🗺️', 'Parcours de formation', '', generateParcoursProHtml(parcours), true);
     }
 
     // Section 2 : Domaines professionnels (repliée)
@@ -1649,11 +1654,10 @@ function buildDiplomeDetailsHTML(diplomeEnrichi) {
         etablissements.sort((a, b) => a.nom.localeCompare(b.nom));
         etabBody += '<ul class="detail-list">';
         for (const etab of etablissements) {
-            etabBody += `<li class="detail-item" style="cursor:pointer;">
-                    <a href="#" onclick="event.preventDefault(); window.openEtablissementDetailsFromModal('${etab._id}')">
-                        <strong>${etab.nom}</strong> — ${etab.commune}
-                        <span class="badge ${etab.statut === 'public' ? 'badge--primary' : 'badge--success'}">${etab.statut}</span> ↗
-                    </a></li>`;
+            etabBody += `<li class="detail-item detail-item--link" onclick="window.openEtablissementDetailsFromModal('${etab._id}')">
+                    <div><strong>${etab.nom}</strong> — ${etab.commune}
+                        <span class="badge ${etab.statut === 'public' ? 'badge--primary' : 'badge--success'}">${etab.statut}</span> ↗</div>
+                </li>`;
         }
         etabBody += '</ul>';
     } else {
@@ -1712,11 +1716,10 @@ function buildDispositifDetailsHTML(dispositifEnrichi) {
         for (const etab of etablissements) {
             const elementsHtml = etab.elementsDenseignement
                 ? `<div class="detail-item-note">📋 ${etab.elementsDenseignement}</div>` : '';
-            etabBody += `<li class="detail-item" style="cursor:pointer;">
-                    <a href="#" onclick="event.preventDefault(); window.openEtablissementDetailsFromModal('${etab._id}')">
-                        <strong>${etab.nom}</strong> — ${etab.commune}
-                        <span class="badge ${etab.statut === 'public' ? 'badge--primary' : 'badge--success'}">${etab.statut}</span> ↗
-                    </a>${elementsHtml}</li>`;
+            etabBody += `<li class="detail-item detail-item--link" onclick="window.openEtablissementDetailsFromModal('${etab._id}')">
+                    <div><strong>${etab.nom}</strong> — ${etab.commune}
+                        <span class="badge ${etab.statut === 'public' ? 'badge--primary' : 'badge--success'}">${etab.statut}</span> ↗</div>
+                    ${elementsHtml}</li>`;
         }
         etabBody += '</ul>';
     } else {
