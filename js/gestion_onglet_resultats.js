@@ -706,18 +706,7 @@ function buildDiplomeApprentissageDetailsHTML(diplomeEnrichi) {
     </div>`;
     }
 
-    // Description (contenu) — affichée seulement si elle ne ressemble pas
-    // aux blocs de compétences concaténés (souvent très longs et illisibles)
-    if (diplome.contenu) {
-        // Heuristique : si le contenu est court (< 500 car.) et que blocsCompetences est vide,
-        // c'est probablement une description utile. Sinon on la masque car les blocs sont en section dédiée.
-        const blocs = diplome.blocsCompetences || [];
-        if (blocs.length === 0 && diplome.contenu.length < 500) {
-            html += `<div class="detail-description">${diplome.contenu}</div>`;
-        }
-    }
-
-    // Section 1 : Informations générales
+    // Section 1 : Informations générales (repliée)
     let infoBody = '<div class="detail-info-grid">';
     if (diplome.typeDiplome) infoBody += buildInfoRow('Type', diplome.typeDiplome);
     if (diplome.niveau)      infoBody += buildInfoRow('Niveau', diplome.niveau);
@@ -725,7 +714,20 @@ function buildDiplomeApprentissageDetailsHTML(diplomeEnrichi) {
     infoBody += '</div>';
     html += accordionSection('📋', 'Informations générales', '', infoBody, true);
 
-    // Section 2 : Centres de formation
+    // Section 2 : Contenu de la formation (repliée, toujours affiché si non vide)
+    if (diplome.contenu) {
+        const paragraphes = diplome.contenu.split(/\n+/).map(p => p.trim()).filter(p => p.length > 0);
+        if (paragraphes.length > 0) {
+            let contenuBody = '<ul class="detail-list">';
+            for (const para of paragraphes) {
+                contenuBody += `<li class="detail-item detail-item--info"><div>${para}</div></li>`;
+            }
+            contenuBody += '</ul>';
+            html += accordionSection('📖', 'Contenu de la formation', '', contenuBody, true);
+        }
+    }
+
+    // Section 3 : Centres de formation
     const nbEtab = etablissements?.length || 0;
     let etabBody = '';
     if (nbEtab > 0) {
@@ -752,7 +754,7 @@ function buildDiplomeApprentissageDetailsHTML(diplomeEnrichi) {
     }
     html += accordionSection('🏭', 'Centres de formation', nbEtab, etabBody, true);
 
-    // Section 3 : Blocs de compétences (section repliable, masquée si vide)
+    // Section 3 : Compétences de fin de formation (section repliable, masquée si vide)
     const blocs = diplome.blocsCompetences || [];
     if (blocs.length > 0) {
         let blocsBody = '<ul class="detail-list">';
@@ -770,7 +772,7 @@ function buildDiplomeApprentissageDetailsHTML(diplomeEnrichi) {
             </li>`;
         }
         blocsBody += '</ul>';
-        html += accordionSection('📚', 'Blocs de compétences', blocs.length, blocsBody, false);
+        html += accordionSection('🎯', 'Compétences de fin de formation', blocs.length, blocsBody, true);
     }
 
     // Lien France Compétences (en bas, comme le lien ONISEP pour les diplômes scolaires)
@@ -1105,15 +1107,103 @@ async function showDiplomeDetails(libelle) {
 }
 
 /**
- * Génère le HTML des parcours professionnels associés à un diplôme.
- * @param {Object[]} parcours
- * @returns {string}
+ * Génère le HTML du parcours de formation pour un diplôme scolaire.
+ * Gère tous les types : bac pro (avec famille de métiers), bac général,
+ * bac techno, CAP, BMA, etc.
+ * @param {Object} diplome - Données du diplôme
+ * @param {Object|null} parcoursBacPro - Parcours de famille de métiers (bac pro uniquement)
+ * @param {string|null} duree - Durée du cycle standard (af_duree_cycle_standard)
+ * @returns {string|null} HTML ou null si rien à afficher
  */
-function generateParcoursProHtml(parcours) {
-    if (!parcours) {
-        return '<p class="u-text-light u-text-sm">📌 Aucun parcours de formation disponible.</p>';
+function generateParcoursFormationHtml(diplome, parcoursBacPro, duree) {
+    const type = (diplome.type || '').toLowerCase();
+    const libelle = diplome.libelle || '';
+
+    // ── Cas 1 : Bac Pro avec famille de métiers ─────────────────────────
+    if (parcoursBacPro) {
+        return _generateParcoursProHtml(parcoursBacPro, duree);
     }
-    
+
+    // ── Cas 2 : Bac général ─────────────────────────────────────────────
+    if (type.includes('baccalauréat général') || libelle.toLowerCase().startsWith('bac général')) {
+        let items = '<ul class="detail-list">';
+        items += `<li class="detail-item detail-item--info">
+            <div><strong>2nde :</strong> Seconde générale et technologique</div></li>`;
+        items += `<li class="detail-item detail-item--info">
+            <div><strong>1ère :</strong> Première générale — choix de 3 spécialités</div></li>`;
+        items += `<li class="detail-item detail-item--info">
+            <div><strong>Terminale :</strong> Terminale générale — 2 spécialités conservées</div></li>`;
+        if (duree) items += `<li class="detail-item detail-item--info"><div><strong>Durée :</strong> ${duree}</div></li>`;
+        items += '</ul>';
+        return items;
+    }
+
+    // ── Cas 3 : Bac technologique ───────────────────────────────────────
+    if (type.includes('baccalauréat technologique') || libelle.toLowerCase().startsWith('bac techno')) {
+        const serie = libelle.replace(/^bac techno /i, '').split(' enseignement')[0];
+        let items = '<ul class="detail-list">';
+        items += `<li class="detail-item detail-item--info">
+            <div><strong>2nde :</strong> Seconde générale et technologique</div></li>`;
+        items += `<li class="detail-item detail-item--info">
+            <div><strong>1ère :</strong> Première ${serie}</div></li>`;
+        items += `<li class="detail-item detail-item--info">
+            <div><strong>Terminale :</strong> Terminale ${serie}</div></li>`;
+        if (duree) items += `<li class="detail-item detail-item--info"><div><strong>Durée :</strong> ${duree}</div></li>`;
+        items += '</ul>';
+        return items;
+    }
+
+    // ── Cas 4 : CAP / CAPa ─────────────────────────────────────────────
+    if (type.includes('cap') || libelle.toLowerCase().startsWith('cap ') || libelle.toLowerCase().startsWith('capa ')) {
+        let items = '<ul class="detail-list">';
+        items += `<li class="detail-item detail-item--info">
+            <div><strong>Formation :</strong> Cycle de 2 ans après la 3ème</div></li>`;
+        items += `<li class="detail-item detail-item--info">
+            <div><strong>1ère année :</strong> Enseignements généraux et professionnels</div></li>`;
+        items += `<li class="detail-item detail-item--info">
+            <div><strong>2ème année :</strong> Spécialisation et périodes de formation en milieu professionnel</div></li>`;
+        if (duree) items += `<li class="detail-item detail-item--info"><div><strong>Durée :</strong> ${duree}</div></li>`;
+        items += '</ul>';
+        return items;
+    }
+
+    // ── Cas 5 : Bac Pro sans famille de métiers connue ──────────────────
+    if (type.includes('bac pro') || libelle.toLowerCase().startsWith('bac pro')) {
+        let items = '<ul class="detail-list">';
+        items += `<li class="detail-item detail-item--info">
+            <div><strong>Hors famille de métiers</strong> (parcours spécifique)</div></li>`;
+        items += `<li class="detail-item detail-item--info">
+            <div><strong>2nde :</strong> Seconde professionnelle spécifique</div></li>`;
+        items += `<li class="detail-item detail-item--info">
+            <div><strong>1ère :</strong> Première ${libelle.replace(/^bac pro /i, '')}</div></li>`;
+        items += `<li class="detail-item detail-item--info">
+            <div><strong>Terminale :</strong> Terminale ${libelle.replace(/^bac pro /i, '')}</div></li>`;
+        if (duree) items += `<li class="detail-item detail-item--info"><div><strong>Durée :</strong> ${duree}</div></li>`;
+        items += '</ul>';
+        return items;
+    }
+
+    // ── Cas 6 : BMA, BTS, DE, autres diplômes ──────────────────────────
+    // Si une durée est connue, on affiche au minimum la durée
+    if (duree) {
+        let items = '<ul class="detail-list">';
+        items += `<li class="detail-item detail-item--info"><div><strong>Durée du cycle :</strong> ${duree}</div></li>`;
+        items += '</ul>';
+        return items;
+    }
+
+    // Aucune information de parcours disponible
+    return null;
+}
+
+/**
+ * Génère le HTML spécifique aux parcours Bac Pro avec famille de métiers.
+ * @param {Object} parcours - { famille, seconde, premiere, terminale }
+ * @param {string|null} duree - Durée du cycle
+ * @returns {string}
+ * @private
+ */
+function _generateParcoursProHtml(parcours, duree) {
     const estHorsFamille = parcours.famille.includes('HORS FAMILLE');
     const estAgricole = parcours.famille.includes('Agricole') || parcours.famille.includes('agricole');
     const badge = estAgricole ? ' 🌾' : '';
@@ -1150,6 +1240,13 @@ function generateParcoursProHtml(parcours) {
     if (parcours.terminale) {
         items += `<li class="detail-item detail-item--info">
             <div><strong>Terminale :</strong> ${parcours.terminale}</div>
+        </li>`;
+    }
+
+    // Item 5 : Durée (si disponible)
+    if (duree) {
+        items += `<li class="detail-item detail-item--info">
+            <div><strong>Durée :</strong> ${duree}</div>
         </li>`;
     }
 
@@ -1397,9 +1494,11 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
                 <ul class="detail-list">`;
             for (const d of liste) {
                 const mod = d.modalites?.length ? ` <span class="diplome-modalite">${d.modalites.join(', ')}</span>` : '';
+                const dureeBadge = d.dureeCycleStandard
+                    ? ` <span class="badge badge--duree" title="Durée du cycle">⏱ ${d.dureeCycleStandard}</span>` : '';
                 const libEscaped = (d.libelle || '').replace(/'/g, "\\'");
                 body += `<li class="detail-item detail-item--link" onclick="showDiplomeDetails('${libEscaped}')">
-                    <div><strong>${d.libelle}</strong>${mod} ↗</div>
+                    <div><strong>${d.libelle}</strong>${mod}${dureeBadge} ↗</div>
                 </li>`;
             }
             body += `</ul></div>`;
@@ -1425,8 +1524,10 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
                 const qBadge = d.certifieQualite
                     ? ` <span class="voie-badge voie-badge--qualite" title="Certifié Qualiopi">✓ Qualiopi</span>`
                     : '';
+                const dureeBadge = d._dureeAnnees
+                    ? ` <span class="badge badge--duree" title="Durée">⏱ ${d._dureeAnnees} an${d._dureeAnnees > 1 ? 's' : ''}</span>` : '';
                 body += `<li class="detail-item detail-item--link" onclick="window.openDiplomeApprentissageDetailsFromModal('${d.id}')">
-                    <div><strong>${d.libelle||'N/A'}</strong>${qBadge} ↗</div>
+                    <div><strong>${d.libelle||'N/A'}</strong>${qBadge}${dureeBadge} ↗</div>
                 </li>`;
             }
             body += `</ul></div>`;
@@ -1611,21 +1712,28 @@ function buildDiplomeDetailsHTML(diplomeEnrichi) {
     </div>`;
     }
 
-    // Section 0 : Informations générales (ouverte)
-    const infoBody = `
-        <div class="detail-info-grid">
-            <div class="info-row"><span class="info-label">Type :</span><span class="info-value">${diplome.type || 'Non renseigné'}</span></div>
-            <div class="info-row"><span class="info-label">Nature :</span><span class="info-value">${diplome.natureCertificat || 'Non renseigné'}</span></div>
-            <div class="info-row"><span class="info-label">Niveau :</span><span class="info-value">${diplome.niveauSortie || 'Non renseigné'}</span></div>
-        </div>`;
+    // ── Section 1 : Informations générales ──────────────────────────────
+    let infoBody = '<div class="detail-info-grid">';
+    infoBody += buildInfoRow('Type', diplome.type || 'Non renseigné');
+    infoBody += buildInfoRow('Nature', diplome.natureCertificat || 'Non renseigné');
+    infoBody += buildInfoRow('Niveau', diplome.niveauSortie || 'Non renseigné');
+    // Durée du cycle (collectée depuis les relations, première valeur disponible)
+    const dureeRelation = etablissements?.find(e => e.dureeCycleStandard)?.dureeCycleStandard;
+    if (dureeRelation) {
+        infoBody += buildInfoRow('Durée du cycle', dureeRelation);
+    }
+    infoBody += '</div>';
     html += accordionSection('📋', 'Informations générales', '', infoBody, true);
 
-    // Section 1 : Parcours Bac Pro (ouverte si présente)
-    if (diplomeEnrichi.parcours) {
-        html += accordionSection('🗺️', 'Parcours de formation', '', generateParcoursProHtml(parcours), true);
+    // ── Section 2 : Parcours de formation ───────────────────────────────
+    // Affiché pour TOUS les diplômes scolaires (bac pro avec famille de métiers,
+    // bac techno, bac général, CAP, BMA, etc.)
+    const parcoursHtml = generateParcoursFormationHtml(diplome, parcours, dureeRelation);
+    if (parcoursHtml) {
+        html += accordionSection('🗺️', 'Parcours de formation', '', parcoursHtml, true);
     }
 
-    // Section 2 : Domaines professionnels (repliée)
+    // ── Section 3 : Domaines professionnels ─────────────────────────────
     if (diplome.domaines && diplome.domaines.length > 0) {
         const parDomaine = {};
         diplome.domaines.forEach(d => {
@@ -1647,15 +1755,17 @@ function buildDiplomeDetailsHTML(diplomeEnrichi) {
         }
     }
 
-    // Section 3 : Établissements (ouverte)
+    // ── Section 4 : Établissements ──────────────────────────────────────
     const nbEtab = etablissements?.length || 0;
     let etabBody = '';
     if (nbEtab > 0) {
-        etablissements.sort((a, b) => a.nom.localeCompare(b.nom));
+        etablissements.sort((a, b) => (a.nom || '').localeCompare(b.nom || '', 'fr'));
         etabBody += '<ul class="detail-list">';
         for (const etab of etablissements) {
+            const dureeBadge = etab.dureeCycleStandard
+                ? ` <span class="badge badge--duree" title="Durée du cycle">⏱ ${etab.dureeCycleStandard}</span>` : '';
             etabBody += `<li class="detail-item detail-item--link" onclick="window.openEtablissementDetailsFromModal('${etab._id}')">
-                    <div><strong>${etab.nom}</strong> — ${etab.commune}
+                    <div><strong>${etab.nom}</strong> — ${etab.commune}${dureeBadge}
                         <span class="badge ${etab.statut === 'public' ? 'badge--primary' : 'badge--success'}">${etab.statut}</span> ↗</div>
                 </li>`;
         }

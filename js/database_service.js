@@ -1043,7 +1043,15 @@ getDiplomesApprentissageParEtablissementSync(etabId) {
         const relations = Object.values(this.#storage.diplomes_apprentissage_par_etablissement)
             .filter(rel => rel.etabId === etabId || (uai && rel.uai === uai));
         const ids = new Set(relations.map(r => r.diplomId));
-        return Object.values(this.#storage.diplomes_apprentissage).filter(d => ids.has(d.id));
+        const diplomes = Object.values(this.#storage.diplomes_apprentissage).filter(d => ids.has(d.id));
+        // Enrichir chaque diplôme avec les données de la relation (dureeAnnees, courriel, etc.)
+        for (const diplome of diplomes) {
+            const relation = relations.find(r => r.diplomId === diplome.id);
+            if (relation) {
+                if (relation.dureeAnnees && !diplome._dureeAnnees) diplome._dureeAnnees = relation.dureeAnnees;
+            }
+        }
+        return diplomes;
     }
 
     /**

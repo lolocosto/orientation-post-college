@@ -1165,7 +1165,7 @@ function _trySaveFavorite(type, params) {
             checkbox.checked = false;
             if (nameInput) nameInput.value = '';
             const container = document.getElementById(`favorite-name-container-${type}`);
-            if (container) { container.style.display = 'none'; container.classList.add('u-hidden'); }
+            if (container) container.classList.add('u-hidden');
         }
     }
 }
