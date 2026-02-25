@@ -305,7 +305,21 @@ class CARIFOREFParser {
                 longitude: geoCoords.lon,
 
                 // ── Contact ──────────────────────────────────────────────────
-                telephone: null,
+                // Courriel et téléphone depuis la première formation connue pour cet UAI
+                telephone: (() => {
+                    for (const ff of formations) {
+                        const tel = (ff.num_tel || '').trim();
+                        if (tel) return tel;
+                    }
+                    return null;
+                })(),
+                email: (() => {
+                    for (const ff of formations) {
+                        const mail = (ff.etablissement_formateur_courriel || '').trim();
+                        if (mail) return mail;
+                    }
+                    return null;
+                })(),
 
                 // ── Informations complémentaires ─────────────────────────────
                 languesEnseignees:      null,

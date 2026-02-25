@@ -707,11 +707,12 @@ function buildDiplomeApprentissageDetailsHTML(diplomeEnrichi) {
     }
 
     // Section 1 : Informations générales (repliée)
-    let infoBody = '<div class="detail-info-grid">';
-    if (diplome.typeDiplome) infoBody += buildInfoRow('Type', diplome.typeDiplome);
-    if (diplome.niveau)      infoBody += buildInfoRow('Niveau', diplome.niveau);
-    if (diplome.rncpCode)    infoBody += buildInfoRow('Code RNCP', diplome.rncpCode);
-    infoBody += '</div>';
+    // Présentation en liste d'items (cohérente avec les autres sections, responsive mobile).
+    let infoBody = '<ul class="detail-list">';
+    if (diplome.typeDiplome) infoBody += `<li class="detail-item detail-item--info"><div><strong>Type :</strong> ${diplome.typeDiplome}</div></li>`;
+    if (diplome.niveau)      infoBody += `<li class="detail-item detail-item--info"><div><strong>Niveau :</strong> ${diplome.niveau}</div></li>`;
+    if (diplome.rncpCode)    infoBody += `<li class="detail-item detail-item--info"><div><strong>Code RNCP :</strong> ${diplome.rncpCode}</div></li>`;
+    infoBody += '</ul>';
     html += accordionSection('📋', 'Informations générales', '', infoBody, true);
 
     // Section 2 : Contenu de la formation (repliée, toujours affiché si non vide)
@@ -1125,6 +1126,8 @@ function generateParcoursFormationHtml(diplome, parcoursBacPro, duree) {
     }
 
     // ── Cas 2 : Bac général ─────────────────────────────────────────────
+    // Durée codée en dur (3 ans après la 3ème) car l'API ONISEP renvoie
+    // la durée du dernier cycle (terminale = 1 an) et non le parcours complet.
     if (type.includes('baccalauréat général') || libelle.toLowerCase().startsWith('bac général')) {
         let items = '<ul class="detail-list">';
         items += `<li class="detail-item detail-item--info">
@@ -1133,12 +1136,13 @@ function generateParcoursFormationHtml(diplome, parcoursBacPro, duree) {
             <div><strong>1ère :</strong> Première générale — choix de 3 spécialités</div></li>`;
         items += `<li class="detail-item detail-item--info">
             <div><strong>Terminale :</strong> Terminale générale — 2 spécialités conservées</div></li>`;
-        if (duree) items += `<li class="detail-item detail-item--info"><div><strong>Durée :</strong> ${duree}</div></li>`;
+        items += `<li class="detail-item detail-item--info"><div><strong>Durée :</strong> 3 ans après la 3ème</div></li>`;
         items += '</ul>';
         return items;
     }
 
     // ── Cas 3 : Bac technologique ───────────────────────────────────────
+    // Durée codée en dur (3 ans après la 3ème) — même raison que le bac général.
     if (type.includes('baccalauréat technologique') || libelle.toLowerCase().startsWith('bac techno')) {
         const serie = libelle.replace(/^bac techno /i, '').split(' enseignement')[0];
         let items = '<ul class="detail-list">';
@@ -1148,7 +1152,7 @@ function generateParcoursFormationHtml(diplome, parcoursBacPro, duree) {
             <div><strong>1ère :</strong> Première ${serie}</div></li>`;
         items += `<li class="detail-item detail-item--info">
             <div><strong>Terminale :</strong> Terminale ${serie}</div></li>`;
-        if (duree) items += `<li class="detail-item detail-item--info"><div><strong>Durée :</strong> ${duree}</div></li>`;
+        items += `<li class="detail-item detail-item--info"><div><strong>Durée :</strong> 3 ans après la 3ème</div></li>`;
         items += '</ul>';
         return items;
     }
@@ -1162,12 +1166,13 @@ function generateParcoursFormationHtml(diplome, parcoursBacPro, duree) {
             <div><strong>1ère année :</strong> Enseignements généraux et professionnels</div></li>`;
         items += `<li class="detail-item detail-item--info">
             <div><strong>2ème année :</strong> Spécialisation et périodes de formation en milieu professionnel</div></li>`;
-        if (duree) items += `<li class="detail-item detail-item--info"><div><strong>Durée :</strong> ${duree}</div></li>`;
+        items += `<li class="detail-item detail-item--info"><div><strong>Durée :</strong> 2 ans après la 3ème</div></li>`;
         items += '</ul>';
         return items;
     }
 
     // ── Cas 5 : Bac Pro sans famille de métiers connue ──────────────────
+    // Durée codée en dur : 3 ans après la 3ème (seconde spécifique + 1ère + terminale).
     if (type.includes('bac pro') || libelle.toLowerCase().startsWith('bac pro')) {
         let items = '<ul class="detail-list">';
         items += `<li class="detail-item detail-item--info">
@@ -1178,7 +1183,7 @@ function generateParcoursFormationHtml(diplome, parcoursBacPro, duree) {
             <div><strong>1ère :</strong> Première ${libelle.replace(/^bac pro /i, '')}</div></li>`;
         items += `<li class="detail-item detail-item--info">
             <div><strong>Terminale :</strong> Terminale ${libelle.replace(/^bac pro /i, '')}</div></li>`;
-        if (duree) items += `<li class="detail-item detail-item--info"><div><strong>Durée :</strong> ${duree}</div></li>`;
+        items += `<li class="detail-item detail-item--info"><div><strong>Durée :</strong> 3 ans après la 3ème</div></li>`;
         items += '</ul>';
         return items;
     }
@@ -1243,12 +1248,14 @@ function _generateParcoursProHtml(parcours, duree) {
         </li>`;
     }
 
-    // Item 5 : Durée (si disponible)
-    if (duree) {
-        items += `<li class="detail-item detail-item--info">
-            <div><strong>Durée :</strong> ${duree}</div>
-        </li>`;
-    }
+    // Item 5 : Durée — codée en dur à 3 ans pour les bac pro
+    // L'API ONISEP renvoie « 2 ans » pour les familles de métiers (= 1ère+terminale)
+    // car la seconde commune n'est pas comptée dans le cycle du diplôme spécifique.
+    // Pour un bac pro hors famille, l'API renvoie « 3 ans » (seconde spécifique incluse).
+    // On affiche toujours 3 ans car c'est la durée réelle du parcours après la 3ème.
+    items += `<li class="detail-item detail-item--info">
+        <div><strong>Durée :</strong> 3 ans après la 3ème</div>
+    </li>`;
 
     items += '</ul>';
     return items;
@@ -1467,20 +1474,21 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
     }
 
     // ── SECTION 1 : INFORMATIONS GÉNÉRALES (ouverte) ──────────────────
-    const infoBody = `
-    <div class="detail-info-grid">
-        ${buildInfoRow('UAI', etablissement.uai)}
-        ${etablissement.siret ? buildInfoRow('SIRET', etablissement.siret) : ''}
-        ${buildInfoRow('Type', etablissement.type)}
-        ${buildInfoRow('Statut', etablissement.statut)}
-        ${etablissement.tutelle ? buildInfoRow('Tutelle', etablissement.tutelle) : ''}
-        ${etablissement.adresse ? buildInfoRow('Adresse', `${etablissement.adresse}, ${etablissement.codePostal}${etablissement.cedex ? ' CEDEX ' + etablissement.cedex : ''} ${etablissement.commune}`) : ''}
-        ${etablissement.telephone ? buildInfoRow('Téléphone', formatTelephone(etablissement.telephone)) : ''}
-        ${etablissement.email ? buildInfoRow('Email', `<a href="mailto:${etablissement.email}">${etablissement.email}</a>`) : ''}
-        ${etablissement.siteWeb ? buildInfoRow('Site web', `<a href="${etablissement.siteWeb}" target="_blank">${etablissement.siteWeb}</a>`) : ''}
-        ${etablissement.hebergement ? buildInfoRow('Hébergement', etablissement.hebergement) : ''}
-        ${etablissement.restauration ? buildInfoRow('Restauration', etablissement.restauration) : ''}
-    </div>`;
+    // Présentation en liste d'items (comme les autres sections) pour une
+    // bonne lisibilité sur tous les écrans, y compris téléphone.
+    let infoBody = '<ul class="detail-list">';
+    if (etablissement.uai)        infoBody += `<li class="detail-item detail-item--info"><div><strong>UAI :</strong> ${etablissement.uai}</div></li>`;
+    if (etablissement.siret)      infoBody += `<li class="detail-item detail-item--info"><div><strong>SIRET :</strong> ${etablissement.siret}</div></li>`;
+    if (etablissement.type)       infoBody += `<li class="detail-item detail-item--info"><div><strong>Type :</strong> ${etablissement.type}</div></li>`;
+    if (etablissement.statut)     infoBody += `<li class="detail-item detail-item--info"><div><strong>Statut :</strong> ${etablissement.statut}</div></li>`;
+    if (etablissement.tutelle)    infoBody += `<li class="detail-item detail-item--info"><div><strong>Tutelle :</strong> ${etablissement.tutelle}</div></li>`;
+    if (etablissement.adresse)    infoBody += `<li class="detail-item detail-item--info"><div><strong>Adresse :</strong> ${etablissement.adresse}, ${etablissement.codePostal}${etablissement.cedex ? ' CEDEX ' + etablissement.cedex : ''} ${etablissement.commune}</div></li>`;
+    if (etablissement.telephone)  infoBody += `<li class="detail-item detail-item--info"><div><strong>Téléphone :</strong> ${formatTelephone(etablissement.telephone)}</div></li>`;
+    if (etablissement.email)      infoBody += `<li class="detail-item detail-item--info"><div><strong>Email :</strong> <a href="mailto:${etablissement.email}">${etablissement.email}</a></div></li>`;
+    if (etablissement.siteWeb)    infoBody += `<li class="detail-item detail-item--info"><div><strong>Site web :</strong> <a href="${etablissement.siteWeb}" target="_blank">${etablissement.siteWeb}</a></div></li>`;
+    if (etablissement.hebergement)  infoBody += `<li class="detail-item detail-item--info"><div><strong>Hébergement :</strong> ${etablissement.hebergement}</div></li>`;
+    if (etablissement.restauration) infoBody += `<li class="detail-item detail-item--info"><div><strong>Restauration :</strong> ${etablissement.restauration}</div></li>`;
+    infoBody += '</ul>';
     html += accordionSection('📍', 'Informations générales', '', infoBody, true);
 
     // ── SECTION 2 : DIPLÔMES VOIE SCOLAIRE ────────────────────────────
@@ -1620,13 +1628,51 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
 
     // ── SECTION : ACCESSIBILITÉ & INFORMATIONS COMPLÉMENTAIRES ──────────
     if (etablissement.accessibilite || etablissement.opcoNom || etablissement.formeJuridique || etablissement.nda) {
-        const compBody = `<div class="detail-info-grid">
-            ${etablissement.accessibilite ? buildInfoRow('♿ Accessibilité', etablissement.accessibilite) : ''}
-            ${etablissement.opcoNom ? buildInfoRow('OPCO', etablissement.opcoNom) : ''}
-            ${etablissement.formeJuridique ? buildInfoRow('Forme juridique', etablissement.formeJuridique) : ''}
-            ${etablissement.nda ? buildInfoRow('NDA', etablissement.nda) : ''}
-        </div>`;
+        let compBody = '<ul class="detail-list">';
+        if (etablissement.accessibilite) compBody += `<li class="detail-item detail-item--info"><div><strong>♿ Accessibilité :</strong> ${etablissement.accessibilite}</div></li>`;
+        if (etablissement.opcoNom)       compBody += `<li class="detail-item detail-item--info"><div><strong>OPCO :</strong> ${etablissement.opcoNom}</div></li>`;
+        if (etablissement.formeJuridique) compBody += `<li class="detail-item detail-item--info"><div><strong>Forme juridique :</strong> ${etablissement.formeJuridique}</div></li>`;
+        if (etablissement.nda)           compBody += `<li class="detail-item detail-item--info"><div><strong>NDA :</strong> ${etablissement.nda}</div></li>`;
+        compBody += '</ul>';
         html += accordionSection('ℹ️', 'Informations complémentaires', '', compBody, true);
+    }
+
+    // ── SECTION : AUTRES FORMATIONS ET DIPLÔMES (niveau 5+) ────────────
+    // Formations post-bac issues d'ONISEP (actions_sup : BTS, CPGE…) et/ou de
+    // CARIF-OREF (BTS apprentissage, licence pro…). Informatives, non cliquables.
+    if (etablissement.uai && window.databaseService?.getAutresFormationsParEtablissement) {
+        const autresFormations = window.databaseService.getAutresFormationsParEtablissement(etablissement.uai);
+        if (autresFormations && autresFormations.length > 0) {
+            // Grouper par niveau
+            const parNiveau = {};
+            for (const f of autresFormations) {
+                const niv = f.niveau || 'Autre';
+                if (!parNiveau[niv]) parNiveau[niv] = [];
+                parNiveau[niv].push(f);
+            }
+            // Trier les niveaux (alphabétique → 5…, 6…, 7…, BTS ou…, etc.)
+            const niveauxTries = Object.keys(parNiveau).sort();
+
+            let body = '';
+            for (const niv of niveauxTries) {
+                const liste = parNiveau[niv].sort((a, b) => a.libelle.localeCompare(b.libelle, 'fr'));
+                body += `<div class="diplomes-categorie">
+                    <h4 class="diplomes-categorie-title">${niv} (${liste.length})</h4>
+                    <ul class="detail-list">`;
+                for (const f of liste) {
+                    const typeInfo = f.typeDiplome ? ` <span class="dispositif-type">${f.typeDiplome}</span>` : '';
+                    const voieBadge = f.source === 'onisep'
+                        ? ' <span class="voie-badge voie-badge--scolaire">🏫 Scolaire</span>'
+                        : ' <span class="voie-badge voie-badge--apprentissage">🎓 Appr.</span>';
+                    body += `<li class="detail-item detail-item--info">
+                        <div><strong>${f.libelle}</strong>${typeInfo}${voieBadge}</div>
+                    </li>`;
+                }
+                body += `</ul></div>`;
+            }
+            const total = autresFormations.length;
+            html += accordionSection('🎓', 'Autres formations et diplômes', total, body, true);
+        }
     }
 
     // ── En savoir plus ONISEP ─────────────────────────────────────────
@@ -1713,16 +1759,17 @@ function buildDiplomeDetailsHTML(diplomeEnrichi) {
     }
 
     // ── Section 1 : Informations générales ──────────────────────────────
-    let infoBody = '<div class="detail-info-grid">';
-    infoBody += buildInfoRow('Type', diplome.type || 'Non renseigné');
-    infoBody += buildInfoRow('Nature', diplome.natureCertificat || 'Non renseigné');
-    infoBody += buildInfoRow('Niveau', diplome.niveauSortie || 'Non renseigné');
+    // Présentation en liste d'items (cohérente avec les autres sections, responsive mobile).
+    let infoBody = '<ul class="detail-list">';
+    infoBody += `<li class="detail-item detail-item--info"><div><strong>Type :</strong> ${diplome.type || 'Non renseigné'}</div></li>`;
+    infoBody += `<li class="detail-item detail-item--info"><div><strong>Nature :</strong> ${diplome.natureCertificat || 'Non renseigné'}</div></li>`;
+    infoBody += `<li class="detail-item detail-item--info"><div><strong>Niveau :</strong> ${diplome.niveauSortie || 'Non renseigné'}</div></li>`;
     // Durée du cycle (collectée depuis les relations, première valeur disponible)
     const dureeRelation = etablissements?.find(e => e.dureeCycleStandard)?.dureeCycleStandard;
     if (dureeRelation) {
-        infoBody += buildInfoRow('Durée du cycle', dureeRelation);
+        infoBody += `<li class="detail-item detail-item--info"><div><strong>Durée du cycle :</strong> ${dureeRelation}</div></li>`;
     }
-    infoBody += '</div>';
+    infoBody += '</ul>';
     html += accordionSection('📋', 'Informations générales', '', infoBody, true);
 
     // ── Section 2 : Parcours de formation ───────────────────────────────

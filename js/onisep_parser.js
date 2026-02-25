@@ -287,13 +287,17 @@ class OnisepParser {
         
         // Structure ETABLISSEMENT (champs ens_...) — enrichissement par UAI (1 fois)
         
-        // Enrichissement établissement : hebergement / siteWeb / accessibilite
+        // Enrichissement établissement : hebergement / siteWeb / accessibilite / telephone / urlOnisep
         // Stocké par UAI (première valeur rencontrée lors du traitement amont)
         if (action.ens_code_uai) {
             const enrich = {};
-            if (action.ens_hebergement)   enrich.hebergement   = action.ens_hebergement;
-            if (action.ens_site_web)      enrich.siteWeb       = action.ens_site_web;
-            if (action.ens_accessibilite) enrich.accessibilite = action.ens_accessibilite;
+            if (action.ens_hebergement)       enrich.hebergement   = action.ens_hebergement;
+            if (action.ens_site_web)          enrich.siteWeb       = action.ens_site_web;
+            if (action.ens_accessibilite)     enrich.accessibilite = action.ens_accessibilite;
+            // ens_n_telephone (actions_lycee) ou ens_telephone (dispositifs)
+            const tel = action.ens_n_telephone || action.ens_telephone;
+            if (tel) enrich.telephone = tel;
+            if (action.ens_url_et_id_onisep) enrich.urlOnisep     = action.ens_url_et_id_onisep;
             if (Object.keys(enrich).length > 0) {
                 result.enrichissements_etab.push({ uai: action.ens_code_uai, ...enrich });
             }

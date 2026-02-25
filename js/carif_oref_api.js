@@ -213,6 +213,68 @@ class CARIFOREFApi {
     // =====================================
 
     /**
+     * Récupère les formations de niveau 5+ (BTS, licence, etc.) pour un ensemble d'UAI.
+     * Utilisé pour la section « Autres formations et diplômes » dans la fiche établissement.
+     * Retourne une liste légère (intitulé, niveau, type) sans stocker en base.
+     *
+     * @param {string[]} uais - Liste d'UAI des établissements
+     * @param {Function|null} progressCallback
+     * @returns {Promise<Object[]>} formations brutes (champs limités)
+     */
+    async getFormationsNiveau5PlusByUAIs(uais, progressCallback = null) {
+        if (!uais || uais.length === 0) return [];
+
+        const allResults = [];
+        const uaisUniques = [...new Set(uais)];
+
+        console.log(`[CARIFOREFApi] 🔍 Formations niveau 5+ pour ${uaisUniques.length} UAI(s)`);
+
+        const batchSize = 10;
+        const totalBatches = Math.ceil(uaisUniques.length / batchSize);
+
+        for (let i = 0; i < uaisUniques.length; i += batchSize) {
+            const batch = uaisUniques.slice(i, i + batchSize);
+            const batchNum = Math.floor(i / batchSize) + 1;
+
+            const uaiFilter = batch.length === 1
+                ? { etablissement_formateur_uai: batch[0] }
+                : { $or: batch.map(u => ({ etablissement_formateur_uai: u })) };
+
+            // L'API CARIF-OREF ne supporte pas de filtre regex sur le champ « niveau ».
+            // On récupère toutes les formations actives de ces UAI avec un select léger,
+            // puis on filtre côté client pour ne garder que les niveaux 5+.
+            const query = { $and: [ uaiFilter, { rncp_eligible_apprentissage: true }, { cfd_outdated: false } ] };
+
+            const select = {
+                etablissement_formateur_uai: 1,
+                rncp_code: 1,
+                intitule_long: 1,
+                intitule_court: 1,
+                diplome: 1,
+                niveau: 1
+            };
+
+            if (progressCallback) {
+                progressCallback(`🔍 Lot ${batchNum}/${totalBatches} (formations niveau 5+)...`);
+            }
+
+            const results = await this.#queryFormations(query, null, select);
+            // Filtrer côté client : garder uniquement les niveaux 5+
+            const filtered = results.filter(f => {
+                const niveau = (f.niveau || '').trim();
+                return CARIFOREFApi.NIVEAUX_EXCLUS.some(prefix => niveau.startsWith(prefix));
+            });
+            allResults.push(...filtered);
+
+            if (i + batchSize < uaisUniques.length) await this._sleep(200);
+        }
+
+        const unique = this.#deduplicateById(allResults, 'id');
+        console.log(`[CARIFOREFApi] ✅ ${unique.length} formations niveau 5+ uniques`);
+        return unique;
+    }
+
+    /**
      * Requête générique sur /etablissements avec pagination automatique
      * @private
      */

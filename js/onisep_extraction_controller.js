@@ -936,6 +936,10 @@ class OnisepExtractionController {
             this.#addProgressDetail(`${stats.input.diplomes} diplômes → ${stats.stored.diplomes} stockés`);
             this.#databaseService.flush(); // 💾 1 save au lieu de N
 
+            // ÉTAPE 1bis : Collecter les diplômes scolaires de niveau 5+ (BTS, CPGE…)
+            // rejetés par #buildDiplomesValidesArray, pour les afficher en « Autres formations ».
+            await this.#collecterAutresDiplomesScolaires(rawData, diplomesUniquesMap);
+
             // ÉTAPE 2 : Construire la map des relations etablissement-diplômes valides,
             // puis les stocker dans la base
             const diplomesParEtablissementMap = await this.#buildDiplomesParEtablissementMap(rawData, diplomesUniquesMap);
@@ -1028,8 +1032,8 @@ class OnisepExtractionController {
     }
     
     /**
-     * Enrichit les établissements stockés avec hebergement, siteWeb, accessibilite
-     * extraits des actions lycée/sup (ens_... fields).
+     * Enrichit les établissements stockés avec hebergement, siteWeb, accessibilite,
+     * telephone et urlOnisep extraits des actions lycée/sup (ens_... fields).
      * Stratégie : première valeur rencontrée par UAI, ne pas écraser si déjà renseigné.
      * @param {Object} rawData
      * @param {Map<string,string>} uaiToId  - UAI → _id interne (construit à l'étape 3)
@@ -1055,6 +1059,8 @@ class OnisepExtractionController {
                 if (!existing.hebergement   && e.hebergement)   existing.hebergement   = e.hebergement;
                 if (!existing.siteWeb       && e.siteWeb)       existing.siteWeb       = e.siteWeb;
                 if (!existing.accessibilite && e.accessibilite) existing.accessibilite = e.accessibilite;
+                if (!existing.telephone     && e.telephone)     existing.telephone     = e.telephone;
+                if (!existing.urlOnisep     && e.urlOnisep)     existing.urlOnisep     = e.urlOnisep;
             }
         }
 
@@ -1069,6 +1075,8 @@ class OnisepExtractionController {
             if (!existing.hebergement   && enrich.hebergement)   updates.hebergement   = enrich.hebergement;
             if (!existing.siteWeb       && enrich.siteWeb)       updates.siteWeb       = enrich.siteWeb;
             if (!existing.accessibilite && enrich.accessibilite) updates.accessibilite = enrich.accessibilite;
+            if (!existing.telephone     && enrich.telephone)     updates.telephone     = enrich.telephone;
+            if (!existing.urlOnisep     && enrich.urlOnisep)     updates.urlOnisep     = enrich.urlOnisep;
 
             if (Object.keys(updates).length > 0) {
                 await this.#databaseService.updateEtablissement(id, updates);
@@ -1077,7 +1085,7 @@ class OnisepExtractionController {
         }
 
         if (nbEnrichis > 0) this.#databaseService.flush();
-        console.log(`[OnisepExtractionController] ✅ ${nbEnrichis} étab(s) enrichis (hébergement/siteWeb/accessibilité)`);
+        console.log(`[OnisepExtractionController] ✅ ${nbEnrichis} étab(s) enrichis (hébergement/siteWeb/accessibilité/téléphone/urlOnisep)`);
     }
 
     /**
@@ -1096,6 +1104,79 @@ class OnisepExtractionController {
             // Tout le reste est exclu
             return false;
         });
+    }
+
+    /**
+     * Collecte les diplômes scolaires de niveau supérieur (BTS, CPGE, DN MADE…)
+     * rejetés par #buildDiplomesValidesArray, et les stocke par UAI dans la table
+     * autres_formations_par_etablissement pour affichage dans les fiches établissement.
+     *
+     * Source : rawData.diplomes (actions_lycee + actions_sup) dont le niveauSortie
+     * n'est ni « cap ou équivalent » ni « bac ou équivalent ».
+     *
+     * @param {Object} rawData
+     * @param {Map<string,Object>} diplomesUniquesMap - diplômes déjà stockés (pour exclure)
+     * @private
+     */
+    async #collecterAutresDiplomesScolaires(rawData, diplomesUniquesMap) {
+        // Identifier les diplômes rejetés (niveau 5+)
+        const diplomesNiv5Plus = (rawData.diplomes || []).filter(d => {
+            const niveau = (d.niveauSortie || '').toLowerCase();
+            return niveau !== 'cap ou équivalent' && niveau !== 'bac ou équivalent' && niveau !== '';
+        });
+
+        if (diplomesNiv5Plus.length === 0) return;
+
+        // Dédupliquer les diplômes par libellé
+        const diplomesMap = new Map();
+        for (const d of diplomesNiv5Plus) {
+            if (d.libelle && !diplomesMap.has(d.libelle)) {
+                diplomesMap.set(d.libelle, d);
+            }
+        }
+
+        // Construire un index UAI → liste de libellés depuis les relations
+        const parUai = new Map(); // UAI → Map<libelle, {libelle, niveau, type}>
+        const relations = rawData.relationsDiplomesEtablissements || [];
+        for (const rel of relations) {
+            if (!rel.uai || !rel.libelle) continue;
+            const diplome = diplomesMap.get(rel.libelle);
+            if (!diplome) continue; // Ce diplôme est soit CAP/Bac (déjà stocké), soit inconnu
+
+            if (!parUai.has(rel.uai)) parUai.set(rel.uai, new Map());
+            const cleUnique = diplome.libelle.toLowerCase();
+            if (parUai.get(rel.uai).has(cleUnique)) continue;
+
+            parUai.get(rel.uai).set(cleUnique, {
+                libelle:     diplome.libelle,
+                niveau:      diplome.niveauSortie || 'Autre',
+                typeDiplome: diplome.type || '',
+                source:      'onisep'
+            });
+        }
+
+        // Stocker par UAI (fusion avec les éventuelles données CARIF-OREF déjà présentes)
+        let nbUais = 0;
+        let nbFormations = 0;
+        for (const [uai, formationsMap] of parUai) {
+            const existantes = this.#databaseService.getAutresFormationsParEtablissement(uai) || [];
+            const existantesSet = new Set(existantes.map(f => f.libelle.toLowerCase()));
+
+            const nouvelles = Array.from(formationsMap.values())
+                .filter(f => !existantesSet.has(f.libelle.toLowerCase()));
+
+            if (nouvelles.length > 0) {
+                const merged = [...existantes, ...nouvelles];
+                await this.#databaseService.insertAutresFormationsParEtablissement(uai, merged);
+                nbUais++;
+                nbFormations += nouvelles.length;
+            }
+        }
+
+        if (nbFormations > 0) {
+            this.#databaseService.flush();
+            this.#addProgressDetail(`📚 ${nbFormations} diplômes scolaires niveau 5+ répartis sur ${nbUais} établissement(s)`);
+        }
     }
     
     /**

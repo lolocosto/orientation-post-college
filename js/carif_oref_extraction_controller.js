@@ -394,6 +394,14 @@ setGeoController(geoController) {
             console.warn('[CARIFOREFExtractionController] Enrichissement type/statut non critique:', err);
         }
 
+        // ── ÉTAPE 4 : Extraction des formations niveau 5+ (non cliquables) ──
+        this.#update('🎓 Recherche des formations post-bac (niveau 5+)...', 95, 100);
+        try {
+            await this.#extractAutresFormationsNiveau5Plus(uais);
+        } catch (err) {
+            console.warn('[CARIFOREFExtractionController] Extraction niveau 5+ non critique:', err);
+        }
+
         return {
             etablissements: nbEtabStockes,
             diplomes:  statsStep2.diplomes,
@@ -464,6 +472,13 @@ setGeoController(geoController) {
             }
         } catch (err) {
             console.warn('[CARIFOREFExtractionController] Enrichissement type/statut non critique:', err);
+        }
+
+        // ── ÉTAPE 4 : Extraction des formations niveau 5+ (non cliquables) ──
+        try {
+            await this.#extractAutresFormationsNiveau5Plus(uais);
+        } catch (err) {
+            console.warn('[CARIFOREFExtractionController] Extraction niveau 5+ non critique:', err);
         }
 
         return {
@@ -594,6 +609,60 @@ setGeoController(geoController) {
         if (this.#databaseService) {
             await this.#databaseService.clearAprentissageData();
         }
+    }
+
+    /**
+     * Récupère les formations de niveau 5+ (BTS, licence, master) pour les UAIs donnés
+     * et les stocke par établissement pour affichage dans la section « Autres formations ».
+     * Ces données sont informatives uniquement (non cliquables, pas de navigation).
+     * @param {string[]} uais - UAI des établissements à interroger
+     * @private
+     */
+    async #extractAutresFormationsNiveau5Plus(uais) {
+        if (!uais || uais.length === 0) return;
+
+        this.#detail('🎓 Recherche des formations niveau 5+ (BTS, licence…)…');
+
+        const formationsBrutes = await this.#carifOrefApi.getFormationsNiveau5PlusByUAIs(
+            uais,
+            (d) => this.#detail(d)
+        );
+
+        if (!formationsBrutes || formationsBrutes.length === 0) {
+            this.#detail('ℹ️ Aucune formation niveau 5+ trouvée');
+            return;
+        }
+
+        // Agréger par UAI
+        const parUai = new Map(); // UAI → Set<libelle_niveau>
+        for (const f of formationsBrutes) {
+            const uai = (f.etablissement_formateur_uai || '').trim();
+            if (!uai) continue;
+
+            if (!parUai.has(uai)) parUai.set(uai, new Map());
+            const libelle = (f.intitule_long || f.intitule_court || '').trim();
+            const cleUnique = libelle.toLowerCase();
+            if (!libelle || parUai.get(uai).has(cleUnique)) continue;
+
+            parUai.get(uai).set(cleUnique, {
+                libelle,
+                niveau:      (f.niveau  || '').trim(),
+                typeDiplome: (f.diplome || '').trim()
+            });
+        }
+
+        // Stocker en base par UAI
+        let nbUais = 0;
+        let nbFormations = 0;
+        for (const [uai, formationsMap] of parUai) {
+            const formations = Array.from(formationsMap.values());
+            await this.#databaseService.insertAutresFormationsParEtablissement(uai, formations);
+            nbUais++;
+            nbFormations += formations.length;
+        }
+
+        this.#databaseService.flush();
+        this.#detail(`✅ ${nbFormations} formations niveau 5+ réparties sur ${nbUais} établissement(s)`);
     }
 
     #checkStopped() {

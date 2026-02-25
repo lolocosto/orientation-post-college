@@ -53,6 +53,8 @@ constructor(dbName = null) {
             // Voie apprentissage (CARIF-OREF)
             diplomes_apprentissage: {},
             diplomes_apprentissage_par_etablissement: {},
+            // Autres formations niveau 5+ (CARIF-OREF, non cliquables)
+            autres_formations_par_etablissement: {},
             langues: {},
             communes: {},
             departements: {},
@@ -1054,6 +1056,38 @@ getDiplomesApprentissageParEtablissementSync(etabId) {
         return diplomes;
     }
 
+    // =====================================
+    // AUTRES FORMATIONS NIVEAU 5+ (CARIF-OREF)
+    // =====================================
+
+    /**
+     * Insère une liste de formations niveau 5+ pour un établissement (par UAI).
+     * Chaque formation est un objet léger { libelle, niveau, typeDiplome }.
+     * Stockage par UAI pour lookup rapide dans la fiche établissement.
+     * @param {string} uai
+     * @param {Object[]} formations - [{ libelle, niveau, typeDiplome }]
+     */
+    async insertAutresFormationsParEtablissement(uai, formations) {
+        if (!uai || !formations || formations.length === 0) return;
+        this.#storage.autres_formations_par_etablissement[uai] = formations;
+    }
+
+    /**
+     * Retourne les formations niveau 5+ d'un établissement.
+     * @param {string} uai
+     * @returns {Object[]} [{ libelle, niveau, typeDiplome }]
+     */
+    getAutresFormationsParEtablissement(uai) {
+        return this.#storage.autres_formations_par_etablissement[uai] || [];
+    }
+
+    /**
+     * Supprime toutes les données "autres formations" (lors du reset apprentissage).
+     */
+    clearAutresFormations() {
+        this.#storage.autres_formations_par_etablissement = {};
+    }
+
     /**
      * Fusionne la voie apprentissage sur un établissement existant,
      * ou insère un nouvel établissement si l'UAI est inconnu.
@@ -1115,6 +1149,7 @@ async clearAllData() {
         this.#storage.specialites_1ereG_par_etablissement = {};
         this.#storage.diplomes_apprentissage = {};
         this.#storage.diplomes_apprentissage_par_etablissement = {};
+        this.#storage.autres_formations_par_etablissement = {};
         this.#storage.langues = {};
         this.#saveToLocalStorage();
     }
@@ -1135,6 +1170,7 @@ async clearAllData() {
         }
         this.#storage.diplomes_apprentissage = {};
         this.#storage.diplomes_apprentissage_par_etablissement = {};
+        this.#storage.autres_formations_par_etablissement = {};
         this.#saveToLocalStorage();
         console.log('[DatabaseService] ✅ Données CARIF-OREF vidées');
     }
@@ -1156,6 +1192,7 @@ async clearOnisepData() {
         this.#storage.specialites_1ereG_par_etablissement={};
         this.#storage.diplomes_apprentissage={};
         this.#storage.diplomes_apprentissage_par_etablissement={};
+        this.#storage.autres_formations_par_etablissement={};
         this.#saveToLocalStorage();
     }
 
@@ -1167,6 +1204,7 @@ async clearAprentissageData() {
         console.log('[DatabaseService] 🗑️ Vidage des données apprentissage CARIF-OREF');
         this.#storage.diplomes_apprentissage={};
         this.#storage.diplomes_apprentissage_par_etablissement={};
+        this.#storage.autres_formations_par_etablissement={};
         for (const id of Object.keys(this.#storage.etablissements)) {
             const etab = this.#storage.etablissements[id];
             if (etab.voies) {
