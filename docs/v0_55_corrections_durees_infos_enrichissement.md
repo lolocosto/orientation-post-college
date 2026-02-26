@@ -116,17 +116,50 @@ Ces champs sont automatiquement fusionnés lors de l'appel à `fusionnerEtabliss
 
 ---
 
+### 6. Suppression des badges durée dans les listes de diplômes de l'établissement
+
+**Problème :** Les listes de diplômes (scolaires et apprentissage) dans la fiche établissement affichaient un badge ⏱ avec la durée brute de l'API (`dureeCycleStandard` ou `_dureeAnnees`). Cette durée était incohérente avec la durée corrigée affichée dans le parcours de formation du détail diplôme (cf. correctif 1). De plus, aucune durée n'était affichée pour les diplômes apprentissage, créant une disparité visuelle.
+
+**Solution :** Suppression des badges durée dans les deux listes de la fiche établissement. La durée reste visible aux bons endroits :
+- Parcours de formation du détail diplôme scolaire (durée hardcodée correcte)
+- Badge ⏱ sur les centres de formation dans le détail diplôme apprentissage (durée spécifique relation)
+- Informations générales du détail diplôme scolaire (`dureeRelation`)
+
+**Fichier modifié :** `js/gestion_onglet_resultats.js` — `buildEtablissementDetailsHTML()`
+
+---
+
+### 7. Liens externes : site web de l'établissement + fiche ONISEP
+
+**Problème :** Le site web de l'établissement (enrichi via `ens_site_web` des actions ONISEP) était affiché comme un simple texte dans les informations générales, peu visible. Il manquait au même endroit que le bouton « Fiche ONISEP ».
+
+**Solution :** Le site web est déplacé des infos générales vers une nouvelle zone de liens externes en bas de fiche, présentée en boutons côte à côte :
+
+| Bouton | Source | Icône |
+|---|---|---|
+| 🌐 Site de l'établissement | `ens_site_web` (actions ONISEP) | `btn--secondary` |
+| 📖 Fiche ONISEP | `url_et_id_onisep` (structures) ou `onisep_url` (CARIF) | `btn--primary` |
+
+Les URLs sans protocole sont normalisées avec `https://`. La zone `detail-external-links` utilise flexbox avec retour à la ligne sur mobile.
+
+**Fichiers modifiés :**
+- `js/gestion_onglet_resultats.js` — `buildEtablissementDetailsHTML()`
+- `css/design-system.css` — nouveau style `.detail-external-links`
+
+---
+
 ## Fichiers modifiés
 
 | Fichier | Modifications |
 |---|---|
-| `js/gestion_onglet_resultats.js` | Durées en dur, infos en liste, section Autres formations avec badges voie |
+| `js/gestion_onglet_resultats.js` | Durées en dur, badges durée supprimés des listes établissement, infos en liste, section Autres formations avec badges voie, liens externes (site web + ONISEP) |
 | `js/onisep_parser.js` | Collecte ens_telephone / ens_url_onisep |
 | `js/onisep_extraction_controller.js` | Enrichissement étendu (5 champs) + collecte diplômes scolaires 5+ |
 | `js/carif_oref_api.js` | Nouvelle méthode getFormationsNiveau5PlusByUAIs (avec select) |
 | `js/carif_oref_parser.js` | Enrichissement établissements avec email + téléphone depuis formations |
 | `js/carif_oref_extraction_controller.js` | Extraction niveau 5+ apprentissage + méthode privée |
 | `js/database_service.js` | Table autres_formations + méthodes + clear dans toutes les méthodes de reset |
+| `css/design-system.css` | Style `.detail-external-links` (flexbox, responsive) |
 | `tests/11_unit_v055_corrections.test.js` | Tests unitaires v0.55 |
 
 ## Tests ajoutés
@@ -138,5 +171,7 @@ Ces champs sont automatiquement fusionnés lors de l'appel à `fusionnerEtabliss
 - **T-DB55** (3 tests) : Méthodes DatabaseService pour autres formations
 - **T-SCO5** (1 test) : Collecte des diplômes scolaires niveau 5+ depuis actions_sup
 - **T-CARIF-ENR** (2 tests) : Enrichissement établissements depuis formations CARIF (email, téléphone)
+- **T-DURETAB** (2 tests) : Pas de badge durée dans les listes de diplômes d'un établissement
+- **T-LIENS** (5 tests) : Liens externes (site web en bouton, normalisation URL, absence)
 
-**Total : 28 nouveaux tests**
+**Total : 35 nouveaux tests**

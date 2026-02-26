@@ -63,8 +63,8 @@ class TourGuide {
         this.#driver = window.driver.js.driver({
             showProgress:    true,
             progressText:    'Étape {{current}} sur {{total}}',
-            nextBtnText:     'Suivant →',
-            prevBtnText:     '← Précédent',
+            nextBtnText:     'Suiv. →',
+            prevBtnText:     '← Préc.',
             doneBtnText:     'Terminer ✓',
             overlayColor:    '#1a1a2e',
             overlayOpacity:  0.6,
@@ -100,8 +100,8 @@ class TourGuide {
                     description:
                         '<p>Cette application vous permet d\'explorer les établissements ' +
                         'et les formations disponibles après le collège.</p>' +
-                        '<p class="tour-hint">Ce tour présente les fonctions essentielles ' +
-                        'en 8 étapes. Vous pouvez le quitter à tout moment.</p>',
+                        '<p class="tour-hint">Ce tour guidé présente les fonctions essentielles ' +
+                        'en 9 étapes. Vous pouvez le quitter à tout moment.</p>',
                 }
             },
 
@@ -114,7 +114,7 @@ class TourGuide {
                         '<p>Tout commence ici. Trois modes sont disponibles :</p>' +
                         '<ul>' +
                         '<li><strong>🌍 Géographique</strong> — tous les établissements d\'une commune ou intercommunalité</li>' +
-                        '<li><strong>🎓 Par diplôme</strong> — tous les lycées proposant un Bac Pro, BTS, CAP…</li>' +
+                        '<li><strong>🎓 Par diplôme</strong> — tous les lycées proposant un Bac ou un CAP</li>' +
                         '<li><strong>📚 Par option</strong> — toutes les 2ndes GT avec une option spécifique</li>' +
                         '</ul>',
                     side: 'bottom',
@@ -131,11 +131,10 @@ class TourGuide {
                 popover: {
                     title: '📍 Recherche géographique',
                     description:
-                        '<p>Tapez le nom d\'une <strong>commune</strong> ' +
-                        '(ex&nbsp;: <em>Rennes</em>, <em>Nantes</em>).</p>' +
-                        '<p>Les résultats s\'affichent en temps réel via l\'API géographique officielle.</p>' +
-                        '<p>Vous choisissez ensuite le périmètre&nbsp;: commune seule ou toute ' +
-                        'l\'<strong>intercommunalité</strong>.</p>',
+                        '<p>Tapez au moins 3 lettres du nom de la <strong>commune</strong>.</p>' +
+                        '<p>Les résultats sont filtrés en temps réel.</p>' +
+                        '<p>Choisissez le vôtre, et le périmètre de la recherche&nbsp;:' +
+                        'commune seule ou toute l\'<strong>intercommunalité</strong>.</p>',
                     side: 'bottom',
                 },
                 onHighlightStarted: () => {
@@ -143,24 +142,34 @@ class TourGuide {
                 }
             },
 
-            // ── 4. Bouton extraction ────────────────────────────────────────
+            // ── 4. Sélection des voies ────────────────────────────────────────
+            {
+                element: '#tab-geo-voie-selector',
+                popover: {
+                    title: '📚 Voie(s) de formation',
+                    description:
+                        '<p>Choisissez les voies de formation à inclure dans la recherche :</p>' +
+                        '<ul>' +
+                        '<li><strong>Voie scolaire</strong> — établissements, diplômes, dispositifs pédagogiques, options de 2nde GT, obtenus dans la base ONISEP</li>' +
+                        '<li><strong>CARIF-OREF</strong> — établissements et diplômes, obtenus dans la base CARIF-OREF</li>' +
+                        '</ul>',
+                    side: 'top',
+                }
+            },
+
+            // ── 5. Bouton extraction ────────────────────────────────────────
             {
                 element: '#tab-btn-extract-geo',
                 popover: {
                     title: '🚀 Lancer l\'extraction',
                     description:
-                        '<p>Une fois la zone sélectionnée, ce bouton lance l\'extraction ' +
-                        'depuis les APIs&nbsp;:</p>' +
-                        '<ul>' +
-                        '<li><strong>ONISEP</strong> — lycées, diplômes, dispositifs, options</li>' +
-                        '<li><strong>CARIF-OREF</strong> — CFA et formations en apprentissage</li>' +
-                        '</ul>' +
-                        '<p>La durée varie de quelques secondes à quelques minutes selon le périmètre.</p>',
+                        '<p>Tous les critères sont sélectionnés&nbsp;: lancez l\'extraction&nbsp!</p>' +
+                        '<p>La durée varie de quelques secondes à quelques minutes selon la quantité de données à extraire.</p>',
                     side: 'top',
                 }
             },
 
-            // ── 5. Onglet Résultats ─────────────────────────────────────────
+            // ── 6. Onglet Résultats ─────────────────────────────────────────
             {
                 element: '[data-tab="resultats"]',
                 popover: {
@@ -182,7 +191,7 @@ class TourGuide {
                 }
             },
 
-            // ── 6. Filtres ──────────────────────────────────────────────────
+            // ── 7. Filtres ──────────────────────────────────────────────────
             {
                 element: '#filters-container',
                 popover: {
@@ -200,7 +209,7 @@ class TourGuide {
                 }
             },
 
-            // ── 7. Carte et itinéraire ──────────────────────────────────────
+            // ── 8. Carte et itinéraire ──────────────────────────────────────
             {
                 element: '[data-tab="carte"]',
                 popover: {
@@ -209,8 +218,8 @@ class TourGuide {
                         '<p>Visualisez tous les établissements sur une carte interactive.</p>' +
                         '<p>Cliquez sur un marqueur pour voir le résumé, puis&nbsp;:</p>' +
                         '<ul>' +
-                        '<li>Ouvrir la <strong>fiche détail</strong></li>' +
-                        '<li>Calculer un <strong>itinéraire</strong> depuis votre domicile ' +
+                        '<li>Ouvrez la <strong>fiche détaillée</strong></li>' +
+                        '<li>Calculez un <strong>itinéraire</strong> depuis votre domicile ' +
                         'ou votre établissement (s\'ouvre dans Google Maps)</li>' +
                         '</ul>' +
                         '<p>Marqueurs&nbsp;: ' +
@@ -224,19 +233,20 @@ class TourGuide {
                 }
             },
 
-            // ── 8. Panneau paramètres ───────────────────────────────────────
+            // ── 9. Panneau paramètres ───────────────────────────────────────
             {
                 element: '#hamburger-btn',
                 popover: {
                     title: '⚙️ Panneau de paramètres',
                     description:
-                        '<p>Ce bouton ouvre le panneau de configuration :</p>' +
+                        '<p>Ce bouton donne accès aux paramètres :</p>' +
                         '<ul>' +
-                        '<li>🔐 <strong>Connexion Onisep</strong> — identifiants API</li>' +
-                        '<li>🏫 <strong>Mon établissement</strong> — marqueur orange sur la carte</li>' +
-                        '<li>🏠 <strong>Mon domicile</strong> — point de départ des itinéraires</li>' +
-                        '<li>💾 <strong>Import / Export</strong> — sauvegarde et restauration</li>' +
-                        '<li>🚀 <strong>Tour guidé</strong> — rejouer ce tour à tout moment</li>' +
+                        '<li>🔐 <strong>Connexion Onisep</strong> — saisissez les identifiants nécessaires pour extraire les données depuis la base Onisep</li>' +
+                        '<li>🏫 <strong>Mon établissement \& domicile</strong> — pour positionner des marqueurs spécifiques sur la carte et définir les points de départ des itinéraires</li>' +
+                        '<li>⭐ <strong>Favoris</strong> — établissements, diplômes, dispositifs pédagogiques, options de 2nde GT et recherches mis en favoris s\'affichent ici pour un accès rapide</li>' +
+                        '<li>💾 <strong>Import / Export</strong> — sauvegardez et restaurez des données extraites pour un accès hors-ligne</li>' +
+                        '<li>❓ <strong>Aide \& À propos</strong> — apprenez comment créer votre compte Onisep, et découvrez l\'historique des changements</li>' +
+                        '<li>🚀 <strong>Tour guidé</strong> — rejouez ce tour guidé à tout moment&nbsp!</li>' +
                         '</ul>',
                     side: 'left',
                 },
@@ -245,14 +255,12 @@ class TourGuide {
                 }
             },
 
-            // ── 9. Fin ──────────────────────────────────────────────────────
+            // ── 10. Fin ──────────────────────────────────────────────────────
             {
                 popover: {
                     title: '✅ Vous êtes prêt !',
                     description:
                         '<p>Vous connaissez maintenant toutes les fonctions essentielles.</p>' +
-                        '<p>Pour rejouer ce tour, allez dans ' +
-                        '<strong>⚙️ Paramètres → 🚀 Tour guidé</strong>.</p>' +
                         '<p class="tour-hint">Bonne exploration&nbsp;! 🎓</p>',
                 }
             },

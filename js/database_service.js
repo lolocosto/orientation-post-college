@@ -1082,6 +1082,15 @@ getDiplomesApprentissageParEtablissementSync(etabId) {
     }
 
     /**
+     * Retourne toutes les relations diplômes-apprentissage ↔ établissements.
+     * Utilisé par buildEtablissementDetailsHTML pour récupérer le courriel CARIF-OREF (v0.56).
+     * @returns {Object}
+     */
+    _getApprentissageRelations() {
+        return this.#storage.diplomes_apprentissage_par_etablissement || {};
+    }
+
+    /**
      * Supprime toutes les données "autres formations" (lors du reset apprentissage).
      */
     clearAutresFormations() {

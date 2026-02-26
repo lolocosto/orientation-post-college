@@ -734,19 +734,19 @@ function buildDiplomeApprentissageDetailsHTML(diplomeEnrichi) {
     if (nbEtab > 0) {
         etabBody += '<ul class="detail-list">';
         for (const etab of etablissements) {
-            // Trouver la relation pour récupérer dureeAnnees et courriel
+            // Trouver la relation pour récupérer courriel (v0.56 : email déplacé vers fiche établissement)
             const relation = diplomeEnrichi.relations?.find(r => r.uai === etab.uai) || {};
             const certifBadge = etab.certifieQualite
                 ? ` <span class="voie-badge voie-badge--qualite" title="Certifié Qualiopi">✓ Qualiopi</span>` : '';
-            const dureeBadge = relation.dureeAnnees
-                ? ` <span class="badge badge--duree">⏱ ${relation.dureeAnnees} an${relation.dureeAnnees > 1 ? 's' : ''}</span>` : '';
+            // v0.56 : badge statut de l'établissement
+            const statutBadge = etab.statut
+                ? ` <span class="badge ${etab.statut === 'public' ? 'badge--statut-public' : 'badge--statut-prive'}">${etab.statut}</span>` : '';
             const opcoInfo = etab.opcoNom
                 ? `<div class="detail-etab-meta">OPCO : ${etab.opcoNom}</div>` : '';
-            const courrielInfo = relation.courriel
-                ? `<div class="detail-etab-meta">✉️ <a href="mailto:${relation.courriel}">${relation.courriel}</a></div>` : '';
+            // v0.56 : courriel stocké pour enrichir la fiche établissement, plus affiché ici
             etabBody += `<li class="detail-item detail-item--link" onclick="window.openEtablissementDetailsFromModal('${etab._id}')">
-                <div><strong>${etab.nom || etab.uai}</strong>${certifBadge}${dureeBadge} — ${etab.commune || ''} ↗</div>
-                ${opcoInfo}${courrielInfo}
+                <div><strong>${etab.nom || etab.uai}</strong>${certifBadge}${statutBadge} — ${etab.commune || ''} ↗</div>
+                ${opcoInfo}
             </li>`;
         }
         etabBody += '</ul>';
@@ -1485,7 +1485,16 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
     if (etablissement.adresse)    infoBody += `<li class="detail-item detail-item--info"><div><strong>Adresse :</strong> ${etablissement.adresse}, ${etablissement.codePostal}${etablissement.cedex ? ' CEDEX ' + etablissement.cedex : ''} ${etablissement.commune}</div></li>`;
     if (etablissement.telephone)  infoBody += `<li class="detail-item detail-item--info"><div><strong>Téléphone :</strong> ${formatTelephone(etablissement.telephone)}</div></li>`;
     if (etablissement.email)      infoBody += `<li class="detail-item detail-item--info"><div><strong>Email :</strong> <a href="mailto:${etablissement.email}">${etablissement.email}</a></div></li>`;
-    if (etablissement.siteWeb)    infoBody += `<li class="detail-item detail-item--info"><div><strong>Site web :</strong> <a href="${etablissement.siteWeb}" target="_blank">${etablissement.siteWeb}</a></div></li>`;
+    // v0.56 : email de contact apprentissage (issu CARIF-OREF, via relations)
+    if (!etablissement.email && window.databaseService) {
+        try {
+            const apprRels = Object.values(window.databaseService._getApprentissageRelations?.() || {})
+                .filter(r => r.uai === etablissement.uai && r.courriel);
+            if (apprRels.length > 0 && apprRels[0].courriel) {
+                infoBody += `<li class="detail-item detail-item--info"><div><strong>Email :</strong> <a href="mailto:${apprRels[0].courriel}">${apprRels[0].courriel}</a></div></li>`;
+            }
+        } catch (e) { /* silencieux */ }
+    }
     if (etablissement.hebergement)  infoBody += `<li class="detail-item detail-item--info"><div><strong>Hébergement :</strong> ${etablissement.hebergement}</div></li>`;
     if (etablissement.restauration) infoBody += `<li class="detail-item detail-item--info"><div><strong>Restauration :</strong> ${etablissement.restauration}</div></li>`;
     infoBody += '</ul>';
@@ -1502,11 +1511,9 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
                 <ul class="detail-list">`;
             for (const d of liste) {
                 const mod = d.modalites?.length ? ` <span class="diplome-modalite">${d.modalites.join(', ')}</span>` : '';
-                const dureeBadge = d.dureeCycleStandard
-                    ? ` <span class="badge badge--duree" title="Durée du cycle">⏱ ${d.dureeCycleStandard}</span>` : '';
                 const libEscaped = (d.libelle || '').replace(/'/g, "\\'");
                 body += `<li class="detail-item detail-item--link" onclick="showDiplomeDetails('${libEscaped}')">
-                    <div><strong>${d.libelle}</strong>${mod}${dureeBadge} ↗</div>
+                    <div><strong>${d.libelle}</strong>${mod} ↗</div>
                 </li>`;
             }
             body += `</ul></div>`;
@@ -1532,10 +1539,8 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
                 const qBadge = d.certifieQualite
                     ? ` <span class="voie-badge voie-badge--qualite" title="Certifié Qualiopi">✓ Qualiopi</span>`
                     : '';
-                const dureeBadge = d._dureeAnnees
-                    ? ` <span class="badge badge--duree" title="Durée">⏱ ${d._dureeAnnees} an${d._dureeAnnees > 1 ? 's' : ''}</span>` : '';
                 body += `<li class="detail-item detail-item--link" onclick="window.openDiplomeApprentissageDetailsFromModal('${d.id}')">
-                    <div><strong>${d.libelle||'N/A'}</strong>${qBadge}${dureeBadge} ↗</div>
+                    <div><strong>${d.libelle||'N/A'}</strong>${qBadge} ↗</div>
                 </li>`;
             }
             body += `</ul></div>`;
@@ -1675,12 +1680,23 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
         }
     }
 
-    // ── En savoir plus ONISEP ─────────────────────────────────────────
-    if (etablissement.urlOnisep) {
-        const onisepUrl = etablissement.urlOnisep.split('|')[1] || etablissement.urlOnisep;
-        html += `<div class="detail-onisep-link">
-            <a href="${onisepUrl}" target="_blank" class="btn btn--primary">📖 Fiche ONISEP ↗</a>
-        </div>`;
+    // ── Liens externes : Site web de l'établissement + Fiche ONISEP ────
+    const hasLinks = etablissement.siteWeb || etablissement.urlOnisep;
+    if (hasLinks) {
+        html += '<div class="detail-external-links">';
+        if (etablissement.siteWeb) {
+            // Normaliser l'URL (ajouter https:// si manquant)
+            const siteUrl = etablissement.siteWeb.startsWith('http')
+                ? etablissement.siteWeb
+                : `https://${etablissement.siteWeb}`;
+            html += `<a href="${siteUrl}" target="_blank" class="btn btn--secondary">🌐 Site de l'établissement ↗</a>`;
+        }
+        if (etablissement.urlOnisep) {
+            const onisepUrl = etablissement.urlOnisep.split('|')[1] || etablissement.urlOnisep;
+            const fullOnisepUrl = onisepUrl.startsWith('http') ? onisepUrl : `https://${onisepUrl}`;
+            html += `<a href="${fullOnisepUrl}" target="_blank" class="btn btn--primary">📖 Fiche ONISEP ↗</a>`;
+        }
+        html += '</div>';
     }
 
     return html;
@@ -1764,11 +1780,8 @@ function buildDiplomeDetailsHTML(diplomeEnrichi) {
     infoBody += `<li class="detail-item detail-item--info"><div><strong>Type :</strong> ${diplome.type || 'Non renseigné'}</div></li>`;
     infoBody += `<li class="detail-item detail-item--info"><div><strong>Nature :</strong> ${diplome.natureCertificat || 'Non renseigné'}</div></li>`;
     infoBody += `<li class="detail-item detail-item--info"><div><strong>Niveau :</strong> ${diplome.niveauSortie || 'Non renseigné'}</div></li>`;
-    // Durée du cycle (collectée depuis les relations, première valeur disponible)
+    // v0.56 : durée du cycle retirée de cette section (demande utilisateur)
     const dureeRelation = etablissements?.find(e => e.dureeCycleStandard)?.dureeCycleStandard;
-    if (dureeRelation) {
-        infoBody += `<li class="detail-item detail-item--info"><div><strong>Durée du cycle :</strong> ${dureeRelation}</div></li>`;
-    }
     infoBody += '</ul>';
     html += accordionSection('📋', 'Informations générales', '', infoBody, true);
 
@@ -1809,10 +1822,9 @@ function buildDiplomeDetailsHTML(diplomeEnrichi) {
         etablissements.sort((a, b) => (a.nom || '').localeCompare(b.nom || '', 'fr'));
         etabBody += '<ul class="detail-list">';
         for (const etab of etablissements) {
-            const dureeBadge = etab.dureeCycleStandard
-                ? ` <span class="badge badge--duree" title="Durée du cycle">⏱ ${etab.dureeCycleStandard}</span>` : '';
+            // v0.56 : durée de formation retirée (demande utilisateur)
             etabBody += `<li class="detail-item detail-item--link" onclick="window.openEtablissementDetailsFromModal('${etab._id}')">
-                    <div><strong>${etab.nom}</strong> — ${etab.commune}${dureeBadge}
+                    <div><strong>${etab.nom}</strong> — ${etab.commune}
                         <span class="badge ${etab.statut === 'public' ? 'badge--primary' : 'badge--success'}">${etab.statut}</span> ↗</div>
                 </li>`;
         }

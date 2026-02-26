@@ -9,6 +9,9 @@
 let map = null;
 let markersLayer = null;
 let userMarker = null;
+let homeMarker = null;         // v0.56 — marqueur domicile
+let _allMapLycees = [];        // v0.56 — liste complète pour filtrage
+let _allMapMarkers = [];       // v0.56 — couples {lycee, marker} pour filtrage
 
 /**
  * Initialise la carte Leaflet
@@ -221,7 +224,7 @@ function getEtablissementIcon(type) {
 
 /**
  * Charge et affiche les marqueurs de tous les établissements sur la carte.
- * Filtre les établissements selon l'état courant des filtres.
+ * Stocke les références pour le filtrage dynamique (v0.56).
  * @returns {Promise<void>}
  */
 async function loadMapMarkers() {
@@ -234,6 +237,7 @@ async function loadMapMarkers() {
     
     // Vider les marqueurs existants
     markersLayer.clearLayers();
+    _allMapMarkers = [];
     
     // Vérifier DatabaseService
     if (!window.databaseService) {
@@ -247,6 +251,7 @@ async function loadMapMarkers() {
     const lycees = allEtablissements.filter(etab => 
         etab.latitude != null && etab.longitude != null
     );
+    _allMapLycees = lycees;
     
     if (lycees.length === 0) {
         console.log('ℹ️ Aucun établissement avec coordonnées GPS');
@@ -273,7 +278,6 @@ async function loadMapMarkers() {
         const voieMarqueur = (voies.includes('scolaire') && voies.includes('apprentissage')) ? 'mixte'
                            : voies.includes('apprentissage') ? 'apprentissage'
                            : 'scolaire';
-        console.log(`🎨 Marqueur: ${lycee.nom} - Type: "${lycee.type}" - Voie: ${voieMarqueur}`);
         const icon = createCustomIcon(emoji, false, voieMarqueur);
         
         const marker = L.marker([lycee.latitude, lycee.longitude], { icon: icon })
@@ -282,6 +286,9 @@ async function loadMapMarkers() {
         
         // Tooltip au survol
         marker.bindTooltip(lycee.nom, {direction: 'top',offset: [0, -15],opacity: 0.9});
+        
+        // v0.56 — stocker la paire pour filtrage
+        _allMapMarkers.push({ lycee, marker });
         
         bounds.push([lycee.latitude, lycee.longitude]);
         visibleCount++;
@@ -293,7 +300,9 @@ async function loadMapMarkers() {
     }
     
     updateMapStats(lycees.length, visibleCount);
-    loadUserMarker(); // Charger marqueur utilisateur si défini
+    loadUserMarker();    // Charger marqueur établissement utilisateur
+    loadHomeMarker();    // v0.56 — Charger marqueur domicile
+    populateMapFilters();// v0.56 — Peupler les selects de filtres carte
     
     console.log(`✅ ${visibleCount} marqueurs affichés`);
 }
@@ -411,12 +420,13 @@ function loadUserMarker() {
 
 /**
  * Met à jour les statistiques affichées dans la barre d'info de la carte.
- * @param {number} total - Nombre total d'établissements
- * @param {number} visible - Nombre d'établissements visibles
- * @param {string} userStatus - Statut de l'établissement utilisateur
+ * @param {number|null} total - Nombre total d'établissements
+ * @param {number|null} visible - Nombre d'établissements visibles
+ * @param {string|null} userStatus - Statut de l'établissement utilisateur
+ * @param {string|null} homeStatus - Statut du domicile (v0.56)
  * @returns {void}
  */
-function updateMapStats(total, visible, userStatus) {
+function updateMapStats(total, visible, userStatus, homeStatus) {
     if (total !== null && total !== undefined) {
         document.getElementById('map-stat-total').textContent = total;
     }
@@ -425,6 +435,10 @@ function updateMapStats(total, visible, userStatus) {
     }
     if (userStatus !== null && userStatus !== undefined) {
         document.getElementById('map-stat-user').textContent = userStatus;
+    }
+    if (homeStatus !== null && homeStatus !== undefined) {
+        const el = document.getElementById('map-stat-home');
+        if (el) el.textContent = homeStatus;
     }
 }
 
@@ -476,10 +490,197 @@ function showLyceeDetailsCarte(id) {
 }
 
 // ══════════════════════════════════════════════════════════
+// v0.56 — MARQUEUR DOMICILE
+// ══════════════════════════════════════════════════════════
+
+/**
+ * Charge et affiche le marqueur du domicile de l'utilisateur.
+ * Lit les coordonnées GPS depuis les préférences (pref_user_domicile).
+ * @returns {void}
+ */
+function loadHomeMarker() {
+    console.log('🏠 loadHomeMarker appelée');
+
+    // Supprimer ancien marqueur domicile
+    if (homeMarker) {
+        map.removeLayer(homeMarker);
+        homeMarker = null;
+    }
+
+    const _lirePref = (cle) => {
+        if (window.databaseService?.lirePreference) return window.databaseService.lirePreference(cle);
+        return localStorage.getItem(cle);
+    };
+
+    const stored = _lirePref('pref_user_domicile');
+    if (!stored) {
+        updateMapStats(null, null, null, '-');
+        return;
+    }
+
+    let domicile;
+    try { domicile = JSON.parse(stored); }
+    catch (e) { updateMapStats(null, null, null, '❌'); return; }
+
+    const lat = parseFloat(domicile.latitude);
+    const lon = parseFloat(domicile.longitude);
+
+    if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+        updateMapStats(null, null, null, '❌');
+        return;
+    }
+
+    const icon = createCustomIcon('🏠', true);
+    // Override l'icône pour utiliser le style domicile
+    const homeIcon = L.divIcon({
+        html: `<div class="marker-icon marker-icon-home">🏠</div>`,
+        className: '',
+        iconSize: [35, 35],
+        iconAnchor: [17, 17],
+        popupAnchor: [0, -17]
+    });
+
+    homeMarker = L.marker([lat, lon], { icon: homeIcon })
+        .bindPopup(`
+            <div class="map-popup">
+                <div class="map-popup-header" style="background: #2196F3;">
+                    🏠 MON DOMICILE
+                </div>
+                <div class="map-popup-body">
+                    <div class="map-popup-row">
+                        <strong>${domicile.adresse || 'Domicile'}</strong>
+                    </div>
+                    <div class="map-popup-row">
+                        <span class="map-popup-label">📍 Coordonnées:</span>
+                        ${lat.toFixed(6)}, ${lon.toFixed(6)}
+                    </div>
+                </div>
+            </div>
+        `, { maxWidth: 350 })
+        .addTo(map);
+
+    homeMarker.bindTooltip('🏠 Mon domicile', {
+        permanent: false,
+        direction: 'top',
+        offset: [0, -17],
+        opacity: 0.9
+    });
+
+    updateMapStats(null, null, null, '✅');
+    console.log(`✅ Marqueur domicile: ${domicile.adresse || ''} (${lat}, ${lon})`);
+}
+
+// ══════════════════════════════════════════════════════════
+// v0.56 — FILTRES DYNAMIQUES SUR LA CARTE
+// ══════════════════════════════════════════════════════════
+
+/**
+ * Peuple les selects de filtres carte avec les valeurs des établissements affichés.
+ * v0.57 — multi-select identique à la vue établissements.
+ * @returns {void}
+ */
+function populateMapFilters() {
+    const types    = [...new Set(_allMapLycees.map(l => l.type).filter(Boolean))].sort();
+    const statuts  = [...new Set(_allMapLycees.map(l => l.statut).filter(Boolean))].sort();
+    const communes = [...new Set(_allMapLycees.map(l => l.commune).filter(Boolean))].sort();
+
+    _populateMapSelect('map-filter-type', types);
+    _populateMapSelect('map-filter-statut', statuts);
+    _populateMapSelect('map-filter-commune', communes);
+
+    // Attacher les événements (une seule fois)
+    if (!window._mapFiltersInitialized) {
+        document.getElementById('map-filter-search')?.addEventListener('input', applyMapFilters);
+        document.getElementById('map-filter-type')?.addEventListener('change', applyMapFilters);
+        document.getElementById('map-filter-statut')?.addEventListener('change', applyMapFilters);
+        document.getElementById('map-filter-commune')?.addEventListener('change', applyMapFilters);
+        window._mapFiltersInitialized = true;
+    }
+}
+
+/**
+ * Peuple un <select multiple> de filtre carte.
+ * v0.57 — pas d'option "Tous" : l'absence de sélection = pas de filtre.
+ * @param {string} id - ID du select
+ * @param {string[]} values - Valeurs à ajouter
+ * @private
+ */
+function _populateMapSelect(id, values) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = '';
+    for (const v of values) {
+        const opt = document.createElement('option');
+        opt.value = v;
+        opt.textContent = v;
+        el.appendChild(opt);
+    }
+    el.size = Math.min(values.length, 4);
+}
+
+/**
+ * Normalise une chaîne pour la comparaison (minuscules, sans accents).
+ * @param {string} s
+ * @returns {string}
+ * @private
+ */
+function _normMapSearch(s) {
+    return (s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+/**
+ * Lit les valeurs sélectionnées d'un <select multiple>.
+ * @param {string} id - ID du select
+ * @returns {string[]} - Tableau des valeurs sélectionnées (vide = pas de filtre)
+ * @private
+ */
+function _getMapMultiSelectValues(id) {
+    const el = document.getElementById(id);
+    if (!el) return [];
+    return Array.from(el.selectedOptions).map(o => o.value);
+}
+
+/**
+ * Applique les filtres carte : montre/cache les marqueurs selon les critères.
+ * v0.57 — gère le multi-select (tableau vide = pas de filtre).
+ * @returns {void}
+ */
+function applyMapFilters() {
+    const search   = _normMapSearch(document.getElementById('map-filter-search')?.value);
+    const types    = _getMapMultiSelectValues('map-filter-type');
+    const statuts  = _getMapMultiSelectValues('map-filter-statut');
+    const communes = _getMapMultiSelectValues('map-filter-commune');
+
+    let visibleCount = 0;
+
+    for (const { lycee, marker } of _allMapMarkers) {
+        const nom = _normMapSearch(lycee.nom);
+        const visible =
+            (!search                 || nom.includes(search)) &&
+            (types.length === 0      || types.includes(lycee.type)) &&
+            (statuts.length === 0    || statuts.includes(lycee.statut)) &&
+            (communes.length === 0   || communes.includes(lycee.commune));
+
+        if (visible) {
+            if (!markersLayer.hasLayer(marker)) markersLayer.addLayer(marker);
+            visibleCount++;
+        } else {
+            if (markersLayer.hasLayer(marker)) markersLayer.removeLayer(marker);
+        }
+    }
+
+    updateMapStats(null, visibleCount);
+    const countEl = document.getElementById('map-filters-count');
+    if (countEl) countEl.textContent = `${visibleCount} / ${_allMapMarkers.length}`;
+}
+
+// ══════════════════════════════════════════════════════════
 // EXPOSITION GLOBALE
 // ══════════════════════════════════════════════════════════
 if (typeof window !== 'undefined') {
-    window.initMap             = initMap;
-    window.loadMarkers         = loadMapMarkers; // pour rafraîchissement après db:ready
+    window.initMap               = initMap;
+    window.loadMarkers           = loadMapMarkers;
+    window.loadHomeMarker        = loadHomeMarker;
     window.showLyceeDetailsCarte = showLyceeDetailsCarte;
+    window.applyMapFilters       = applyMapFilters;
 }

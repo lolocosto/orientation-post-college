@@ -32,45 +32,48 @@
 	<script src="data/academies_data.js"></script>
 
 	<!-- 2. Classes database, API et parser -->
-    <script src="js/http_client.js?v=1772200100"></script>
-    <script src="js/database_service.js?v=1772200100"></script>
-    <script src="js/systeme_filtres.js?v=1772200100"></script>
-    <script src="js/geo_api.js?v=1772200100"></script>
-    <script src="js/geo_parser.js?v=1772200100"></script>
-    <script src="js/data_education_api.js?v=1772200100"></script>
-    <script src="js/data_education_parser.js?v=1772200100"></script>
-    <script src="js/onisep_api.js?v=1772200100"></script>
-    <script src="js/onisep_parser.js?v=1772200100"></script>
-    <script src="js/carif_oref_api.js?v=1772200100"></script>
-    <script src="js/carif_oref_parser.js?v=1772200100"></script>
+    <script src="js/http_client.js?v=1772500100"></script>
+    <script src="js/database_service.js?v=1772500100"></script>
+    <script src="js/systeme_filtres.js?v=1772500100"></script>
+    <script src="js/geo_api.js?v=1772500100"></script>
+    <script src="js/geo_parser.js?v=1772500100"></script>
+    <script src="js/data_education_api.js?v=1772500100"></script>
+    <script src="js/data_education_parser.js?v=1772500100"></script>
+    <script src="js/onisep_api.js?v=1772500100"></script>
+    <script src="js/onisep_parser.js?v=1772500100"></script>
+    <script src="js/carif_oref_api.js?v=1772500100"></script>
+    <script src="js/carif_oref_parser.js?v=1772500100"></script>
 
 	<!-- 3. Classes contrôleur d'extraction -->
-    <script src="js/geo_extraction_controller.js?v=1772200100"></script>
-    <script src="js/data_education_extraction_controller.js?v=1772200100"></script>
-    <script src="js/onisep_extraction_controller.js?v=1772200100"></script>
-    <script src="js/carif_oref_extraction_controller.js?v=1772200100"></script>
+    <script src="js/geo_extraction_controller.js?v=1772500100"></script>
+    <script src="js/data_education_extraction_controller.js?v=1772500100"></script>
+    <script src="js/onisep_extraction_controller.js?v=1772500100"></script>
+    <script src="js/carif_oref_extraction_controller.js?v=1772500100"></script>
 
 	<!-- Modale de progrès (NOUVEAU) -->
-    <script src="js/modal.js?v=1772200100"></script>
-    <script src="js/progress_modal.js?v=1772200100"></script>
-    <!-- <script src="js/extraction_modal.js?v=1772200100"></script> → Supprimé v0.27.2 - Utiliser ProgressModal -->
-    <script src="js/details_modal.js?v=1772200100"></script>
+    <script src="js/modal.js?v=1772500100"></script>
+    <script src="js/progress_modal.js?v=1772500100"></script>
+    <!-- <script src="js/extraction_modal.js?v=1772500100"></script> → Supprimé v0.27.2 - Utiliser ProgressModal -->
+    <script src="js/details_modal.js?v=1772500100"></script>
 
     <!-- 4. Modules UI -->
-	<script src="js/gestion_params.js?v=1772200100"></script>
-	<script src="js/tour_guide.js?v=1772200100"></script>
-	<script src="js/itineraire_modal.js?v=1772200100"></script>
-	<script src="js/gestion_onglets.js?v=1772200100"></script>
-	<script src="js/gestion_onglet_recherche.js?v=1772200100"></script>
-	<script src="js/gestion_onglet_resultats.js?v=1772200100"></script>
-	<script src="js/gestion_onglet_carte.js?v=1772200100"></script>
+	<script src="js/gestion_params.js?v=1772500100"></script>
+	<script src="js/tour_guide.js?v=1772500100"></script>
+	<script src="js/itineraire_modal.js?v=1772500100"></script>
+	<script src="js/gestion_onglets.js?v=1772500100"></script>
+	<script src="js/gestion_onglet_recherche.js?v=1772500100"></script>
+	<script src="js/gestion_onglet_resultats.js?v=1772500100"></script>
+	<script src="js/gestion_onglet_carte.js?v=1772500100"></script>
 
 	<!-- 5. Export (PDF via CDN) -->
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-	<script src="js/export_service.js?v=1772200100"></script>
+	<script src="js/export_service.js?v=1772500100"></script>
 
 	<!-- 6. Utilitaires -->
-	<script src="js/utils.js?v=1772200100"></script>
+	<script src="js/utils.js?v=1772500100"></script>
+
+	<!-- 7. Service de préférences chiffrées (AES-GCM) -->
+	<script src="js/preferences_crypto_service.js?v=1772500100"></script>
 	
 	<!-- 7. Initialisation -->
 	<script>
@@ -141,7 +144,7 @@
                     </button>
                     <button class="settings-nav__item" onclick="settingsOpenSection('donnees')">
                         <span class="settings-nav__icon">💾</span>
-                        <span class="settings-nav__label">Import / Export</span>
+                        <span class="settings-nav__label">Données</span>
                         <span class="settings-nav__arrow">›</span>
                     </button>
                     <button class="settings-nav__item" onclick="settingsOpenSection('aide')">
@@ -155,12 +158,14 @@
                         <span class="settings-nav__badge">Rejouer</span>
                     </button>
                 </nav>
-
-                <div class="settings-danger-zone">
-                    <button class="setting-button setting-button--danger" onclick="confirmResetDatabase()">
-                        🗑️ Vider la base locale
-                    </button>
-                    <div class="setting-help u-mt-3">⚠️ Supprime toutes les données stockées localement</div>
+                <!-- v0.56 : Sauvegarde / Restauration chiffrée des préférences -->
+                <div class="pref-crypto-section">
+                    <label class="setting-label">🔐 Sauvegarde des préférences</label>
+                    <div class="setting-help">Sauvegardez vos identifiants Onisep, votre établissement, votre domicile et vos favoris dans un fichier chiffré (AES-256). Restaurez-les d'un clic lors d'une nouvelle version.</div>
+                    <div class="pref-crypto-btns">
+                        <button class="setting-button" onclick="sauvegarderPreferencesChiffrees()">💾 Sauvegarder</button>
+                        <button class="setting-button secondary" onclick="restaurerPreferencesChiffrees()">📂 Restaurer</button>
+                    </div>
                 </div>
             </div>
 
@@ -270,6 +275,13 @@
                             <h4 class="u-mb-2">📥 Import</h4>
                             <button class="setting-button" onclick="importerFichier()">📂 Importer un fichier</button>
                             <div class="setting-help u-mt-3">⚠️ L'import écrasera toutes les données actuelles</div>
+                        </div>
+                        <div class="settings-separator"></div>
+                        <div class="settings-danger-zone">
+                            <button class="setting-button setting-button--danger" onclick="confirmResetDatabase()">
+                                🗑️ Vider la base locale
+                            </button>
+                            <div class="setting-help u-mt-3">⚠️ Supprime toutes les données stockées localement</div>
                         </div>
                     </div>
                 </div>
@@ -980,6 +992,20 @@
                         <div class="map-stat-value" id="map-stat-user">-</div>
                         <div class="map-stat-label">Mon établissement</div>
                     </div>
+                    <div class="map-stat-item">
+                        <div class="map-stat-value" id="map-stat-home">-</div>
+                        <div class="map-stat-label">Mon domicile</div>
+                    </div>
+                </div>
+
+                <!-- v0.56 : Filtres dynamiques pour la carte — v0.57 : multi-select -->
+                <div class="map-filters" id="map-filters">
+                    <span class="map-filters__label">🔎 Filtrer :</span>
+                    <input type="text" class="map-filters__input" id="map-filter-search" placeholder="Nom d'établissement…">
+                    <select multiple class="map-filters__select card" id="map-filter-type"></select>
+                    <select multiple class="map-filters__select card" id="map-filter-statut"></select>
+                    <select multiple class="map-filters__select card" id="map-filter-commune"></select>
+                    <span class="map-filters__count" id="map-filters-count"></span>
                 </div>
 
                 <!-- Légende des marqueurs -->
@@ -996,6 +1022,14 @@
                     <div class="map-legend-item">
                         <span class="map-legend-marker map-legend-marker--mixte"></span>
                         <span>Les deux voies</span>
+                    </div>
+                    <div class="map-legend-item">
+                        <span class="map-legend-marker map-legend-marker--user"></span>
+                        <span>Mon établissement</span>
+                    </div>
+                    <div class="map-legend-item">
+                        <span class="map-legend-marker map-legend-marker--home"></span>
+                        <span>Mon domicile</span>
                     </div>
                 </div>
 

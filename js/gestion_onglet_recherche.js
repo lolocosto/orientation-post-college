@@ -395,7 +395,13 @@ async function lancerExtractionGeo() {
             return;
         }
         geoValue = selectedCommune.codeEpci; // Code SIREN de l'EPCI
-        geoDisplay = window.geoExtractionController.getEPCIByCode(selectedCommune.codeEpci);
+        let epciInfo = null;
+        try {
+            epciInfo = await window.geoExtractionController.getEPCIByCode(selectedCommune.codeEpci);
+        } catch (error) {
+            console.warn('[Recherche] Impossible de récupérer EPCI:', error);
+        }
+        geoDisplay = epciInfo?.nom || 'Intercommunalité inconnue';
     }
     
     // Sauvegarder les critères

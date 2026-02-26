@@ -105,12 +105,14 @@ class CARIFOREFParser {
             statut:   null,
             tutelle:  null,
 
-            // ── Adresse ──────────────────────────────────────────────────
+            // ── Adresse — v0.57 : normalisation casse commune ────────
             // On utilise les champs structurés de /etablissements (pas lieu_formation_*)
             adresse:       this._buildAdresse(e),
             boitePostale:  null,
             codePostal:    (e.code_postal || e.rco_code_postal || '').trim() || null,
-            commune:       (e.localite    || '').trim() || null,
+            commune:       typeof normaliserNomCommune === 'function'
+                ? normaliserNomCommune((e.localite || '').trim() || null)
+                : ((e.localite || '').trim() || null),
             codeCommuneCOG: (e.code_insee_localite || e.rco_code_insee_localite || '').trim() || null,
             cedex:         (e.cedex || '').trim() || null,
             arrondissement: null,
@@ -291,7 +293,8 @@ class CARIFOREFParser {
                 adresse:        adresseLocale,
                 boitePostale:   null,
                 codePostal:     cpLocal,
-                commune:        communeLocale,
+                commune:        typeof normaliserNomCommune === 'function'
+                    ? normaliserNomCommune(communeLocale) : communeLocale,
                 codeCommuneCOG: (f.etablissement_formateur_code_commune_insee || '').trim() || null,
                 cedex:          (f.etablissement_formateur_cedex      || '').trim() || null,
                 arrondissement: null,
@@ -402,10 +405,17 @@ class CARIFOREFParser {
 
         // Clé diplôme : rncp_code si disponible, sinon intitule_long normalisé
         const rncpCode  = (f.rncp_code || '').trim() || null;
-        const libelle   = (f.intitule_long || f.intitule_court || '').trim() || null;
-        const cleDiplome = rncpCode || (libelle ? this._normaliserLibelle(libelle) : null);
+        const libelleRaw = (f.intitule_long || f.intitule_court || '').trim() || null;
+        const cleDiplome = rncpCode || (libelleRaw ? this._normaliserLibelle(libelleRaw) : null);
 
-        if (!cleDiplome || !libelle) return result;
+        if (!cleDiplome || !libelleRaw) return result;
+
+        // v0.57 — Normalisation casse du libellé pour l'affichage
+        const libelleNorm = typeof normaliserLibelleDiplome === 'function'
+            ? normaliserLibelleDiplome(libelleRaw) : libelleRaw;
+        const libelleCourtRaw = (f.intitule_court || '').trim() || null;
+        const libelleCourtNorm = (libelleCourtRaw && typeof normaliserLibelleDiplome === 'function')
+            ? normaliserLibelleDiplome(libelleCourtRaw) : libelleCourtRaw;
 
         // ── Diplôme ────────────────────────────────────────────────────────
         result.diplome = {
@@ -413,9 +423,9 @@ class CARIFOREFParser {
             id:          cleDiplome,
             rncpCode,
 
-            // Libellés
-            libelle,
-            libelleCourt:  (f.intitule_court || '').trim() || null,
+            // Libellés — v0.57 : normalisés en title case pour affichage cohérent
+            libelle:       libelleNorm,
+            libelleCourt:  libelleCourtNorm,
             rncpIntitule:  (f.rncp_intitule  || '').trim() || null,
 
             // Catégorie
@@ -431,8 +441,8 @@ class CARIFOREFParser {
             contenu:          (f.contenu || '').trim() || null,
             blocsCompetences: Array.isArray(f.blocs_competences) ? f.blocs_competences : [],
 
-            // Libellé normalisé pour jointure avec diplômes ONISEP
-            libelleNormalise: this._normaliserLibelle(libelle)
+            // Libellé normalisé pour jointure avec diplômes ONISEP (basé sur le libellé brut)
+            libelleNormalise: this._normaliserLibelle(libelleRaw)
         };
 
         // ── Relation diplôme ↔ établissement ──────────────────────────────

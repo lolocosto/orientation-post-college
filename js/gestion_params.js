@@ -47,6 +47,10 @@ function _prefSauver(cle, valeur) {
     // Toujours écrire aussi en localStorage pour compatibilité v0.44
     if (valeur === null) localStorage.removeItem(cle);
     else localStorage.setItem(cle, valeur);
+    // v0.56 — auto-sauvegarde chiffrée en arrière-plan
+    if (window.PreferencesCryptoService) {
+        window.PreferencesCryptoService.autoSave().catch(() => {});
+    }
 }
 
 /**
@@ -456,6 +460,8 @@ function saveUserDomicile() {
     _prefSauver('pref_user_domicile', JSON.stringify({ adresse, latitude: lat, longitude: lon }));
     showAlert('✅ Domicile sauvegardé', 'success');
     _updateMenuStatuses();
+    // v0.56 — rafraîchir le marqueur domicile sur la carte
+    if (typeof currentTab !== 'undefined' && currentTab === 'carte' && window.map) loadHomeMarker?.();
 }
 
 /**

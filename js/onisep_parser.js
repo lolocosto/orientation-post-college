@@ -455,11 +455,13 @@ class OnisepParser {
                 etablissementsLies: structure.etablissements_lies_libelles || null,
                 etablissementsLiesUrls: structure.etablissements_lies_url_et_id_onisep || null,
                 
-                // Adresse
+                // Adresse — v0.57 : normalisation casse commune
                 adresse: structure.adresse || null,
                 boitePostale: structure.boite_postale || null,
                 codePostal: structure.cp || null,
-                commune: structure.commune || null,
+                commune: typeof normaliserNomCommune === 'function'
+                    ? normaliserNomCommune(structure.commune || null)
+                    : (structure.commune || null),
                 codeCommuneCOG: structure.commune_cog || null,
                 cedex: structure.cedex || null,
                 arrondissement: structure.arrondissement || null,

@@ -496,10 +496,118 @@ function _onDbReady() {
 }
 
 // ══════════════════════════════════════════════════════════
+// v0.57 — NORMALISATION DE CASSE (communes, libellés)
+// ══════════════════════════════════════════════════════════
+
+/**
+ * Normalise un nom de commune en « Title Case » : première lettre de chaque mot en majuscule,
+ * reste en minuscules. Gère les particules françaises (de, du, des, la, le, les, en, sur, sous, lès, l').
+ * Ex : "BRUZ" → "Bruz", "CESSON-SEVIGNE" → "Cesson-Sévigné" (si les accents sont présents),
+ *      "SAINT MALO" → "Saint-Malo", "la roche sur yon" → "La Roche-sur-Yon"
+ * @param {string|null} commune
+ * @returns {string|null}
+ */
+function normaliserNomCommune(commune) {
+    if (!commune || typeof commune !== 'string') return commune;
+    const particules = new Set(['de', 'du', 'des', 'la', 'le', 'les', 'en', 'sur', 'sous', 'lès', 'l']);
+
+    return commune
+        .toLowerCase()
+        .split(/(\s+|-)/g)    // split en gardant les séparateurs (espaces, tirets)
+        .map((part, idx) => {
+            if (/^\s+$/.test(part) || part === '-') return part;
+            if (idx > 0 && particules.has(part)) return part;
+            return part.charAt(0).toUpperCase() + part.slice(1);
+        })
+        .join('');
+}
+
+/**
+ * Normalise un libellé de diplôme CARIF-OREF en « Title Case cohérent avec ONISEP ».
+ * Dans CARIF-OREF, les libellés sont souvent tout en majuscules (ex : "BOULANGER" après "CAP -").
+ * Dans ONISEP, le format est "CAP Boulanger".
+ * 
+ * Stratégie : on met en title case la partie après le type de diplôme.
+ * Ex : "CAP - BOULANGER" → "CAP Boulanger"
+ *      "BAC PRO MAINTENANCE DES VÉHICULES" → "Bac pro Maintenance des véhicules"
+ *
+ * @param {string|null} libelle
+ * @returns {string|null}
+ */
+function normaliserLibelleDiplome(libelle) {
+    if (!libelle || typeof libelle !== 'string') return libelle;
+
+    // Nettoyage initial
+    let texte = libelle.trim();
+
+    // Si le libelle a un séparateur " - " ou " – " (format CARIF-OREF), reformater
+    // Ex: "CAP - BOULANGER" → on extrait type="CAP" et intitule="BOULANGER"
+    const matchSeparateur = texte.match(/^([A-Z\s]+?)\s*[-–]\s*(.+)$/i);
+    if (matchSeparateur) {
+        const typePart     = matchSeparateur[1].trim();
+        const intitulePart = matchSeparateur[2].trim();
+        return _titleCaseType(typePart) + ' ' + _titleCaseIntitule(intitulePart);
+    }
+
+    // Sans séparateur : essayer de détecter un type connu en début de libellé
+    // Ex: "CAP Boulanger", "BTS Comptabilité", "Bac pro Maintenance"
+    const knownPrefixes = [
+        'mention complémentaire', 'titre professionnel', 'bac professionnel',
+        'bac pro', 'cap', 'bts', 'mc', 'bp', 'bma', 'bep', 'tp',
+        'certificat', 'diplôme', 'licence', 'master'
+    ];
+    const lower = texte.toLowerCase();
+    for (const prefix of knownPrefixes) {
+        if (lower.startsWith(prefix + ' ')) {
+            const typePart = texte.substring(0, prefix.length);
+            const intitulePart = texte.substring(prefix.length + 1);
+            return _titleCaseType(typePart) + ' ' + _titleCaseIntitule(intitulePart);
+        }
+    }
+
+    // Aucun type détecté : sentence case simple
+    return _titleCaseIntitule(texte);
+}
+
+/**
+ * Met en forme le type de diplôme (CAP, BAC PRO, BTS, MC, etc.)
+ * @param {string} type
+ * @returns {string}
+ * @private
+ */
+function _titleCaseType(type) {
+    const known = {
+        'cap': 'CAP', 'bac pro': 'Bac pro', 'bac professionnel': 'Bac professionnel',
+        'bts': 'BTS', 'mc': 'MC', 'bp': 'BP', 'bma': 'BMA', 'bep': 'BEP',
+        'titre professionnel': 'Titre professionnel', 'tp': 'TP',
+        'certificat': 'Certificat', 'diplôme': 'Diplôme', 'licence': 'Licence',
+        'master': 'Master', 'mention complémentaire': 'Mention complémentaire',
+    };
+    const lower = type.toLowerCase();
+    return known[lower] || (type.charAt(0).toUpperCase() + type.slice(1).toLowerCase());
+}
+
+/**
+ * Met en « sentence case » un intitulé de diplôme : première lettre en majuscule,
+ * reste en minuscules, sauf les acronymes connus (RNCP, etc.).
+ * @param {string} intitule
+ * @returns {string}
+ * @private
+ */
+function _titleCaseIntitule(intitule) {
+    if (!intitule) return '';
+    const lower = intitule.toLowerCase();
+    // Première lettre en majuscule
+    return lower.charAt(0).toUpperCase() + lower.slice(1);
+}
+
+// ══════════════════════════════════════════════════════════
 // EXPOSITION GLOBALE
 // ══════════════════════════════════════════════════════════
 if (typeof window !== 'undefined') {
     window.init      = init;
     window.showAlert = showAlert;
     window.Utils     = Utils;
+    window.normaliserNomCommune     = normaliserNomCommune;
+    window.normaliserLibelleDiplome = normaliserLibelleDiplome;
 }

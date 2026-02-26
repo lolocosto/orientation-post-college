@@ -449,3 +449,125 @@ describe('T-CARIF-ENR : Enrichissement établissements depuis formations CARIF',
         expect(etabs[0].telephone).toBeNull();
     });
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// T-DURETAB : PAS DE BADGE DURÉE DANS LES LISTES DE DIPLÔMES D'UN ÉTABLISSEMENT
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('T-DURETAB : Suppression des badges durée dans la fiche établissement', () => {
+
+    test('T-DURETAB-01 : Pas de badge durée dans la liste des diplômes scolaires', () => {
+        window.databaseService.getAutresFormationsParEtablissement.mockReturnValue([]);
+        const enrichi = {
+            etablissement: { _id: 't1', uai: '0350001A', nom: 'Lycée Test', commune: 'Rennes' },
+            diplomes: [
+                { libelle: 'CAP Boucher', niveauSortie: 'CAP ou équivalent', type: 'cap', dureeCycleStandard: '2 ans' },
+                { libelle: 'Bac pro Commerce', niveauSortie: 'Bac ou équivalent', type: 'baccalauréat professionnel', dureeCycleStandard: '3 ans' }
+            ],
+            diplomes_apprentissage: [],
+            dispositifs: [], options2ndeGT: [], specialites1ereG: []
+        };
+        const html = buildEtablissementDetailsHTML(enrichi);
+        // La section diplômes scolaires ne doit PAS contenir de badge durée
+        const sectionScolaire = html.split('Diplômes — voie scolaire')[1]?.split('</section>')[0] || '';
+        expect(sectionScolaire).not.toContain('badge--duree');
+        expect(sectionScolaire).not.toContain('⏱');
+    });
+
+    test('T-DURETAB-02 : Pas de badge durée dans la liste des diplômes apprentissage', () => {
+        window.databaseService.getAutresFormationsParEtablissement.mockReturnValue([]);
+        const enrichi = {
+            etablissement: { _id: 't1', uai: '0350001A', nom: 'CFA Test', commune: 'Rennes' },
+            diplomes: [],
+            diplomes_apprentissage: [
+                { id: 'da1', libelle: 'CAP Boulanger', niveau: '3 (CAP...)', certifieQualite: true, _dureeAnnees: 2 }
+            ],
+            dispositifs: [], options2ndeGT: [], specialites1ereG: []
+        };
+        const html = buildEtablissementDetailsHTML(enrichi);
+        const sectionApprentissage = html.split('Diplômes — voie apprentissage')[1]?.split('</section>')[0] || '';
+        expect(sectionApprentissage).not.toContain('badge--duree');
+        expect(sectionApprentissage).not.toContain('⏱');
+    });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// T-LIENS : LIENS EXTERNES (SITE WEB + FICHE ONISEP)
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('T-LIENS : Liens externes dans la fiche établissement', () => {
+
+    test('T-LIENS-01 : Site web affiché en bouton à côté de la fiche ONISEP', () => {
+        window.databaseService.getAutresFormationsParEtablissement.mockReturnValue([]);
+        const enrichi = {
+            etablissement: {
+                _id: 't1', uai: '0350001A', nom: 'Lycée Test', commune: 'Rennes',
+                siteWeb: 'https://lycee-test.fr',
+                urlOnisep: 'ENS.123|http://www.onisep.fr/ressources/univers-lycee/lycee-test'
+            },
+            diplomes: [], diplomes_apprentissage: [],
+            dispositifs: [], options2ndeGT: [], specialites1ereG: []
+        };
+        const html = buildEtablissementDetailsHTML(enrichi);
+        expect(html).toContain('detail-external-links');
+        expect(html).toContain('Site de l\'établissement');
+        expect(html).toContain('https://lycee-test.fr');
+        expect(html).toContain('Fiche ONISEP');
+    });
+
+    test('T-LIENS-02 : Site web sans http:// est normalisé avec https://', () => {
+        window.databaseService.getAutresFormationsParEtablissement.mockReturnValue([]);
+        const enrichi = {
+            etablissement: {
+                _id: 't1', uai: '0350001A', nom: 'Lycée Test', commune: 'Rennes',
+                siteWeb: 'www.lycee-test.fr'
+            },
+            diplomes: [], diplomes_apprentissage: [],
+            dispositifs: [], options2ndeGT: [], specialites1ereG: []
+        };
+        const html = buildEtablissementDetailsHTML(enrichi);
+        expect(html).toContain('https://www.lycee-test.fr');
+    });
+
+    test('T-LIENS-03 : Site web absent, seule la fiche ONISEP affichée', () => {
+        window.databaseService.getAutresFormationsParEtablissement.mockReturnValue([]);
+        const enrichi = {
+            etablissement: {
+                _id: 't1', uai: '0350001A', nom: 'Lycée Test', commune: 'Rennes',
+                urlOnisep: 'http://www.onisep.fr/ressources/univers-lycee/lycee-test'
+            },
+            diplomes: [], diplomes_apprentissage: [],
+            dispositifs: [], options2ndeGT: [], specialites1ereG: []
+        };
+        const html = buildEtablissementDetailsHTML(enrichi);
+        expect(html).toContain('Fiche ONISEP');
+        expect(html).not.toContain('Site de l\'établissement');
+    });
+
+    test('T-LIENS-04 : Aucun lien externe, pas de zone detail-external-links', () => {
+        window.databaseService.getAutresFormationsParEtablissement.mockReturnValue([]);
+        const enrichi = {
+            etablissement: { _id: 't1', uai: '0350001A', nom: 'Lycée Test', commune: 'Rennes' },
+            diplomes: [], diplomes_apprentissage: [],
+            dispositifs: [], options2ndeGT: [], specialites1ereG: []
+        };
+        const html = buildEtablissementDetailsHTML(enrichi);
+        expect(html).not.toContain('detail-external-links');
+    });
+
+    test('T-LIENS-05 : siteWeb n\'apparaît plus dans les infos générales', () => {
+        window.databaseService.getAutresFormationsParEtablissement.mockReturnValue([]);
+        const enrichi = {
+            etablissement: {
+                _id: 't1', uai: '0350001A', nom: 'Lycée Test', commune: 'Rennes',
+                siteWeb: 'https://lycee-test.fr'
+            },
+            diplomes: [], diplomes_apprentissage: [],
+            dispositifs: [], options2ndeGT: [], specialites1ereG: []
+        };
+        const html = buildEtablissementDetailsHTML(enrichi);
+        // Isoler la section "Informations générales"
+        const sectionInfo = html.split('Informations générales')[1]?.split('</section>')[0] || '';
+        expect(sectionInfo).not.toContain('Site web');
+    });
+});
