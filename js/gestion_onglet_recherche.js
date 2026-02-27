@@ -689,7 +689,7 @@ async function lancerExtractionItems(type) {
 
             console.log(`[lancerExtractionItems] 📊 Partition voies :`,
                 `scolaire: ${libellesScolaires.length}/${selectedItems.length}`,
-                `apprentissage: ${libbelllesApprentissage.length}/${selectedItems.length}`
+                `apprentissage: ${libellesApprentissage.length}/${selectedItems.length}`
             );
 
             // ── VOIE SCOLAIRE (ONISEP) — uniquement les diplômes scolaires ────
@@ -732,12 +732,12 @@ async function lancerExtractionItems(type) {
             }
 
         } else {
-            result = await window.onisepExtractionController.extractByOptions({
+            // Options 2nde GT → voie scolaire uniquement (pas d'apprentissage)
+            result = await window.onisepExtractionController.extractByOptions2ndeGT({
                 libelles: selectedItems,
                 type: itemsGeoType,
                 value: itemsGeoValue,
-                displayInfo: {nom: itemsGeoValue},
-                voies: getVoiesSelectionnees('options')
+                displayInfo: { nom: itemsGeoValue }
             });
         }
         

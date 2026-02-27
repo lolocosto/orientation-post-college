@@ -413,6 +413,129 @@ class OnisepExtractionController {
             };
         });
     }
+
+    // =====================================
+    // EXTRACTION PAR OPTIONS 2NDE GT SÉLECTIONNÉES
+    // =====================================
+
+    /**
+     * Extrait les établissements et leurs données pour une liste d'options 2nde GT sélectionnées.
+     * Voie scolaire uniquement — pas d'appel CARIF-OREF (les options 2nde GT
+     * concernent exclusivement la voie générale et technologique en voie scolaire).
+     *
+     * @param {Object} params
+     * @param {string[]} params.libelles      - Libellés d'options sélectionnés
+     * @param {string}   params.type          - Type de périmètre ('departement' | 'academie')
+     * @param {string}   params.value         - Valeur du périmètre (code département, nom académie)
+     * @param {Object}   [params.displayInfo] - Info affichage { nom }
+     * @returns {Promise<Object>} { success, stats, extractionInfo }
+     *
+     * @example
+     * const res = await controller.extractByOptions2ndeGT({
+     *     libelles: ['Arts : musique', 'Management et gestion'],
+     *     type: 'departement',
+     *     value: '35',
+     *     displayInfo: { nom: 'Ille-et-Vilaine' }
+     * });
+     */
+    async extractByOptions2ndeGT(params = {}) {
+        console.log(`[ExtractionController] 🚀 Extraction par ${params.libelles.length} options 2nde GT`);
+
+        return await this.#runExtraction(async () => {
+            await this.reset();
+
+            // ÉTAPE 1 : Requête sur le dataset enseignements_optionnels_2nde
+            this.#currentProgressModal.update('Recherche des options 2nde GT...', 3, 100);
+            this.#addProgressDetail(`🔍 Recherche de ${params.libelles.length} option(s)...`);
+
+            let queryFilters = { size: 100 };
+            if (params.type === 'departement') {
+                queryFilters['facet.departement_lieu_de_cours'] = window.getNomDepartement(params.value);
+                this.#addProgressDetail(`📍 Zone : département ${window.getNomDepartement(params.value)}`);
+            } else if (params.type === 'academie') {
+                queryFilters['facet.academie_lieu_de_cours'] = window.getNomAcademie(params.value);
+                this.#addProgressDetail(`📍 Zone : académie ${window.getNomAcademie(params.value)}`);
+            } else {
+                throw new Error(`Type de filtre géographique inconnu: ${params.type}`);
+            }
+
+            const rawOptions = await this.#onisepAPI.queryDataset(
+                'enseignements_optionnels_2nde',
+                queryFilters,
+                1,
+                (detail) => this.#addProgressDetail(detail)
+            );
+            if (this.#checkStopped()) return { cancelled: true };
+            this.#addProgressDetail(`✅ ${rawOptions.length} enregistrements récupérés`);
+
+            // ÉTAPE 2 : Parser les enregistrements
+            this.#currentProgressModal.update('Analyse des options...', 6, 100);
+            const parsedOptions = OnisepParser.parseEnseignementsOptionnels2ndeGT(rawOptions);
+
+            // ÉTAPE 3 : Filtrer par les libellés sélectionnés et extraire les UAI
+            this.#currentProgressModal.update('Filtrage par options sélectionnées...', 9, 100);
+            const libSet = new Set(params.libelles);
+            const filteredRelations = parsedOptions.options2ndeGT_par_etablissement
+                .filter(rel => libSet.has(rel.libelle));
+            const uais = [...new Set(filteredRelations.map(r => r.uai))];
+            this.#addProgressDetail(`🏫 ${uais.length} établissement(s) proposant les options sélectionnées`);
+
+            if (uais.length === 0) {
+                this.#addProgressDetail('⚠️ Aucun établissement trouvé pour les options sélectionnées');
+                return { success: true, stats: { etablissements: 0, diplomes: 0, relations: 0 } };
+            }
+
+            // ÉTAPE 4 : Requête structures
+            this.#currentProgressModal.update('Recherche des établissements...', 12, 100);
+            const structures = await this.#onisepAPI.queryDataset('structures', {
+                q: uais,
+                size: 100
+            }, 10, (detail) => this.#addProgressDetail(detail));
+            if (this.#checkStopped()) return { cancelled: true };
+
+            // ÉTAPE 5 : Parser les structures
+            this.#currentProgressModal.update('Analyse des structures...', 15, 100);
+            const parsedStructures = OnisepParser.parseStructures(structures);
+
+            // ÉTAPE 6 : Extraire toutes les données pour la liste des UAI (20-80%)
+            this.#addProgressDetail(`🔄 Extraction complète pour ${uais.length} établissement(s)...`);
+            const allData = await this.#extractByUAIs(uais);
+            if (this.#checkStopped()) return { cancelled: true };
+
+            // ÉTAPE 7 : Assembler rawData
+            this.#currentProgressModal.update('Préparation des données...', 80, 100);
+            const rawData = {
+                etablissements: [...parsedStructures.etablissements],
+                diplomes: [...allData.actionsLycee.diplomes, ...allData.actionsSup.diplomes],
+                relationsDiplomesEtablissements: [
+                    ...allData.actionsLycee.diplomes_par_etablissement,
+                    ...allData.actionsSup.diplomes_par_etablissement
+                ],
+                dispositifs: allData.dispositifs || [],
+                options2ndeGT: allData.options2ndeGT || [],
+                specialites1ereG: allData.specialites1ereG || [],
+                actionsLycee: allData.actionsLycee,
+                actionsSup: allData.actionsSup
+            };
+
+            // ÉTAPE 8 : Traitement centralisé
+            this.#currentProgressModal.update('Traitement et stockage...', 90, 100);
+            this.#addProgressDetail('💾 Déduplication et stockage en base...');
+            const stats = await this.#processAndStoreAllData(rawData);
+            if (this.#checkStopped()) return { cancelled: true };
+
+            return {
+                success: true,
+                stats,
+                extractionInfo: {
+                    type: params.type,
+                    zone: params.displayInfo?.nom || params.value,
+                    voies: ['scolaire'],
+                    date: stats.timestamp
+                }
+            };
+        });
+    }
     
     // =====================================
     // EXTRACTION LISTE DIPLÔMES DISPONIBLES PAR ZONE

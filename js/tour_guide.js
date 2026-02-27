@@ -66,7 +66,7 @@ class TourGuide {
             nextBtnText:     'Suiv. →',
             prevBtnText:     '← Préc.',
             doneBtnText:     'Terminer ✓',
-            overlayColor:    '#1a1a2e',
+            overlayColor:    '#1a1a2e', 
             overlayOpacity:  0.6,
             smoothScroll:    true,
             allowClose:      true,
@@ -100,6 +100,8 @@ class TourGuide {
                     description:
                         '<p>Cette application vous permet d\'explorer les établissements ' +
                         'et les formations disponibles après le collège.</p>' +
+                        '<p>Le mode connecté nécessite un compte Onisep pour rechercher et extraire vos propres données.</p>' +
+                        '<p>Le mode déconnecté vous permet d\'explorer les données déjà extraites en les important à partir des paramètres.</p>' +
                         '<p class="tour-hint">Ce tour guidé présente les fonctions essentielles ' +
                         'en 9 étapes. Vous pouvez le quitter à tout moment.</p>',
                 }
@@ -111,7 +113,7 @@ class TourGuide {
                 popover: {
                     title: '🔍 Onglet Recherche',
                     description:
-                        '<p>Tout commence ici. Trois modes sont disponibles :</p>' +
+                        '<p>En mode connecté, tout commence ici. Trois types de recherches sont disponibles :</p>' +
                         '<ul>' +
                         '<li><strong>🌍 Géographique</strong> — tous les établissements d\'une commune ou intercommunalité</li>' +
                         '<li><strong>🎓 Par diplôme</strong> — tous les lycées proposant un Bac ou un CAP</li>' +
@@ -151,7 +153,7 @@ class TourGuide {
                         '<p>Choisissez les voies de formation à inclure dans la recherche :</p>' +
                         '<ul>' +
                         '<li><strong>Voie scolaire</strong> — établissements, diplômes, dispositifs pédagogiques, options de 2nde GT, obtenus dans la base ONISEP</li>' +
-                        '<li><strong>CARIF-OREF</strong> — établissements et diplômes, obtenus dans la base CARIF-OREF</li>' +
+                        '<li><strong>Voie apprentissage</strong> — établissements et diplômes, obtenus dans la base CARIF-OREF</li>' +
                         '</ul>',
                     side: 'top',
                 }
@@ -244,7 +246,7 @@ class TourGuide {
                         '<li>🔐 <strong>Connexion Onisep</strong> — saisissez les identifiants nécessaires pour extraire les données depuis la base Onisep</li>' +
                         '<li>🏫 <strong>Mon établissement \& domicile</strong> — pour positionner des marqueurs spécifiques sur la carte et définir les points de départ des itinéraires</li>' +
                         '<li>⭐ <strong>Favoris</strong> — établissements, diplômes, dispositifs pédagogiques, options de 2nde GT et recherches mis en favoris s\'affichent ici pour un accès rapide</li>' +
-                        '<li>💾 <strong>Import / Export</strong> — sauvegardez et restaurez des données extraites pour un accès hors-ligne</li>' +
+                        '<li>💾 <strong>Données</strong> — sauvegardez et restaurez des données extraites pour un accès hors-ligne en mode déconnecté</li>' +
                         '<li>❓ <strong>Aide \& À propos</strong> — apprenez comment créer votre compte Onisep, et découvrez l\'historique des changements</li>' +
                         '<li>🚀 <strong>Tour guidé</strong> — rejouez ce tour guidé à tout moment&nbsp!</li>' +
                         '</ul>',
