@@ -1224,7 +1224,7 @@ tbody tr:hover { background: var(--bg-light); }
 
 /* Bouton tour guidé — accent spécial */
 .settings-nav__item--tour {
-    background: linear-gradient(135deg, #f0f4ff 0%, #e8f0ff 100%);
+    background: linear-gradient(135deg, #f0feff 0%, #feffff 100%);
     border-top: 1px solid var(--border);
     margin-top: 8px;
 }
@@ -1386,6 +1386,9 @@ tbody tr:hover { background: var(--bg-light); }
 }
 .driver-popover.tour-popover button.driver-popover-next-btn:hover {
     background: var(--primary-dark, #1d40af);
+}
+.driver-popover-title {
+    background: var(--primary-light, #6876a7) !important;
 }
 
 /* Barre de progression */
