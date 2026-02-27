@@ -247,6 +247,8 @@ class CARIFOREFApi {
 
             const select = {
                 etablissement_formateur_uai: 1,
+                etablissement_formateur_enseigne: 1,
+                etablissement_formateur_entreprise_raison_sociale: 1,
                 rncp_code: 1,
                 intitule_long: 1,
                 intitule_court: 1,

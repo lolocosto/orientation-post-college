@@ -389,7 +389,10 @@ class OnisepExtractionController {
                 ],
                 dispositifs: allData.dispositifs || [],
                 options2ndeGT: allData.options2ndeGT || [],
-                specialites1ereG: allData.specialites1ereG || []
+                specialites1ereG: allData.specialites1ereG || [],
+                // v0.60 : transmettre les enrichissements établissements pour hébergement, site web, etc.
+                actionsLycee: allData.actionsLycee,
+                actionsSup: allData.actionsSup
             };
 
             // ÉTAPE 8 : Traitement centralisé
@@ -686,8 +689,8 @@ class OnisepExtractionController {
         console.log(`[ExtractionController] ${uais.length} UAI dont ${uaisUniques.length} uniques`);
         
         const data = {
-            actionsLycee: { diplomes: [], diplomes_par_etablissement: [] },
-            actionsSup: { diplomes: [], diplomes_par_etablissement: [] },
+            actionsLycee: { diplomes: [], diplomes_par_etablissement: [], enrichissements_etab: [] },
+            actionsSup: { diplomes: [], diplomes_par_etablissement: [], enrichissements_etab: [] },
             dispositifs: { dispositifs: [], dispositifs_par_etablissement: [] },
             options2ndeGT: { options2ndeGT: [], options2ndeGT_par_etablissement: [] },
             specialites1ereG: { specialites1ereG: [], specialites1ereG_par_etablissement: [] }
@@ -833,7 +836,10 @@ class OnisepExtractionController {
                 // Options de 2nde GT
                 options2ndeGT: allData.options2ndeGT || [],
                 // Spécialités de 1ère G
-                specialites1ereG: allData.specialites1ereG || []
+                specialites1ereG: allData.specialites1ereG || [],
+                // v0.60 : transmettre les enrichissements établissements pour hébergement, site web, etc.
+                actionsLycee: allData.actionsLycee,
+                actionsSup: allData.actionsSup
             };
             
             // ÉTAPE 6 : Traitement centralisé (déduplication, filtrage, cascade, stockage)
@@ -936,37 +942,54 @@ class OnisepExtractionController {
             this.#addProgressDetail(`${stats.input.diplomes} diplômes → ${stats.stored.diplomes} stockés`);
             this.#databaseService.flush(); // 💾 1 save au lieu de N
 
-            // ÉTAPE 1bis : Collecter les diplômes scolaires de niveau 5+ (BTS, CPGE…)
-            // rejetés par #buildDiplomesValidesArray, pour les afficher en « Autres formations ».
-            await this.#collecterAutresDiplomesScolaires(rawData, diplomesUniquesMap);
-
-            // ÉTAPE 2 : Construire la map des relations etablissement-diplômes valides,
-            // puis les stocker dans la base
+            // ÉTAPE 2 : Construire les relations diplôme-établissement valides,
+            // CRÉER les établissements minimaux (id, UAI, nom, voies:['scolaire'])
+            // à partir des relations qui portent le UAI+nom de la structure,
+            // puis stocker les relations avec l'etabId résolu.
             const diplomesParEtablissementMap = await this.#buildDiplomesParEtablissementMap(rawData, diplomesUniquesMap);
+            const uaiToIds = await this.#creerEtablissementsMinimaux(diplomesParEtablissementMap);
             await this.#storeDiplomesParEtablissement(diplomesParEtablissementMap);
             stats.stored.relationsDiplomesEtablissements = diplomesParEtablissementMap.size;
             stats.cascade.relationsDiplomesEtablissements = stats.input.relationsDiplomesEtablissements - stats.stored.relationsDiplomesEtablissements;
             this.#addProgressDetail(`${stats.input.relationsDiplomesEtablissements} relations diplômes-établissements → ${stats.stored.relationsDiplomesEtablissements} stockées`);
             this.#databaseService.flush(); // 💾 1 save au lieu de N
 
-            // ÉTAPE 3 : Construire la map des établissements uniques,
-            // puis les stocker dans la base
-            const etablissementsUniquesMap = await this.#buildEtablissementsUniquesMap(rawData, diplomesParEtablissementMap);
-            const { count: nbEtabStockes, uaiToId } = await this.#storeEtablissements(etablissementsUniquesMap);
-            stats.stored.etablissements = nbEtabStockes;
-            stats.cascade.etablissements = stats.input.etablissements - stats.stored.etablissements;
-            this.#addProgressDetail(`${stats.input.etablissements} établissements → ${stats.stored.etablissements} stockés`);
-            // Enrichir les relations avec etabId (_id interne) maintenant que les étabs sont en base
-            await this.#enrichirRelationsAvecEtabId(uaiToId);
-            this.#databaseService.flush(); // 💾 1 save après étabs + enrichissement
+            // Construire le set des UAIs valides pour filtrage aval
+            const uaisValidesSet = new Set(
+                Array.from(diplomesParEtablissementMap.values()).map(r => r.uai)
+            );
 
-            // ÉTAPE 3bis : Enrichir les établissements avec ens_hebergement, ens_site_web, ens_accessibilite
+            // ÉTAPE 3 : Enrichir les établissements déjà en base
+            // avec les données complètes du dataset structures (retrouvés par UAI+nom).
+            const nbEtabEnrichis = await this.#enrichirEtablissementsDepuisStructures(rawData, uaiToIds);
+            const allEtabs = await this.#databaseService.getAllEtablissements();
+            stats.stored.etablissements = allEtabs.length;
+            stats.cascade.etablissements = stats.input.etablissements - stats.stored.etablissements;
+            this.#addProgressDetail(`${stats.stored.etablissements} établissements stockés, ${nbEtabEnrichis} enrichis depuis structures`);
+            this.#databaseService.flush(); // 💾 1 save après étabs
+
+            // ÉTAPE 3bis : Collecter les diplômes scolaires de niveau 5+ (BTS, CPGE…)
+            // rejetés par #buildDiplomesValidesArray, stockés par _id interne.
+            // v0.60 : peut créer de nouveaux établissements minimaux (formations sup uniquement).
+            await this.#collecterAutresDiplomesScolaires(rawData, diplomesUniquesMap, uaiToIds);
+
+            // ÉTAPE 3bis-b : Enrichir les établissements nouvellement créés à l'étape 3bis
+            // (qui n'existaient pas lors de l'étape 3) avec les données du dataset structures.
+            await this.#enrichirEtablissementsDepuisStructures(rawData, uaiToIds);
+
+            // ÉTAPE 3ter : Enrichir les établissements avec ens_hebergement, ens_site_web, ens_accessibilite
             // Collectés dans enrichissements_etab lors du parsing actionsLycee/actionsSup
-            await this.#enrichirEtablissementsDepuisActions(rawData, uaiToId);
+            await this.#enrichirEtablissementsDepuisActions(rawData, uaiToIds);
+
+            // v0.60 : Recalculer le nombre d'établissements après les étapes 3bis/3ter
+            // (des établissements ont pu être créés pour formations sup uniquement)
+            const allEtabsFinal = await this.#databaseService.getAllEtablissements();
+            stats.stored.etablissements = allEtabsFinal.length;
+            this.#databaseService.flush(); // 💾 save après enrichissements
 
             // ÉTAPE 4 : Construire la map des relation dispositifs-etablissements valides,
             // puis les stocker dans la base
-            const dispositifsParEtablissementMap = await this.#buildDispositifsParEtablissementMap(rawData, etablissementsUniquesMap);
+            const dispositifsParEtablissementMap = await this.#buildDispositifsParEtablissementMap(rawData, uaisValidesSet, uaiToIds);
             await this.#storeDispositifsParEtablissement(dispositifsParEtablissementMap);
             stats.stored.relationsDispositifsEtablissements = dispositifsParEtablissementMap.size;
             stats.cascade.relationsDispositifsEtablissements = stats.input.relationsDispositifsEtablissements - stats.stored.relationsDispositifsEtablissements;
@@ -984,7 +1007,7 @@ class OnisepExtractionController {
 
             // ÉTAPE 6 : Construire la map des relations options 2nde GT - établissements valides,
             // puis les stocker dans la base
-            const options2ndeGTParEtablissementMap = await this.#buildOptions2ndeGTParEtablissementMap(rawData, etablissementsUniquesMap);
+            const options2ndeGTParEtablissementMap = await this.#buildOptions2ndeGTParEtablissementMap(rawData, uaisValidesSet, uaiToIds);
             await this.#storeOptions2ndeGTParEtablissement(options2ndeGTParEtablissementMap);
             stats.stored.relationsOptions2ndeGTEtablissements = options2ndeGTParEtablissementMap.size;
             stats.cascade.relationsOptions2ndeGTEtablissements = stats.input.relationsOptions2ndeGTEtablissements - stats.stored.relationsOptions2ndeGTEtablissements;
@@ -1002,7 +1025,7 @@ class OnisepExtractionController {
 
             // ÉTAPE 8 : Construire la map des relations spécialités 1ère G - établissements valides,
             // puis les stocker dans la base
-            const specialites1ereGParEtablissementMap = await this.#buildSpecialites1ereGParEtablissementMap(rawData, etablissementsUniquesMap);
+            const specialites1ereGParEtablissementMap = await this.#buildSpecialites1ereGParEtablissementMap(rawData, uaisValidesSet, uaiToIds);
             await this.#storeSpecialites1ereGParEtablissement(specialites1ereGParEtablissementMap);
             stats.stored.relationsSpecialites1ereGEtablissements = specialites1ereGParEtablissementMap.size;
             stats.cascade.relationsSpecialites1ereGEtablissements = stats.input.relationsSpecialites1ereGEtablissements - stats.stored.relationsSpecialites1ereGEtablissements;
@@ -1016,6 +1039,9 @@ class OnisepExtractionController {
             stats.stored.specialites1ereG = specialites1ereGUniquesMap.size;
             stats.cascade.specialites1ereG = stats.input.specialites1ereG - stats.stored.specialites1ereG;
             this.#addProgressDetail(`${stats.input.specialites1ereG} spécialités 1ère G → ${stats.stored.specialites1ereG} stockées`);
+
+            // v0.59 : plus besoin d'enrichirRelationsAvecEtabId car les etabId sont résolus
+            // directement dans chaque étape (2 pour diplômes, 4/6/8 pour dispositifs/options/spécialités)
             this.#databaseService.flush(); // 💾 save final
             
             // Calcul durée
@@ -1036,10 +1062,10 @@ class OnisepExtractionController {
      * telephone et urlOnisep extraits des actions lycée/sup (ens_... fields).
      * Stratégie : première valeur rencontrée par UAI, ne pas écraser si déjà renseigné.
      * @param {Object} rawData
-     * @param {Map<string,string>} uaiToId  - UAI → _id interne (construit à l'étape 3)
+     * @param {Map<string,string[]>} uaiToIds  - UAI → [_id internes] (construit à l'étape 3)
      * @private
      */
-    async #enrichirEtablissementsDepuisActions(rawData, uaiToId) {
+    async #enrichirEtablissementsDepuisActions(rawData, uaiToIds) {
         // Collecter les enrichissements de actionsLycee ET actionsSup
         const enrichRaw = [
             ...(rawData.actionsLycee?.enrichissements_etab || []),
@@ -1049,13 +1075,15 @@ class OnisepExtractionController {
 
         if (enrichRaw.length === 0) return;
 
-        // Dédupliquer par UAI — première valeur rencontrée
-        const byUai = new Map();
+        // Dédupliquer par UAI+nom — première valeur rencontrée
+        // Utilise etabNom pour être précis (un même UAI peut avoir plusieurs structures)
+        const byKey = new Map();
         for (const e of enrichRaw) {
-            if (!byUai.has(e.uai)) byUai.set(e.uai, e);
+            const key = `${e.uai}||${e.etabNom || ''}`;
+            if (!byKey.has(key)) byKey.set(key, e);
             else {
                 // Fusionner sans écraser les champs déjà présents
-                const existing = byUai.get(e.uai);
+                const existing = byKey.get(key);
                 if (!existing.hebergement   && e.hebergement)   existing.hebergement   = e.hebergement;
                 if (!existing.siteWeb       && e.siteWeb)       existing.siteWeb       = e.siteWeb;
                 if (!existing.accessibilite && e.accessibilite) existing.accessibilite = e.accessibilite;
@@ -1065,21 +1093,20 @@ class OnisepExtractionController {
         }
 
         let nbEnrichis = 0;
-        for (const [uai, enrich] of byUai) {
-            const id = uaiToId?.get(uai);
-            if (!id) continue;
-            const existing = await this.#databaseService.getEtablissement(id);
-            if (!existing) continue;
+        for (const [, enrich] of byKey) {
+            // Résoudre etabId par UAI+nom puis fallback UAI seul
+            const etabId = this.#resolveEtabId(enrich.uai, enrich.etabNom, uaiToIds);
+            if (!etabId) continue;
 
             const updates = {};
-            if (!existing.hebergement   && enrich.hebergement)   updates.hebergement   = enrich.hebergement;
-            if (!existing.siteWeb       && enrich.siteWeb)       updates.siteWeb       = enrich.siteWeb;
-            if (!existing.accessibilite && enrich.accessibilite) updates.accessibilite = enrich.accessibilite;
-            if (!existing.telephone     && enrich.telephone)     updates.telephone     = enrich.telephone;
-            if (!existing.urlOnisep     && enrich.urlOnisep)     updates.urlOnisep     = enrich.urlOnisep;
+            if (enrich.hebergement)   updates.hebergement   = enrich.hebergement;
+            if (enrich.siteWeb)       updates.siteWeb       = enrich.siteWeb;
+            if (enrich.accessibilite) updates.accessibilite = enrich.accessibilite;
+            if (enrich.telephone)     updates.telephone     = enrich.telephone;
+            if (enrich.urlOnisep)     updates.urlOnisep     = enrich.urlOnisep;
 
             if (Object.keys(updates).length > 0) {
-                await this.#databaseService.updateEtablissement(id, updates);
+                this.#databaseService.updateEtablissement(etabId, updates);
                 nbEnrichis++;
             }
         }
@@ -1089,13 +1116,14 @@ class OnisepExtractionController {
     }
 
     /**
-     * Construit un array des diplômes valides : GARDE uniquement CAP et Bac ou équivalent
+     * Construit un array des diplômes valides : GARDE uniquement CAP et Bac ou équivalent.
+     * v0.60 : protection contre niveauSortie null/undefined pour éviter les crashs.
      */
     async #buildDiplomesValidesArray(rawData) {
         
         // Filtrer les diplômes en vérifiant le niveau de sortie
         return rawData.diplomes.filter(diplome => {
-            const niveau = diplome.niveauSortie.toLowerCase();
+            const niveau = (diplome.niveauSortie || '').toLowerCase();
             
             // GARDER uniquement ces deux niveaux
             if (niveau === 'cap ou équivalent') return true;
@@ -1114,11 +1142,16 @@ class OnisepExtractionController {
      * Source : rawData.diplomes (actions_lycee + actions_sup) dont le niveauSortie
      * n'est ni « cap ou équivalent » ni « bac ou équivalent ».
      *
+     * v0.60 : si l'établissement n'existe pas encore en base (cas d'un lycée qui
+     * n'a que des formations sup sans aucune formation CAP/Bac dans actions_lycee),
+     * on le crée en tant qu'établissement minimal avant de lui rattacher les formations.
+     *
      * @param {Object} rawData
      * @param {Map<string,Object>} diplomesUniquesMap - diplômes déjà stockés (pour exclure)
+     * @param {Map<string, string[]>} uaiToIds - Map UAI → [_id internes]
      * @private
      */
-    async #collecterAutresDiplomesScolaires(rawData, diplomesUniquesMap) {
+    async #collecterAutresDiplomesScolaires(rawData, diplomesUniquesMap, uaiToIds) {
         // Identifier les diplômes rejetés (niveau 5+)
         const diplomesNiv5Plus = (rawData.diplomes || []).filter(d => {
             const niveau = (d.niveauSortie || '').toLowerCase();
@@ -1135,19 +1168,22 @@ class OnisepExtractionController {
             }
         }
 
-        // Construire un index UAI → liste de libellés depuis les relations
-        const parUai = new Map(); // UAI → Map<libelle, {libelle, niveau, type}>
+        // Construire un index (UAI, nom) → liste de formations depuis les relations
+        // Chaque relation porte etabNom (ajouté phase 2) pour la clé composite
+        const parEtab = new Map(); // clé "UAI||etabNom" → Map<libelleLower, {libelle, niveau, type}>
         const relations = rawData.relationsDiplomesEtablissements || [];
         for (const rel of relations) {
             if (!rel.uai || !rel.libelle) continue;
             const diplome = diplomesMap.get(rel.libelle);
             if (!diplome) continue; // Ce diplôme est soit CAP/Bac (déjà stocké), soit inconnu
 
-            if (!parUai.has(rel.uai)) parUai.set(rel.uai, new Map());
+            const cleEtab = `${rel.uai}||${rel.etabNom || ''}`;
+            if (!parEtab.has(cleEtab)) parEtab.set(cleEtab, { uai: rel.uai, etabNom: rel.etabNom || null, formations: new Map() });
+            const entry = parEtab.get(cleEtab);
             const cleUnique = diplome.libelle.toLowerCase();
-            if (parUai.get(rel.uai).has(cleUnique)) continue;
+            if (entry.formations.has(cleUnique)) continue;
 
-            parUai.get(rel.uai).set(cleUnique, {
+            entry.formations.set(cleUnique, {
                 libelle:     diplome.libelle,
                 niveau:      diplome.niveauSortie || 'Autre',
                 typeDiplome: diplome.type || '',
@@ -1155,11 +1191,37 @@ class OnisepExtractionController {
             });
         }
 
-        // Stocker par UAI (fusion avec les éventuelles données CARIF-OREF déjà présentes)
-        let nbUais = 0;
+        // Stocker par _id interne, résolution par UAI+nom puis fallback UAI seul
+        // v0.60 : si l'établissement n'existe pas encore, le créer en tant qu'établissement minimal
+        let nbEtabs = 0;
         let nbFormations = 0;
-        for (const [uai, formationsMap] of parUai) {
-            const existantes = this.#databaseService.getAutresFormationsParEtablissement(uai) || [];
+        let nbEtabsCrees = 0;
+        for (const [, { uai, etabNom, formations: formationsMap }] of parEtab) {
+            let etabId = this.#resolveEtabId(uai, etabNom, uaiToIds);
+            
+            // v0.60 : Si l'établissement n'existe pas (uniquement des formations sup),
+            // le créer comme établissement minimal pour pouvoir lui rattacher les formations 5+
+            if (!etabId && uai) {
+                const nom = etabNom || uai;
+                const newId = await this.#databaseService.insertEtablissement({
+                    uai: uai,
+                    nom: nom,
+                    nomOnisep: nom,
+                    voies: ['scolaire']
+                });
+                if (newId) {
+                    etabId = newId;
+                    // Mettre à jour uaiToIds
+                    if (!uaiToIds.has(uai)) uaiToIds.set(uai, []);
+                    uaiToIds.get(uai).push(newId);
+                    nbEtabsCrees++;
+                    console.log(`[collecterAutresDiplomesScolaires] ✅ Établissement minimal créé: UAI=${uai}, nom="${nom}", _id=${newId}`);
+                }
+            }
+            
+            if (!etabId) continue;
+
+            const existantes = this.#databaseService.getAutresFormationsParEtablissement(etabId) || [];
             const existantesSet = new Set(existantes.map(f => f.libelle.toLowerCase()));
 
             const nouvelles = Array.from(formationsMap.values())
@@ -1167,15 +1229,19 @@ class OnisepExtractionController {
 
             if (nouvelles.length > 0) {
                 const merged = [...existantes, ...nouvelles];
-                await this.#databaseService.insertAutresFormationsParEtablissement(uai, merged);
-                nbUais++;
+                await this.#databaseService.insertAutresFormationsParEtablissement(etabId, merged);
+                nbEtabs++;
                 nbFormations += nouvelles.length;
             }
         }
 
         if (nbFormations > 0) {
             this.#databaseService.flush();
-            this.#addProgressDetail(`📚 ${nbFormations} diplômes scolaires niveau 5+ répartis sur ${nbUais} établissement(s)`);
+            let msg = `📚 ${nbFormations} diplômes scolaires niveau 5+ répartis sur ${nbEtabs} établissement(s)`;
+            if (nbEtabsCrees > 0) {
+                msg += ` (dont ${nbEtabsCrees} étab(s) créé(s) pour formations sup uniquement)`;
+            }
+            this.#addProgressDetail(msg);
         }
     }
     
@@ -1206,33 +1272,130 @@ class OnisepExtractionController {
     }
 
     /**
-     * Construit une map des établissements valides en se basant sur les relations établissement<->diplôme valides
+     * Crée les établissements minimaux à partir des relations diplôme-établissement.
+     * 
+     * Chaque relation porte un (uai, etabNom). On insère un établissement minimal
+     * {_id, uai, nomOnisep, voies:['scolaire']} pour chaque couple unique (uai, nom).
+     * 
+     * C'est la SEULE porte d'entrée pour la création d'établissements dans le flux Onisep.
+     * L'étape 3 enrichira ces établissements avec les données complètes des structures.
+     * 
+     * @param {Map} diplomesParEtablissementMap - Relations valides
+     * @returns {Promise<Map<string, string[]>>} uaiToIds : Map<UAI, [_id]>
      */
-    async #buildEtablissementsUniquesMap(rawData, diplomesParEtablissementMap) {
-        const etablissementsMap = new Map();
-        const uaisValidesSet = new Set(diplomesParEtablissementMap.values().map(r => r.uai));
+    async #creerEtablissementsMinimaux(diplomesParEtablissementMap) {
+        const uaiToIds = new Map(); // UAI → [_id, _id, ...]
+        const dejaCrees = new Set(); // Clés UAI||nom déjà traitées
 
-        if (rawData.etablissements) {
-            for (const etab of rawData.etablissements) {
-                if (etab.uai && !etablissementsMap.has(etab.uai) && uaisValidesSet.has(etab.uai)) {
-                    etablissementsMap.set(etab.uai, etab);
+        for (const relation of diplomesParEtablissementMap.values()) {
+            if (!relation.uai) continue;
+            const nom = relation.etabNom || relation.uai; // Fallback sur UAI si pas de nom
+            const cle = `${relation.uai}||${nom}`;
+            
+            if (dejaCrees.has(cle)) {
+                // Déjà créé → juste résoudre l'etabId
+                const etabId = this.#databaseService.getEtabIdByUaiNom(relation.uai, nom);
+                if (etabId) relation.etabId = etabId;
+                continue;
+            }
+
+            // Insérer l'établissement minimal via insertEtablissement
+            const etabMinimal = {
+                uai: relation.uai,
+                nomOnisep: nom,
+                voies: ['scolaire']
+            };
+            
+            const etabId = await this.#databaseService.insertEtablissement(etabMinimal);
+            if (etabId) {
+                dejaCrees.add(cle);
+                relation.etabId = etabId;
+                
+                // Construire uaiToIds
+                if (!uaiToIds.has(relation.uai)) uaiToIds.set(relation.uai, []);
+                if (!uaiToIds.get(relation.uai).includes(etabId)) {
+                    uaiToIds.get(relation.uai).push(etabId);
                 }
+            } else {
+                console.warn(`[creerEtablissementsMinimaux] ❌ Échec création étab minimal: UAI=${relation.uai}, nom="${nom}"`);
             }
         }
-        
-        return etablissementsMap;
+
+        console.log(`[creerEtablissementsMinimaux] ✅ ${dejaCrees.size} établissements minimaux créés, uaiToIds: ${uaiToIds.size} UAI(s)`);
+        return uaiToIds;
+    }
+
+    /**
+     * Enrichit les établissements déjà en base avec les données complètes du dataset structures.
+     * Retrouve chaque établissement par sa clé unique (UAI+nom).
+     * Génère un warning si un établissement du dataset n'est pas trouvé en base.
+     * 
+     * @param {Object} rawData - Données brutes contenant rawData.etablissements
+     * @param {Map<string, string[]>} uaiToIds - Map UAI → [_id]
+     * @returns {Promise<number>} Nombre d'établissements enrichis
+     */
+    async #enrichirEtablissementsDepuisStructures(rawData, uaiToIds) {
+        if (!rawData.etablissements || rawData.etablissements.length === 0) return 0;
+
+        let nbEnrichis = 0;
+        for (const etab of rawData.etablissements) {
+            if (!etab.uai || !etab.nom) continue;
+            
+            // Vérifier que cet UAI a des relations (sinon on ne le veut pas)
+            if (!uaiToIds.has(etab.uai)) continue;
+
+            // Retrouver l'_id par la clé unique (UAI+nom)
+            const etabId = this.#databaseService.getEtabIdByUaiNom(etab.uai, etab.nomOnisep || etab.nom);
+            if (!etabId) {
+                // Pas trouvé → c'est possible si le dataset structures contient des noms
+                // légèrement différents du dataset actions. Tenter un fallback par UAI seul.
+                const ids = uaiToIds.get(etab.uai);
+                if (ids && ids.length === 1) {
+                    // Un seul établissement pour cet UAI → enrichir celui-là
+                    const updates = { ...etab };
+                    delete updates._id;
+                    delete updates.voies;
+                    this.#databaseService.updateEtablissement(ids[0], updates);
+                    nbEnrichis++;
+                } else {
+                    console.warn(`[enrichirEtablissementsDepuisStructures] ⚠️ Établissement non trouvé en base: UAI=${etab.uai}, nom="${etab.nom}"`);
+                }
+                continue;
+            }
+
+            // Enrichir avec toutes les données sauf _id et voies
+            const updates = { ...etab };
+            delete updates._id;
+            delete updates.voies;
+            this.#databaseService.updateEtablissement(etabId, updates);
+            nbEnrichis++;
+        }
+
+        if (nbEnrichis > 0) this.#databaseService.flush();
+        console.log(`[enrichirEtablissementsDepuisStructures] ✅ ${nbEnrichis} établissements enrichis depuis structures`);
+        return nbEnrichis;
     }
     
-    /** Construit une map des relations dispositifs par établissement */
-    async #buildDispositifsParEtablissementMap(rawData, etablissementsUniquesMap) {
+    /** Construit une map des relations dispositifs par établissement.
+     * Résout l'UAI+nom en etabId via le DatabaseService, avec fallback sur uaiToIds.
+     * @param {Object} rawData
+     * @param {Set<string>} uaisValidesSet - UAIs ayant au moins un diplôme
+     * @param {Map<string, string[]>} uaiToIds - Map UAI → tableau d'_id internes
+     */
+    async #buildDispositifsParEtablissementMap(rawData, uaisValidesSet, uaiToIds) {
         const dispositifsParEtablissementMap = new Map();
         
         if (!rawData.dispositifs || !rawData.dispositifs.dispositifs_par_etablissement) return dispositifsParEtablissementMap;
         
-        // On dédoublonne les relations et on filtre sur les uai
         for (const relation of rawData.dispositifs.dispositifs_par_etablissement) {
-            if (!dispositifsParEtablissementMap.has(relation.id) && etablissementsUniquesMap.has(relation.uai)) {
-                dispositifsParEtablissementMap.set(relation.id, relation);
+            if (!uaisValidesSet.has(relation.uai)) continue;
+            // Résoudre etabId par UAI+nom (précis) puis fallback UAI seul
+            const etabId = this.#resolveEtabId(relation.uai, relation.etabNom, uaiToIds);
+            if (etabId) {
+                const enrichedRel = { ...relation, etabId };
+                if (!dispositifsParEtablissementMap.has(relation.id)) {
+                    dispositifsParEtablissementMap.set(relation.id, enrichedRel);
+                }
             }
         }
         
@@ -1255,15 +1418,32 @@ class OnisepExtractionController {
         return dispositifsMap;
     }
     
-    /** Construit une map des relations options 2nde GT par établissement */
-    async #buildOptions2ndeGTParEtablissementMap(rawData, etablissementsUniquesMap) {
+    /** Construit une map des relations options 2nde GT par établissement.
+     * Résout l'UAI en etabId via uaiToIds. La clé de chaque relation
+     * est recalculée en libelle_etabId (au lieu de libelle_uai du parser).
+     * @param {Object} rawData
+     * @param {Set<string>} uaisValidesSet - UAIs ayant au moins un diplôme
+     * @param {Map<string, string[]>} uaiToIds - Map UAI → tableau d'_id internes
+     */
+    async #buildOptions2ndeGTParEtablissementMap(rawData, uaisValidesSet, uaiToIds) {
         const options2ndeGTParEtablissementMap = new Map();
         
         if (!rawData.options2ndeGT || !rawData.options2ndeGT.options2ndeGT_par_etablissement) return options2ndeGTParEtablissementMap;
         
         for (const relation of rawData.options2ndeGT.options2ndeGT_par_etablissement) {
-            if (etablissementsUniquesMap.has(relation.uai)) {
-                options2ndeGTParEtablissementMap.set(relation.id, relation);
+            if (!uaisValidesSet.has(relation.uai)) continue;
+            // Résoudre etabId par UAI+nom (précis) puis fallback UAI seul
+            const etabId = this.#resolveEtabId(relation.uai, relation.etabNom, uaiToIds);
+            if (etabId) {
+                // Clé unique : libelle_etabId (remplace libelle_uai)
+                const newId = relation.libelle + '_' + etabId;
+                if (!options2ndeGTParEtablissementMap.has(newId)) {
+                    options2ndeGTParEtablissementMap.set(newId, {
+                        ...relation,
+                        id: newId,
+                        etabId
+                    });
+                }
             }
         }
         
@@ -1286,8 +1466,14 @@ class OnisepExtractionController {
         return options2ndeGTMap;
     }
 
-    /** Construit une map des spécialités 1ère G par établissement */
-    async #buildSpecialites1ereGParEtablissementMap(rawData, etablissementsUniquesMap) {
+    /** Construit une map des spécialités 1ère G par établissement.
+     * Résout l'UAI en etabId via uaiToIds. La clé de chaque relation
+     * est recalculée en libelle_etabId (au lieu de libelle_uai du parser).
+     * @param {Object} rawData
+     * @param {Set<string>} uaisValidesSet - UAIs ayant au moins un diplôme
+     * @param {Map<string, string[]>} uaiToIds - Map UAI → tableau d'_id internes
+     */
+    async #buildSpecialites1ereGParEtablissementMap(rawData, uaisValidesSet, uaiToIds) {
         const specialites1ereGParEtablissementMap = new Map();
         
         if (!rawData.specialites1ereG || !rawData.specialites1ereG.specialites1ereG_par_etablissement) {
@@ -1296,8 +1482,19 @@ class OnisepExtractionController {
         }
         
         for (const relation of rawData.specialites1ereG.specialites1ereG_par_etablissement) {
-            if (etablissementsUniquesMap.has(relation.uai)) {
-                specialites1ereGParEtablissementMap.set(relation.id, relation);
+            if (!uaisValidesSet.has(relation.uai)) continue;
+            // Résoudre etabId par UAI+nom (précis) puis fallback UAI seul
+            const etabId = this.#resolveEtabId(relation.uai, relation.etabNom, uaiToIds);
+            if (etabId) {
+                // Clé unique : libelle_etabId (remplace libelle_uai)
+                const newId = relation.libelle + '_' + etabId;
+                if (!specialites1ereGParEtablissementMap.has(newId)) {
+                    specialites1ereGParEtablissementMap.set(newId, {
+                        ...relation,
+                        id: newId,
+                        etabId
+                    });
+                }
             }
         }
         
@@ -1323,56 +1520,41 @@ class OnisepExtractionController {
     }
 
     /**
-     * Stocke les établissements en base.
-     * Retourne un objet { count, uaiToId } où uaiToId est une Map UAI→_id interne.
+     * Résout un UAI+nom en etabId (_id interne).
+     * 
+     * Stratégie :
+     *   1. Si nom disponible → recherche précise par UAI+nom via getEtabIdByUaiNom
+     *   2. Si pas de nom ou pas trouvé → fallback UAI seul via uaiToIds
+     *      - Si un seul etab pour cet UAI → on le prend
+     *      - Si plusieurs → warning (ambiguïté non résolue), prend le premier
+     * 
+     * @param {string} uai - Code UAI
+     * @param {string|null} etabNom - Nom de l'établissement (peut être null)
+     * @param {Map<string, string[]>} uaiToIds - Map UAI → [_id]
+     * @returns {string|null} etabId ou null
      */
-    async #storeEtablissements(etablissementsMap) {
-        let count = 0;
-        const uaiToId = new Map();
-    
-        console.log(`[storeEtablissements] 📦 Stockage de ${etablissementsMap.size} établissements`);
-        for (const etab of etablissementsMap.values()) {
-            const insertKey = await this.#databaseService.insertEtablissement(etab);
-            if (!insertKey) {
-                const motif = (!etab.uai && !etab.siret)
-                    ? 'UAI et SIRET tous deux absents'
-                    : 'erreur inconnue';
-                console.warn(`[storeEtablissements] ❌ Établissement refusé: "${etab.nom}" — ${motif}`);
-                this.#addProgressDetail(`⚠️ Établissement refusé (${motif}): ${etab.nom || '?'}`, 'warning');
-            } else {
-                count++;
-                if (etab.uai) uaiToId.set(etab.uai, insertKey);
-            }
-        };
-        console.log(`[storeEtablissements] ${count} établissements stockés`);
-        return { count, uaiToId };
-    }
+    #resolveEtabId(uai, etabNom, uaiToIds) {
+        if (!uai) return null;
 
-    /**
-     * Enrichit les relations déjà stockées avec le etabId (_id interne)
-     * à partir de la Map UAI→_id retournée par storeEtablissements.
-     */
-    async #enrichirRelationsAvecEtabId(uaiToId) {
-        if (!uaiToId || uaiToId.size === 0) return;
-
-        const tables = [
-            { getAll: () => this.#databaseService.getAllDiplomesParEtablissement(),       insert: r => this.#databaseService.insertDiplomeParEtablissement(r) },
-            { getAll: () => this.#databaseService.getAllDispositifsParEtablissement(),     insert: r => this.#databaseService.insertDispositifParEtablissement(r) },
-            { getAll: () => this.#databaseService.getAllOptions2ndeGTParEtablissement(),   insert: r => this.#databaseService.insertOption2ndeGTParEtablissement(r) },
-            { getAll: () => this.#databaseService.getAllSpecialites1ereGParEtablissement ? this.#databaseService.getAllSpecialites1ereGParEtablissement() : Promise.resolve([]), insert: r => this.#databaseService.insertSpecialite1ereGParEtablissement(r) },
-        ];
-
-        for (const table of tables) {
-            const rels = await table.getAll();
-            for (const rel of rels) {
-                if (!rel.etabId && rel.uai && uaiToId.has(rel.uai)) {
-                    rel.etabId = uaiToId.get(rel.uai);
-                    await table.insert(rel);
-                }
-            }
+        // 1. Recherche précise par UAI+nom
+        if (etabNom) {
+            const etabId = this.#databaseService.getEtabIdByUaiNom(uai, etabNom);
+            if (etabId) return etabId;
         }
-        console.log('[enrichirRelationsAvecEtabId] ✅ Relations enrichies avec etabId');
+
+        // 2. Fallback : UAI seul via uaiToIds
+        const ids = uaiToIds?.get(uai);
+        if (!ids || ids.length === 0) return null;
+
+        if (ids.length > 1 && etabNom) {
+            console.warn(`[resolveEtabId] ⚠️ Ambiguïté: UAI=${uai} nom="${etabNom}" → ${ids.length} étab(s), prend le premier`);
+        }
+        return ids[0];
     }
+
+    // #enrichirRelationsAvecEtabId supprimée en v0.59 :
+    // Les etabId sont maintenant résolus directement dans chaque étape du flux
+    // (étape 2 pour diplômes, étapes 4/6/8 pour dispositifs/options/spécialités).
     
     /**
      * Stocke les diplômes en base
@@ -1602,7 +1784,7 @@ class OnisepExtractionController {
 
             for (const etab of parsed.etablissements) {
                 if (!etab.uai) continue;
-                const existing = await this.#databaseService.getEtablissementByUai(etab.uai);
+                const existing = await this.#databaseService.getEtablissementByUai(etab.uai, etab.nom);
                 if (!existing) continue;
 
                 // N'écraser que les champs manquants

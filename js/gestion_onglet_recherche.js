@@ -454,10 +454,7 @@ async function lancerExtractionGeo() {
             if (!window.onisepExtractionController) {
                 throw new Error('Controller d\'extraction ONISEP non initialisé');
             }
-            const result = await window.onisepExtractionController.extractByGeo({
-                ...geoParams,
-                voies: ['scolaire']
-            });
+            const result = await window.onisepExtractionController.extractByGeo(geoParams);
             if (!result.success) {
                 if (btnStop) btnStop.classList.add('u-hidden');
                 showAlert(result.message || '⚠️ Extraction scolaire interrompue', 'warning');
@@ -680,29 +677,28 @@ async function lancerExtractionItems(type) {
             const voies = getVoiesDiplomesSelectionnes(selectedItems);
 
             // Partitionner les libellés sélectionnés selon la voie
-            const libbellesScolaires       = selectedItems.filter(lib => {
+            const libellesScolaires       = selectedItems.filter(lib => {
                 const item = availableItems.find(i => i.libelle === lib);
                 return !item || (item.nbEtablissements || 0) > 0;
                 // Inclure aussi les diplômes sans données (fallback : ONISEP tentera quand même)
             });
-            const libbelllesApprentissage  = selectedItems.filter(lib => {
+            const libellesApprentissage  = selectedItems.filter(lib => {
                 const item = availableItems.find(i => i.libelle === lib);
                 return !item || (item.nbEtablissementsApprentissage || 0) > 0;
             });
 
             console.log(`[lancerExtractionItems] 📊 Partition voies :`,
-                `scolaire: ${libbellesScolaires.length}/${selectedItems.length}`,
+                `scolaire: ${libellesScolaires.length}/${selectedItems.length}`,
                 `apprentissage: ${libbelllesApprentissage.length}/${selectedItems.length}`
             );
 
             // ── VOIE SCOLAIRE (ONISEP) — uniquement les diplômes scolaires ────
-            if (voies.includes('scolaire') && libbellesScolaires.length > 0) {
+            if (voies.includes('scolaire') && libellesScolaires.length > 0) {
                 result = await window.onisepExtractionController.extractByDiplomes({
-                    libelles: libbellesScolaires,  // ✅ filtrés voie scolaire
+                    libelles: libellesScolaires,  // ✅ filtrés voie scolaire
                     type: itemsGeoType,
                     value: itemsGeoValue,
-                    displayInfo: { nom: itemsGeoValue },
-                    voies: ['scolaire']
+                    displayInfo: { nom: itemsGeoValue }
                 });
                 if (result && !result.success) {
                     if (btnStop) btnStop.classList.add('u-hidden');
@@ -712,11 +708,11 @@ async function lancerExtractionItems(type) {
             }
 
             // ── VOIE APPRENTISSAGE (CARIF-OREF) — uniquement les diplômes apprentissage ──
-            if (voies.includes('apprentissage') && window.carifOrefExtractionController && libbelllesApprentissage.length > 0) {
+            if (voies.includes('apprentissage') && window.carifOrefExtractionController && libellesApprentissage.length > 0) {
                 // Les UAI sont déjà connus depuis l'étape 1 (stockés dans tabContexteItems)
                 const uaisParLibelle = window.tabContexteItems?.uaisCarifParLibelle || {};
                 const carifResult = await window.carifOrefExtractionController.extractByDiplomesLibelles(
-                    libbelllesApprentissage,  // ✅ filtrés voie apprentissage
+                    libellesApprentissage,  // ✅ filtrés voie apprentissage
                     uaisParLibelle,
                     // Contexte géographique pour filtrage post-récupération des établissements hors périmètre
                     itemsGeoType === 'departement' ? { type: 'departement', value: itemsGeoValue } : null

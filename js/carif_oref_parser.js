@@ -98,6 +98,8 @@ class CARIFOREFParser {
             uai,
             siret:    (e.siret || '').trim() || null,
             nom,
+            nomOnisep: null,
+            nomCarif:  nom,
             sigle:    null,   // Non fourni par CARIF-OREF
             type:     null,   // naf_libelle est trop générique
 
@@ -282,6 +284,8 @@ class CARIFOREFParser {
                 uai,
                 siret:  (f.etablissement_formateur_siret || '').trim() || null,
                 nom,
+                nomOnisep: null,
+                nomCarif:  nom,
                 sigle:  null,
                 type:   null,
 
@@ -423,8 +427,10 @@ class CARIFOREFParser {
             id:          cleDiplome,
             rncpCode,
 
-            // Libellés — v0.57 : normalisés en title case pour affichage cohérent
+            // Libellés — v0.58 : double libellé source + normalisé
             libelle:       libelleNorm,
+            libelleOnisep: null,
+            libelleCarif:  libelleRaw,
             libelleCourt:  libelleCourtNorm,
             rncpIntitule:  (f.rncp_intitule  || '').trim() || null,
 
@@ -463,6 +469,11 @@ class CARIFOREFParser {
                 // Clés étrangères
                 diplomId: cleDiplome,
                 uai,
+
+                // Nom de l'établissement formateur (pour recherche UAI+nom)
+                etabNom: (f.etablissement_formateur_enseigne || '').trim()
+                      || (f.etablissement_formateur_entreprise_raison_sociale || '').trim()
+                      || null,
 
                 // Durée de la formation (en années)
                 dureeAnnees,

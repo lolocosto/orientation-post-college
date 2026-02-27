@@ -424,7 +424,13 @@ class OnisepAPI {
     }
     
     /**
-     * Déduplique les résultats par code_uai, id ou autre identifiant unique
+     * Déduplique les résultats par identifiant unique.
+     * Pour les structures : clé = code_uai + nom (un même UAI peut correspondre
+     * à plusieurs structures, ex: "Lycée VHB" + "Micro-lycée VHB" UAI 0352009U).
+     * Pour les autres datasets : clé = id.
+     * @param {Object[]} results
+     * @param {string} datasetName
+     * @returns {Object[]}
      * @private
      */
     #deduplicateResults(results, datasetName = '') {
@@ -445,27 +451,34 @@ class OnisepAPI {
             return results;
         }
         
-        // Essayer de trouver un champ unique (pour structures principalement)
-        const uniqueField = results[0].code_uai ? 'code_uai' :
-                           results[0].id ? 'id' :
-                           null;
-        
-        if (!uniqueField) {
-            // Pas de champ unique identifié, retourner tel quel
-            console.warn('[OnisepAPI] Aucun champ unique trouvé pour déduplication');
-            return results;
-        }
-        
-        // Déduplication avec Map
-        const uniqueMap = new Map();
-        for (const result of results) {
-            const key = result[uniqueField];
-            if (key && !uniqueMap.has(key)) {
-                uniqueMap.set(key, result);
+        // Structures : clé composite code_uai + nom
+        // Un même UAI peut correspondre à plusieurs structures distinctes
+        if (results[0].code_uai) {
+            const uniqueMap = new Map();
+            for (const result of results) {
+                const uai = result.code_uai || '';
+                const nom = (result.nom || '').trim().toLowerCase();
+                const key = `${uai}||${nom}`;
+                if (!uniqueMap.has(key)) {
+                    uniqueMap.set(key, result);
+                }
             }
+            return Array.from(uniqueMap.values());
         }
         
-        return Array.from(uniqueMap.values());
+        // Autres datasets : dédupliquer par id
+        if (results[0].id) {
+            const uniqueMap = new Map();
+            for (const result of results) {
+                if (result.id && !uniqueMap.has(result.id)) {
+                    uniqueMap.set(result.id, result);
+                }
+            }
+            return Array.from(uniqueMap.values());
+        }
+        
+        console.warn('[OnisepAPI] Aucun champ unique trouvé pour déduplication');
+        return results;
     }
 }
 

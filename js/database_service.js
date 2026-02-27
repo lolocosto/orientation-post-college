@@ -53,7 +53,7 @@ constructor(dbName = null) {
             // Voie apprentissage (CARIF-OREF)
             diplomes_apprentissage: {},
             diplomes_apprentissage_par_etablissement: {},
-            // Autres formations niveau 5+ (CARIF-OREF, non cliquables)
+            // Autres formations niveau 5+ (ONISEP scolaire + CARIF-OREF apprentissage)
             autres_formations_par_etablissement: {},
             langues: {},
             communes: {},
@@ -84,6 +84,8 @@ constructor(dbName = null) {
                         this.#storage = JSON.parse(stored);
                         const ms = Math.round(performance.now() - t0);
                         console.log(`[DatabaseService] 📂 Données chargées en ${ms}ms (${(stored.length/1024).toFixed(0)} Ko)`);
+                        // Reconstruire l'index d'unicité et le compteur d'IDs
+                        this.#rebuildEtabIndex();
                     } else {
                         console.log('[DatabaseService] 📂 Aucune donnée en localStorage');
                     }
@@ -108,6 +110,31 @@ constructor(dbName = null) {
     }
 
     /**
+     * Reconstruit l'index d'unicité des établissements et le compteur d'ID
+     * après un chargement depuis localStorage.
+     * @private
+     */
+    #rebuildEtabIndex() {
+        this.#etabUniquenessIndex.clear();
+        let maxId = 0;
+        for (const [id, etab] of Object.entries(this.#storage.etablissements || {})) {
+            // Reconstruire l'index d'unicité
+            const uniqueKey = this.#buildEtabUniquenessKey(etab);
+            if (uniqueKey) {
+                this.#etabUniquenessIndex.set(uniqueKey, id);
+            }
+            // Recalculer le prochain ID
+            const match = id.match(/^etab_(\d+)$/);
+            if (match) {
+                const num = parseInt(match[1], 10);
+                if (num >= maxId) maxId = num;
+            }
+        }
+        this.#nextEtabId = maxId + 1;
+        console.log(`[DatabaseService] 🔄 Index établissements reconstruit: ${this.#etabUniquenessIndex.size} entrées, prochain ID: ${this.#nextEtabId}`);
+    }
+
+    /**
      * Indique si le chargement depuis localStorage est terminé.
      * @returns {boolean}
      */
@@ -115,13 +142,7 @@ constructor(dbName = null) {
         return this.#loaded;
     }
 
-    /**
-     * @deprecated Utiliser #loadFromLocalStorageAsync en interne
-     * @private
-     */
-#loadFromLocalStorage() {
-        // Méthode obsolète - le chargement est désormais asynchrone via #loadFromLocalStorageAsync
-    }
+    // #loadFromLocalStorage synchrone supprimée en v0.59 : remplacée par #loadFromLocalStorageAsync
 
         /**
          * Persiste toutes les tables dans localStorage.
@@ -161,66 +182,233 @@ async init() {
     // =====================================
     
     /**
-     * Insère ou met à jour un établissement.
-     * Clé interne : _id généré (etab_<SIRET> ou etab_<random>).
-     * Refuse si UAI et SIRET sont tous deux nuls/vides.
-     * @param {Object} etablissement
+     * Compteur auto-incrémenté pour les _id internes des établissements.
+     * @type {number}
+     * @private
+     */
+    #nextEtabId = 1;
+
+    /**
+     * Index d'unicité UAI+nom pour détecter les doublons.
+     * Clé : `${uai}||${nomNormalisé}` ou `${siret}||${nomNormalisé}`
+     * Valeur : _id interne
+     * @type {Map<string, string>}
+     * @private
+     */
+    #etabUniquenessIndex = new Map();
+
+    /**
+     * Normalise un nom pour comparaison : minuscules, sans accents, trimmed.
+     * @param {string} nom
+     * @returns {string}
+     * @private
+     */
+    #normalizeNom(nom) {
+        return (nom || '').trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    }
+
+    /**
+     * Construit la clé d'unicité d'un établissement.
+     * Pour ONISEP : UAI + nomNormalisé. Pour CARIF : SIRET + nomNormalisé (si pas d'UAI).
+     * La normalisation supprime les accents et passe en minuscules
+     * pour fusionner correctement les noms ONISEP/CARIF (ex: "Hélène" vs "HELENE").
+     * @param {Object} etab
+     * @returns {string|null} Clé d'unicité ou null si impossible
+     * @private
+     */
+    #buildEtabUniquenessKey(etab) {
+        const nom = this.#normalizeNom(etab.nomOnisep || etab.nomCarif || etab.nom || '');
+        const uai   = etab.uai   ? String(etab.uai).trim()   : null;
+        const siret = etab.siret ? String(etab.siret).trim() : null;
+        if (uai) return `${uai}||${nom}`;
+        if (siret) return `${siret}||${nom}`;
+        return null;
+    }
+
+    /**
+     * Insère un établissement en base (stockage "bête").
+     * 
+     * Responsabilité : validation des champs obligatoires, test d'unicité, stockage.
+     * Pas de logique métier : c'est au contrôleur de préparer les données
+     * (voies, noms, enrichissements) AVANT d'appeler cette méthode.
+     * 
+     * Champs obligatoires :
+     *   - UAI ou SIRET (identification)
+     *   - nomOnisep ou nomCarif (au moins un nom source)
+     *   - voies (tableau non vide, ex: ['scolaire'] ou ['apprentissage'])
+     * 
+     * En cas de doublon (même clé d'unicité UAI+nom ou SIRET+nom), retourne
+     * l'_id existant sans modifier les données en base.
+     * 
+     * @param {Object} etablissement - Données préparées par le contrôleur
      * @returns {Promise<string|null>} _id interne ou null si refusé
      */
     async insertEtablissement(etablissement) {
         const uai   = etablissement.uai   ? String(etablissement.uai).trim()   : null;
         const siret = etablissement.siret ? String(etablissement.siret).trim() : null;
 
+        // Vérification des champs obligatoires : UAI ou SIRET, au moins un nom, au moins une voie
         if (!uai && !siret) {
             console.warn('[DatabaseService] ❌ Établissement refusé (UAI et SIRET nuls):', etablissement);
             return null;
         }
-
-        // Générer ou réutiliser _id
-        if (!etablissement._id) {
-            if (uai) {
-                etablissement._id = `etab_${uai}`;
-            } else {
-                etablissement._id = `etab_${siret}`;
-            }
+        if (!etablissement.nomOnisep && !etablissement.nomCarif) {
+            console.warn('[DatabaseService] ❌ Établissement refusé (aucun nom fourni):', etablissement);
+            return null;
+        }
+        if (!etablissement.voies || etablissement.voies.length === 0) {
+            console.warn('[DatabaseService] ❌ Établissement refusé (aucune voie fournie):', etablissement);
+            return null;
         }
 
-        // Initialiser la voie scolaire si le champ voies est absent
-        if (!etablissement.voies) {
-            etablissement.voies = ['scolaire'];
+        // Initialiser le champ nom pour affichage dans l'UI,
+        // en fonction de la voie (priorité ONISEP pour scolaire, CARIF pour apprentissage)
+        if (etablissement.voies.includes('scolaire')) {
+            etablissement.nom = etablissement.nomOnisep;
+        } else {
+            etablissement.nom = etablissement.nomCarif;
+        }
+
+        // Test d'unicité : UAI+nom pour Onisep, SIRET+nom pour Carif
+        const uniqueKey = this.#buildEtabUniquenessKey(etablissement);
+        if (uniqueKey && this.#etabUniquenessIndex.has(uniqueKey)) {
+            const existingId = this.#etabUniquenessIndex.get(uniqueKey);
+            console.info(`[DatabaseService] ℹ️ Doublon établissement détecté (clé: ${uniqueKey}) → retourne ${existingId}`);
+            return existingId;
+        }
+
+        // Générer _id (numérique auto-incrémenté)
+        if (!etablissement._id) {
+            etablissement._id = `etab_${this.#nextEtabId++}`;
         }
 
         this.#storage.etablissements[etablissement._id] = etablissement;
+
+        // Mettre à jour l'index d'unicité
+        if (uniqueKey) {
+            this.#etabUniquenessIndex.set(uniqueKey, etablissement._id);
+        }
+
         return etablissement._id;
+    }
+
+    /**
+     * Recherche un _id interne par la clé d'unicité (UAI+nom).
+     * Ne crée rien — retourne null si l'établissement n'est pas en base.
+     * Utilisé par les contrôleurs pour résoudre UAI+nom → _id.
+     * 
+     * @param {string} uai  - Code UAI (obligatoire)
+     * @param {string} nom  - Nom de la structure (obligatoire)
+     * @returns {string|null} _id interne ou null si non trouvé
+     */
+    getEtabIdByUaiNom(uai, nom) {
+        if (!uai || !nom) return null;
+        const nomNorm = this.#normalizeNom(nom);
+        const uniqueKey = `${String(uai).trim()}||${nomNorm}`;
+        return this.#etabUniquenessIndex.get(uniqueKey) || null;
+    }
+
+    /**
+     * @deprecated v0.59 — Sera supprimée en v0.60.
+     * Utiliser insertEtablissement() + getEtabIdByUaiNom() à la place.
+     * Ce wrapper maintient la compatibilité le temps de la migration des contrôleurs.
+     *
+     * Réserve ou retrouve un _id pour un couple (uai, nom).
+     * @param {string} uai  - Code UAI (obligatoire)
+     * @param {string} nom  - Nom de la structure (obligatoire)
+     * @returns {string|null} _id interne ou null si uai/nom manquant
+     */
+    getOrCreateEtablissementId(uai, nom) {
+        console.warn('[DatabaseService] ⚠️ DEPRECATED: getOrCreateEtablissementId() → utiliser insertEtablissement() + getEtabIdByUaiNom()');
+        if (!uai || !nom) return null;
+
+        // Déjà connu → retourner l'_id existant
+        const existingId = this.getEtabIdByUaiNom(uai, nom);
+        if (existingId) return existingId;
+
+        // Nouveau → créer un slot minimal via insertEtablissement
+        const newId = `etab_${this.#nextEtabId++}`;
+        const etabMinimal = {
+            _id: newId,
+            uai: String(uai).trim(),
+            nom: nom.trim(),
+            nomOnisep: nom.trim(),
+            voies: ['scolaire']
+        };
+        this.#storage.etablissements[newId] = etabMinimal;
+        // Indexer
+        const nomNorm = this.#normalizeNom(nom);
+        const uniqueKey = `${String(uai).trim()}||${nomNorm}`;
+        this.#etabUniquenessIndex.set(uniqueKey, newId);
+        return newId;
     }
     
     /**
      * Met à jour un établissement par son _id interne.
-     * @param {string} id - _id interne de l'établissement
-     * @param {Object} updates
+     * Enrichissement non-destructif : ne remplace que les champs null/undefined/vides
+     * dans l'existant, sauf pour les champs explicitement passés dans `options.overwrite`.
+     * 
+     * Pour les voies : ajoute les nouvelles voies sans retirer les existantes (union).
+     * 
+     * @param {string} id - _id interne (etab_1, etab_2, …)
+     * @param {Object} updates - Champs à mettre à jour
+     * @param {Object} [options] - Options d'update
+     * @param {boolean} [options.overwrite=false] - Si true, écrase tous les champs (y compris non-null)
+     * @returns {boolean} true si l'établissement a été trouvé et mis à jour
      */
-    async updateEtablissement(id, updates) {
-        if (this.#storage.etablissements[id]) {
-            Object.assign(this.#storage.etablissements[id], updates);
-        } else {
-            console.warn(`[DatabaseService] ⚠️ Impossible de mettre à jour établissement: _id ${id} non trouvé`);
+    updateEtablissement(id, updates, options = {}) {
+        const existing = this.#storage.etablissements[id];
+        if (!existing) {
+            console.warn(`[DatabaseService] ⚠️ updateEtablissement: _id ${id} non trouvé`);
+            return false;
         }
+
+        for (const [key, val] of Object.entries(updates)) {
+            if (key === '_id') continue; // Ne jamais écraser l'_id
+
+            if (key === 'voies') {
+                // Voies : fusion (union) sans doublons
+                if (Array.isArray(val) && val.length > 0) {
+                    if (!existing.voies) existing.voies = [];
+                    const merged = new Set([...existing.voies, ...val]);
+                    existing.voies = [...merged];
+                }
+            } else if (key === 'commune') {
+                // v0.60 : pour les communes, toujours garder la version avec le plus d'accents
+                // Ex: "Cesson-Sévigné" (ONISEP) vs "Cesson-Sevigne" (CARIF-OREF)
+                const prefer = typeof preferAccentedCommune === 'function'
+                    ? preferAccentedCommune : (typeof window !== 'undefined' && window.preferAccentedCommune);
+                if (prefer) {
+                    existing.commune = prefer(existing.commune, val);
+                } else {
+                    // Fallback : comportement par défaut (enrichissement ou overwrite)
+                    if (options.overwrite || !existing.commune) {
+                        existing.commune = val;
+                    }
+                }
+            } else if (options.overwrite) {
+                // Mode overwrite : écraser systématiquement
+                existing[key] = val;
+            } else {
+                // Mode enrichissement : ne pas écraser un champ déjà renseigné
+                if (existing[key] === undefined || existing[key] === null || existing[key] === '') {
+                    existing[key] = val;
+                }
+            }
+        }
+
+        // Recalculer le nom d'affichage si les noms sources ont changé
+        if (updates.nomOnisep || updates.nomCarif) {
+            if (existing.voies?.includes('scolaire')) {
+                existing.nom = existing.nomOnisep || existing.nomCarif;
+            } else {
+                existing.nom = existing.nomCarif || existing.nomOnisep;
+            }
+        }
+
+        return true;
     }
 
-    /**
-     * Met à jour un établissement par son UAI (compatibilité enrichissement ONISEP).
-     * @param {string} uai
-     * @param {Object} updates
-     */
-    async updateEtablissementByUai(uai, updates) {
-        const etab = this.getEtablissementByUaiSync(uai);
-        if (etab) {
-            await this.updateEtablissement(etab._id, updates);
-        } else {
-            console.warn(`[DatabaseService] ⚠️ updateEtablissementByUai: UAI ${uai} non trouvé`);
-        }
-    }
-    
     /**
      * Récupère un établissement par son _id interne.
      * @param {string} id
@@ -230,22 +418,44 @@ async init() {
     }
 
     /**
-     * Récupère un établissement par son UAI (recherche linéaire).
-     * @param {string} uai
+     * Récupère un établissement par son UAI et son nom (unicité garantie).
+     * La combinaison UAI+nom est la clé d'unicité depuis v0.58.
+     * Si le nom n'est pas disponible au point d'appel, utiliser getEtablissement(_id)
+     * avec l'identifiant interne, ou getEtablissementsByUaiSync(uai) pour obtenir
+     * tous les établissements partageant un même UAI.
+     * @param {string} uai - Code UAI de l'établissement
+     * @param {string} nom - Nom de l'établissement (obligatoire pour garantir l'unicité)
      * @returns {Object|null}
      */
-    getEtablissementByUaiSync(uai) {
-        if (!uai) return null;
-        return Object.values(this.#storage.etablissements).find(e => e.uai === uai) || null;
+    getEtablissementByUaiSync(uai, nom) {
+        if (!uai || !nom) return null;
+        const nomLower = nom.trim().toLowerCase();
+        return Object.values(this.#storage.etablissements).find(e =>
+            e.uai === uai &&
+            (e.nom || '').trim().toLowerCase() === nomLower
+        ) || null;
+    }
+
+    /**
+     * Récupère TOUS les établissements partageant un même UAI.
+     * Nécessaire depuis v0.58 car un UAI peut correspondre à plusieurs structures
+     * (ex: "Lycée Victor et Hélène Basch" et "Micro-lycée Victor et Hélène Basch" — même UAI 0352009U).
+     * @param {string} uai
+     * @returns {Object[]}
+     */
+    getEtablissementsByUaiSync(uai) {
+        if (!uai) return [];
+        return Object.values(this.#storage.etablissements).filter(e => e.uai === uai);
     }
 
         /**
          * Récupère un établissement par son code UAI (version asynchrone).
          * @param {string} uai - Code UAI
+         * @param {string} nom - Nom de l'établissement (obligatoire)
          * @returns {Promise<Object|null>}
          */
-async getEtablissementByUai(uai) {
-        return this.getEtablissementByUaiSync(uai);
+async getEtablissementByUai(uai, nom) {
+        return this.getEtablissementByUaiSync(uai, nom);
     }
     
         /**
@@ -269,6 +479,9 @@ async insertDiplome(diplome) {
         if (!diplome.libelle) {
             console.warn('[DatabaseService] ❌ Impossible d\'insérer diplôme sans libellé:', diplome);
             return null;
+        }
+        if (this.#storage.diplomes[diplome.libelle]) {
+            console.info(`[DatabaseService] ℹ️ Diplôme existant mis à jour: "${diplome.libelle}"`);
         }
         this.#storage.diplomes[diplome.libelle] = diplome;
         return diplome.libelle;
@@ -298,6 +511,9 @@ async updateDiplome(libelle, updates) {
         if (!relation.id) {
             relation.id = `rel_dip_${_genId()}`;
             console.warn(`[DatabaseService] ⚠️ Relation diplôme-établissement sans ID API → ID généré: ${relation.id}`);
+        }
+        if (this.#storage.diplomes_par_etablissement[relation.id] && !relation.etabId) {
+            console.info(`[DatabaseService] ℹ️ Relation diplôme-étab existante: ${relation.id}`);
         }
         this.#storage.diplomes_par_etablissement[relation.id] = relation;
         return relation.id;
@@ -341,6 +557,9 @@ async insertDispositif(dispositif) {
         if (!dispositif.libelle) {
             console.warn('[DatabaseService] ❌ Impossible d\'insérer dispositif sans libellé:', dispositif);
             return null;
+        }
+        if (this.#storage.dispositifs[dispositif.libelle]) {
+            console.info(`[DatabaseService] ℹ️ Dispositif existant mis à jour: "${dispositif.libelle}"`);
         }
         this.#storage.dispositifs[dispositif.libelle] = dispositif;
         return dispositif.libelle;
@@ -415,6 +634,9 @@ async insertOption2ndeGT(option) {
             console.warn('[DatabaseService] ❌ Impossible d\'insérer option 2nde GT sans libellé:', option);
             return null;
         }
+        if (this.#storage.options_2nde_gt[option.libelle]) {
+            console.info(`[DatabaseService] ℹ️ Option 2nde GT existante mise à jour: "${option.libelle}"`);
+        }
         this.#storage.options_2nde_gt[option.libelle] = option;
         return option.libelle;
     }
@@ -467,16 +689,18 @@ async getAllOptions2ndeGTAvecComptage() {
         const options = await this.getAllOptions2ndeGT();
         const relations = await this.getAllOptions2ndeGTParEtablissement();
 
-        const compteur = new Map();
+        // Compter les établissements distincts (par etabId) pour chaque option
+        const compteur = new Map(); // libelle → Set<etabId>
         relations.forEach(rel => {
-            if (rel.libelle) {
-                compteur.set(rel.libelle, (compteur.get(rel.libelle) || 0) + 1);
+            if (rel.libelle && rel.etabId) {
+                if (!compteur.has(rel.libelle)) compteur.set(rel.libelle, new Set());
+                compteur.get(rel.libelle).add(rel.etabId);
             }
         });
 
         return options.map(option => ({
             libelle: option.libelle,
-            nbEtablissements: compteur.get(option.libelle) || 0
+            nbEtablissements: compteur.get(option.libelle)?.size || 0
         }));
     }
 
@@ -511,10 +735,8 @@ async getOptionsDisponiblesParPerimetre(perimetre, zone) {
 
         const optionsSet = new Set();
         relations.forEach(relation => {
-            // Jointure par etabId (_id interne) ou UAI (compatibilité)
-            const etab = relation.etabId
-                ? etabIndex[relation.etabId]
-                : etablissements.find(e => e.uai === relation.uai);
+            // Jointure par etabId (_id interne)
+            const etab = relation.etabId ? etabIndex[relation.etabId] : null;
             if (!etab) return;
             const etabZone = perimetre === 'departement' ? etab.departement : etab.academie;
             if (etabZone === zone && relation.libelle) {
@@ -533,17 +755,42 @@ async getOption2ndeGTEnrichie(libelle) {
         const option = await this.getOption2ndeGT(libelle);
         if (!option) return null;
 
-        const relations = await this.getAllOptions2ndeGTParEtablissement();
-        const etablissements = [];
+        const relations = Object.values(this.#storage.options_2nde_gt_par_etablissement)
+            .filter(rel => rel.libelle === libelle);
+
+        console.log(`[getOption2ndeGTEnrichie] "${libelle}" : ${relations.length} relation(s) trouvée(s)`);
         for (const rel of relations) {
-            if (rel.libelle !== libelle) continue;
-            // Jointure par etabId ou UAI (compatibilité)
-            const etab = rel.etabId
-                ? await this.getEtablissement(rel.etabId)
-                : this.getEtablissementByUaiSync(rel.uai);
-            if (etab) etablissements.push(etab);
+            console.log(`[getOption2ndeGTEnrichie]   → rel.id=${rel.id}, rel.etabId=${rel.etabId}`);
         }
-        etablissements.sort((a, b) => (a.nom || '').localeCompare(b.nom || ''));
+
+        // Jointure par _id interne — même pattern que getDiplomeEnrichi/getDispositifEnrichi
+        const etabIds = new Set(relations.map(rel => rel.etabId).filter(Boolean));
+
+        // DIAGNOSTIC COMPLET : dumper tous les _id et noms du storage
+        const allEtabs = Object.entries(this.#storage.etablissements);
+        console.log(`[getOption2ndeGTEnrichie] 📋 storage.etablissements: ${allEtabs.length} entrée(s)`);
+        for (const [key, e] of allEtabs) {
+            console.log(`[getOption2ndeGTEnrichie]   clé="${key}" _id="${e._id}" nom="${e.nom}" uai="${e.uai}"`);
+        }
+
+        const etablissements = Object.values(this.#storage.etablissements)
+            .filter(e => etabIds.has(e._id))
+            .sort((a, b) => (a.nom || '').localeCompare(b.nom || '', 'fr'));
+
+        if (etablissements.length !== etabIds.size) {
+            const missing = [...etabIds].filter(id => !this.#storage.etablissements[id]);
+            console.warn(`[getOption2ndeGTEnrichie] ⚠️ ${etabIds.size} etabId mais ${etablissements.length} trouvés. Manquants:`, missing);
+            // Chercher si un étab a cet _id dans sa valeur mais sous une autre clé
+            for (const mid of missing) {
+                const found = allEtabs.find(([k, e]) => e._id === mid);
+                if (found) {
+                    console.warn(`[getOption2ndeGTEnrichie] 🔍 ${mid} trouvé sous clé "${found[0]}" (≠ "${mid}") — BUG clé/valeur !`);
+                } else {
+                    console.warn(`[getOption2ndeGTEnrichie] 🔍 ${mid} absent du storage (ni comme clé ni comme _id)`);
+                }
+            }
+        }
+
         return { option, etablissements };
     }
 
@@ -560,6 +807,9 @@ async insertSpecialite1ereG(specialite) {
         if (!specialite.libelle) {
             console.warn('[DatabaseService] ❌ Impossible d\'insérer spécialité 1ère G sans libellé:', specialite);
             return null;
+        }
+        if (this.#storage.specialites_1ereG[specialite.libelle]) {
+            console.info(`[DatabaseService] ℹ️ Spécialité 1ère G existante mise à jour: "${specialite.libelle}"`);
         }
         this.#storage.specialites_1ereG[specialite.libelle] = specialite;
         return specialite.libelle;
@@ -687,26 +937,24 @@ async getStats() {
     
         /**
          * Retourne les diplômes scolaires d'un établissement (jointure synchrone).
-         * Filtre par etabId OU uai (compatibilité ascendante).
+         * Filtre par etabId (_id interne) uniquement.
          * @param {string} etabId - _id interne
          * @returns {Object[]}
          */
 getDiplomesParEtablissementSync(etabId) {
         const etab = this.#storage.etablissements[etabId];
         if (!etab) return [];
-        const uai = etab.uai;
 
         const libellesSet = new Set(
             Object.values(this.#storage.diplomes_par_etablissement)
-                .filter(rel => rel.etabId === etabId || (uai && rel.uai === uai))
+                .filter(rel => rel.etabId === etabId)
                 .map(rel => rel.libelle)
         );
 
         const diplomes = Object.values(this.#storage.diplomes).filter(d => libellesSet.has(d.libelle));
         for (const diplome of diplomes) {
             const relation = Object.values(this.#storage.diplomes_par_etablissement)
-                .filter(rel => rel.etabId === etabId || (uai && rel.uai === uai))
-                .find(rel => rel.libelle === diplome.libelle);
+                .find(rel => rel.etabId === etabId && rel.libelle === diplome.libelle);
             if (relation) Object.assign(diplome, relation);
         }
         return diplomes;
@@ -720,19 +968,17 @@ getDiplomesParEtablissementSync(etabId) {
 async getDispositifsParEtablissement(etabId) {
         const etab = this.#storage.etablissements[etabId];
         if (!etab) return [];
-        const uai = etab.uai;
 
         const libellesSet = new Set(
             Object.values(this.#storage.dispositifs_par_etablissement)
-                .filter(rel => rel.etabId === etabId || (uai && rel.uai === uai))
+                .filter(rel => rel.etabId === etabId)
                 .map(rel => rel.libelle)
         );
 
         const dispositifs = Object.values(this.#storage.dispositifs).filter(d => libellesSet.has(d.libelle));
         for (const dispositif of dispositifs) {
             const relation = Object.values(this.#storage.dispositifs_par_etablissement)
-                .filter(rel => rel.etabId === etabId || (uai && rel.uai === uai))
-                .find(rel => rel.libelle === dispositif.libelle);
+                .find(rel => rel.etabId === etabId && rel.libelle === dispositif.libelle);
             if (relation) Object.assign(dispositif, relation);
         }
         return dispositifs;
@@ -746,19 +992,17 @@ async getDispositifsParEtablissement(etabId) {
 async getOptions2ndeGTParEtablissement(etabId) {
         const etab = this.#storage.etablissements[etabId];
         if (!etab) return [];
-        const uai = etab.uai;
 
         const libellesSet = new Set(
             Object.values(this.#storage.options_2nde_gt_par_etablissement)
-                .filter(rel => rel.etabId === etabId || (uai && rel.uai === uai))
+                .filter(rel => rel.etabId === etabId)
                 .map(rel => rel.libelle)
         );
 
         const options = Object.values(this.#storage.options_2nde_gt).filter(o => libellesSet.has(o.libelle));
         for (const option of options) {
             const relation = Object.values(this.#storage.options_2nde_gt_par_etablissement)
-                .filter(rel => rel.etabId === etabId || (uai && rel.uai === uai))
-                .find(rel => rel.libelle === option.libelle);
+                .find(rel => rel.etabId === etabId && rel.libelle === option.libelle);
             if (relation) Object.assign(option, relation);
         }
         return options;
@@ -772,19 +1016,17 @@ async getOptions2ndeGTParEtablissement(etabId) {
 async getSpecialites1ereGParEtablissement(etabId) {
         const etab = this.#storage.etablissements[etabId];
         if (!etab) return [];
-        const uai = etab.uai;
 
         const libellesSet = new Set(
             Object.values(this.#storage.specialites_1ereG_par_etablissement)
-                .filter(rel => rel.etabId === etabId || (uai && rel.uai === uai))
+                .filter(rel => rel.etabId === etabId)
                 .map(rel => rel.libelle)
         );
 
         const specialites = Object.values(this.#storage.specialites_1ereG).filter(s => libellesSet.has(s.libelle));
         for (const specialite of specialites) {
             const relation = Object.values(this.#storage.specialites_1ereG_par_etablissement)
-                .filter(rel => rel.etabId === etabId || (uai && rel.uai === uai))
-                .find(rel => rel.libelle === specialite.libelle);
+                .find(rel => rel.etabId === etabId && rel.libelle === specialite.libelle);
             if (relation) Object.assign(specialite, relation);
         }
         return specialites;
@@ -792,12 +1034,16 @@ async getSpecialites1ereGParEtablissement(etabId) {
 
         /**
          * Retourne les langues enseignées dans un établissement.
+         * Jointure par UAI (les langues sont liées au site physique, pas à la structure).
+         * Tous les établissements partageant un même UAI partagent les mêmes langues.
          * @param {string} etabId - _id interne
          * @returns {Promise<Object[]>}
          */
 async getLanguesParEtablissement(etabId) {
         const etab = this.#storage.etablissements[etabId];
         if (!etab || !etab.uai) return [];
+        // Jointure par UAI : les langues sont liées au site physique (UAI),
+        // pas à la structure administrative — c'est correct sémantiquement.
         return Object.values(this.#storage.langues).filter(l => l.uai === etab.uai);
     }
 
@@ -817,19 +1063,16 @@ async getDiplomeEnrichi(libelle) {
         const relations = Object.values(this.#storage.diplomes_par_etablissement)
             .filter(rel => rel.libelle === libelle);
 
+        // Jointure par _id interne uniquement
         const etabIds = new Set(relations.map(rel => rel.etabId).filter(Boolean));
-        // Compatibilité : certaines relations n'ont pas encore etabId, joindre via uai
-        const uais = new Set(relations.filter(r => !r.etabId && r.uai).map(r => r.uai));
 
         const etablissements = Object.values(this.#storage.etablissements)
-            .filter(e => etabIds.has(e._id) || (e.uai && uais.has(e.uai)))
+            .filter(e => etabIds.has(e._id))
             .sort((a, b) => (a.nom || '').localeCompare(b.nom || '', 'fr'));
 
         // Infos de la relation pour chaque étab (page web, durée, etc.)
         const etabsAvecRelation = etablissements.map(etab => {
-            const rel = relations.find(r =>
-                r.etabId === etab._id || (etab.uai && r.uai === etab.uai)
-            );
+            const rel = relations.find(r => r.etabId === etab._id);
             return { ...etab, ...(rel || {}) };
         });
 
@@ -848,17 +1091,15 @@ async getDispositifEnrichi(libelle) {
         const relations = Object.values(this.#storage.dispositifs_par_etablissement)
             .filter(rel => rel.libelle === libelle);
 
+        // Jointure par _id interne uniquement
         const etabIds = new Set(relations.map(rel => rel.etabId).filter(Boolean));
-        const uais    = new Set(relations.filter(r => !r.etabId && r.uai).map(r => r.uai));
 
         const etablissements = Object.values(this.#storage.etablissements)
-            .filter(e => etabIds.has(e._id) || (e.uai && uais.has(e.uai)))
+            .filter(e => etabIds.has(e._id))
             .sort((a, b) => (a.nom || '').localeCompare(b.nom || '', 'fr'));
 
         const etabsAvecRelation = etablissements.map(etab => {
-            const rel = relations.find(r =>
-                r.etabId === etab._id || (etab.uai && r.uai === etab.uai)
-            );
+            const rel = relations.find(r => r.etabId === etab._id);
             return { ...etab, ...(rel || {}) };
         });
 
@@ -922,6 +1163,9 @@ async insertDiplomeApprentissage(diplome) {
             console.warn('[DatabaseService] ❌ Impossible d\'insérer diplôme apprentissage sans ID:', diplome);
             return null;
         }
+        if (this.#storage.diplomes_apprentissage[diplome.id]) {
+            console.info(`[DatabaseService] ℹ️ Diplôme apprentissage existant mis à jour: "${diplome.id}" (${diplome.libelle || '?'})`);
+        }
         this.#storage.diplomes_apprentissage[diplome.id] = diplome;
         return diplome.id;
     }
@@ -944,15 +1188,14 @@ async getDiplomeApprentissageEnrichi(id) {
         const diplome = await this.getDiplomeApprentissage(id);
         if (!diplome) return null;
 
-        // Récupérer les etabIds (ou UAI) depuis la table de relations
+        // Jointure par _id interne uniquement
         const relations = Object.values(this.#storage.diplomes_apprentissage_par_etablissement)
             .filter(rel => rel.diplomId === id);
 
         const etabIds = new Set(relations.map(rel => rel.etabId).filter(Boolean));
-        const uais    = new Set(relations.filter(r => !r.etabId && r.uai).map(r => r.uai));
 
         const etablissements = Object.values(this.#storage.etablissements)
-            .filter(e => etabIds.has(e._id) || (e.uai && uais.has(e.uai)))
+            .filter(e => etabIds.has(e._id))
             .sort((a, b) => (a.nom || '').localeCompare(b.nom || '', 'fr'));
 
         // Retourner les relations pour accéder à dureeAnnees, courriel, etc.
@@ -1024,12 +1267,7 @@ async getAllDiplomesApprentissageParEtablissement() {
          */
 async getDiplomesApprentissageParEtablissement(etabId) {
         const relations = Object.values(this.#storage.diplomes_apprentissage_par_etablissement)
-            .filter(rel => {
-                if (rel.etabId === etabId) return true;
-                // Compatibilité : chercher via uai si l'établissement a un UAI
-                const etab = this.#storage.etablissements[etabId];
-                return etab && etab.uai && rel.uai === etab.uai;
-            });
+            .filter(rel => rel.etabId === etabId);
         const ids = new Set(relations.map(r => r.diplomId));
         return Object.values(this.#storage.diplomes_apprentissage).filter(d => ids.has(d.id));
     }
@@ -1040,10 +1278,8 @@ async getDiplomesApprentissageParEtablissement(etabId) {
          * @returns {Object[]}
          */
 getDiplomesApprentissageParEtablissementSync(etabId) {
-        const etab = this.#storage.etablissements[etabId];
-        const uai  = etab ? etab.uai : null;
         const relations = Object.values(this.#storage.diplomes_apprentissage_par_etablissement)
-            .filter(rel => rel.etabId === etabId || (uai && rel.uai === uai));
+            .filter(rel => rel.etabId === etabId);
         const ids = new Set(relations.map(r => r.diplomId));
         const diplomes = Object.values(this.#storage.diplomes_apprentissage).filter(d => ids.has(d.id));
         // Enrichir chaque diplôme avec les données de la relation (dureeAnnees, courriel, etc.)
@@ -1057,28 +1293,27 @@ getDiplomesApprentissageParEtablissementSync(etabId) {
     }
 
     // =====================================
-    // AUTRES FORMATIONS NIVEAU 5+ (CARIF-OREF)
+    // AUTRES FORMATIONS NIVEAU 5+ (ONISEP + CARIF-OREF)
     // =====================================
 
     /**
-     * Insère une liste de formations niveau 5+ pour un établissement (par UAI).
+     * Insère une liste de formations niveau 5+ pour un établissement (par _id interne).
      * Chaque formation est un objet léger { libelle, niveau, typeDiplome }.
-     * Stockage par UAI pour lookup rapide dans la fiche établissement.
-     * @param {string} uai
+     * @param {string} etabId - _id interne de l'établissement
      * @param {Object[]} formations - [{ libelle, niveau, typeDiplome }]
      */
-    async insertAutresFormationsParEtablissement(uai, formations) {
-        if (!uai || !formations || formations.length === 0) return;
-        this.#storage.autres_formations_par_etablissement[uai] = formations;
+    async insertAutresFormationsParEtablissement(etabId, formations) {
+        if (!etabId || !formations || formations.length === 0) return;
+        this.#storage.autres_formations_par_etablissement[etabId] = formations;
     }
 
     /**
      * Retourne les formations niveau 5+ d'un établissement.
-     * @param {string} uai
+     * @param {string} etabId - _id interne de l'établissement
      * @returns {Object[]} [{ libelle, niveau, typeDiplome }]
      */
-    getAutresFormationsParEtablissement(uai) {
-        return this.#storage.autres_formations_par_etablissement[uai] || [];
+    getAutresFormationsParEtablissement(etabId) {
+        return this.#storage.autres_formations_par_etablissement[etabId] || [];
     }
 
     /**
@@ -1098,11 +1333,46 @@ getDiplomesApprentissageParEtablissementSync(etabId) {
     }
 
     /**
+     * Retire les formations 5+ issues de CARIF (source='carif') de la table
+     * autres_formations_par_etablissement, tout en préservant celles issues d'Onisep
+     * (source='onisep' — CPGE, BTS scolaires, etc.).
+     * Supprime les clés devenues vides après purge.
+     * @private
+     */
+    #purgeAutresFormationsCarif() {
+        const table = this.#storage.autres_formations_par_etablissement;
+        let nbPurged = 0;
+        for (const etabId of Object.keys(table)) {
+            const formations = table[etabId];
+            if (!Array.isArray(formations)) {
+                delete table[etabId];
+                continue;
+            }
+            const kept = formations.filter(f => f.source !== 'carif');
+            if (kept.length === 0) {
+                delete table[etabId];
+            } else {
+                table[etabId] = kept;
+            }
+            nbPurged += formations.length - kept.length;
+        }
+        if (nbPurged > 0) {
+            console.log(`[DatabaseService] 🧹 ${nbPurged} formation(s) CARIF 5+ purgées, formations Onisep préservées`);
+        }
+    }
+
+    /**
+     * @deprecated v0.59 — Sera supprimée en v0.60.
+     * La logique de fusion doit être dans le contrôleur CARIF, pas dans le DatabaseService.
+     * Ce wrapper maintient la compatibilité le temps de la migration.
+     *
      * Fusionne la voie apprentissage sur un établissement existant,
-     * ou insère un nouvel établissement si l'UAI est inconnu.
-     * Retourne le _id interne.
+     * ou insère un nouvel établissement si aucun match UAI+nom.
+     * @param {Object} etabAprentissage - Données CARIF de l'établissement
+     * @returns {Promise<string|null>} _id interne ou null si refusé
      */
     async fusionnerEtablissementAprentissage(etabAprentissage) {
+        console.warn('[DatabaseService] ⚠️ DEPRECATED: fusionnerEtablissementAprentissage() → à déplacer dans le contrôleur CARIF');
         const uai   = etabAprentissage.uai   ? String(etabAprentissage.uai).trim()   : null;
         const siret = etabAprentissage.siret ? String(etabAprentissage.siret).trim() : null;
 
@@ -1111,25 +1381,45 @@ getDiplomesApprentissageParEtablissementSync(etabId) {
             return null;
         }
 
-        // Chercher un existant par UAI
-        let existant = uai ? this.getEtablissementByUaiSync(uai) : null;
+        // Stocker le nom CARIF dans nomCarif
+        if (!etabAprentissage.nomCarif) {
+            etabAprentissage.nomCarif = etabAprentissage.nom || null;
+        }
+
+        // Chercher tous les existants avec cet UAI
+        const existants = uai ? this.getEtablissementsByUaiSync(uai) : [];
+
+        // Trouver le bon existant par comparaison de nom normalisé
+        const nomCarifNorm = this.#normalizeNom(etabAprentissage.nomCarif || etabAprentissage.nom);
+        let existant = null;
+
+        if (existants.length > 0) {
+            existant = existants.find(e => {
+                const nomExistantNorm = this.#normalizeNom(e.nomOnisep || e.nomCarif || e.nom);
+                return nomExistantNorm === nomCarifNorm;
+            });
+            if (!existant && existants.length === 1) {
+                existant = existants[0];
+            }
+        }
 
         if (existant) {
-            // Enrichir seulement les champs null/undefined
+            // Enrichir via updateEtablissement (non-destructif)
+            const updates = {};
             for (const [key, val] of Object.entries(etabAprentissage)) {
                 if (key === 'voies' || key === '_id') continue;
-                if (existant[key] === null || existant[key] === undefined) {
-                    existant[key] = val;
-                }
+                updates[key] = val;
             }
-            if (!existant.voies) existant.voies = [];
-            if (!existant.voies.includes('apprentissage')) {
-                existant.voies.push('apprentissage');
-            }
+            // Toujours mettre à jour nomCarif
+            if (etabAprentissage.nomCarif) updates.nomCarif = etabAprentissage.nomCarif;
+            // Ajouter la voie apprentissage
+            updates.voies = ['apprentissage'];
+            this.updateEtablissement(existant._id, updates);
             return existant._id;
         } else {
             // Nouvel établissement
             if (!etabAprentissage.voies) etabAprentissage.voies = ['apprentissage'];
+            if (!etabAprentissage.nomCarif) etabAprentissage.nomCarif = etabAprentissage.nom || null;
             return await this.insertEtablissement(etabAprentissage);
         }
     }
@@ -1160,6 +1450,8 @@ async clearAllData() {
         this.#storage.diplomes_apprentissage_par_etablissement = {};
         this.#storage.autres_formations_par_etablissement = {};
         this.#storage.langues = {};
+        this.#etabUniquenessIndex.clear();
+        this.#nextEtabId = 1;
         this.#saveToLocalStorage();
     }
 
@@ -1179,7 +1471,8 @@ async clearAllData() {
         }
         this.#storage.diplomes_apprentissage = {};
         this.#storage.diplomes_apprentissage_par_etablissement = {};
-        this.#storage.autres_formations_par_etablissement = {};
+        // v0.60 fix : ne supprimer que les formations 5+ issues de CARIF (source='carif')
+        this.#purgeAutresFormationsCarif();
         this.#saveToLocalStorage();
         console.log('[DatabaseService] ✅ Données CARIF-OREF vidées');
     }
@@ -1202,6 +1495,8 @@ async clearOnisepData() {
         this.#storage.diplomes_apprentissage={};
         this.#storage.diplomes_apprentissage_par_etablissement={};
         this.#storage.autres_formations_par_etablissement={};
+        this.#etabUniquenessIndex.clear();
+        this.#nextEtabId = 1;
         this.#saveToLocalStorage();
     }
 
@@ -1213,11 +1508,18 @@ async clearAprentissageData() {
         console.log('[DatabaseService] 🗑️ Vidage des données apprentissage CARIF-OREF');
         this.#storage.diplomes_apprentissage={};
         this.#storage.diplomes_apprentissage_par_etablissement={};
-        this.#storage.autres_formations_par_etablissement={};
+        // v0.60 fix : ne supprimer que les formations 5+ issues de CARIF (source='carif'),
+        // préserver celles issues d'Onisep (source='onisep') — CPGE, BTS scolaires, etc.
+        this.#purgeAutresFormationsCarif();
         for (const id of Object.keys(this.#storage.etablissements)) {
             const etab = this.#storage.etablissements[id];
             if (etab.voies) {
                 etab.voies = etab.voies.filter(v => v !== 'apprentissage');
+                // Si les voies sont vides après retrait de 'apprentissage',
+                // restaurer 'scolaire' si l'établissement a des relations scolaires
+                if (etab.voies.length === 0) {
+                    etab.voies = ['scolaire'];
+                }
             }
         }
         this.#saveToLocalStorage();
@@ -1228,20 +1530,125 @@ async clearAprentissageData() {
      * @param {Set<string>} uaisAvecRelations - UAI ayant au moins une relation
      */
     async supprimerEtablissementsCarifSansRelation(uaisAvecRelations) {
+        // 🔍 DIAGNOSTIC v0.58f — conserver jusqu'à résolution complète
+        console.log(`[supprimerCarifSansRelation] AVANT: ${Object.keys(this.#storage.etablissements).length} étab(s), uaisAvecRelations: [${[...uaisAvecRelations].join(', ')}]`);
+        
+        // Construire l'ensemble des etabId ayant au moins une relation ONISEP (scolaire)
+        const etabIdsAvecRelationsScolaires = new Set();
+        for (const rel of Object.values(this.#storage.diplomes_par_etablissement || {})) {
+            if (rel.etabId) etabIdsAvecRelationsScolaires.add(rel.etabId);
+        }
+        for (const rel of Object.values(this.#storage.options_2nde_gt_par_etablissement || {})) {
+            if (rel.etabId) etabIdsAvecRelationsScolaires.add(rel.etabId);
+        }
+        for (const rel of Object.values(this.#storage.specialites_1ereG_par_etablissement || {})) {
+            if (rel.etabId) etabIdsAvecRelationsScolaires.add(rel.etabId);
+        }
+        for (const rel of Object.values(this.#storage.dispositifs_par_etablissement || {})) {
+            if (rel.etabId) etabIdsAvecRelationsScolaires.add(rel.etabId);
+        }
+        
         let nbSupprimes = 0;
         for (const id of Object.keys(this.#storage.etablissements)) {
             const etab = this.#storage.etablissements[id];
             const voiesScolaireAbsentes = !etab.voies || !etab.voies.includes('scolaire');
             const voieApprPresente = etab.voies && etab.voies.includes('apprentissage');
+            const aDesRelationsScolaires = etabIdsAvecRelationsScolaires.has(id);
+            
+            // PROTECTION : ne jamais supprimer un établissement qui a des relations scolaires
+            if (aDesRelationsScolaires) {
+                continue;
+            }
+            
             if (voieApprPresente && voiesScolaireAbsentes && etab.uai && !uaisAvecRelations.has(etab.uai)) {
+                console.log(`[supprimerCarifSansRelation] 🗑️ Suppression ${id} (uai=${etab.uai}, nom="${etab.nom}", voies=${JSON.stringify(etab.voies)})`);
                 delete this.#storage.etablissements[id];
                 nbSupprimes++;
             }
         }
+        
+        console.log(`[supprimerCarifSansRelation] APRÈS: ${Object.keys(this.#storage.etablissements).length} étab(s), ${nbSupprimes} supprimé(s)`);
+        
         if (nbSupprimes > 0) {
             this.#saveToLocalStorage();
         }
         return nbSupprimes;
+    }
+
+    /**
+     * Vérifie et répare la cohérence des voies de tous les établissements.
+     * 
+     * Règles appliquées :
+     *   - Un établissement avec des relations diplômes scolaires doit avoir 'scolaire' dans ses voies.
+     *   - Un établissement avec des relations diplômes apprentissage doit avoir 'apprentissage' dans ses voies.
+     *   - Un établissement sans aucune voie reçoit 'scolaire' par défaut.
+     * 
+     * @returns {{ repares: number, details: string[] }} Nombre d'établissements corrigés et détails.
+     */
+    verifierCoherenceVoies() {
+        // Construire les ensembles d'etabId par voie
+        const etabIdsAvecScolaire = new Set();
+        for (const rel of Object.values(this.#storage.diplomes_par_etablissement || {})) {
+            if (rel.etabId) etabIdsAvecScolaire.add(rel.etabId);
+        }
+        for (const rel of Object.values(this.#storage.options_2nde_gt_par_etablissement || {})) {
+            if (rel.etabId) etabIdsAvecScolaire.add(rel.etabId);
+        }
+        for (const rel of Object.values(this.#storage.specialites_1ereG_par_etablissement || {})) {
+            if (rel.etabId) etabIdsAvecScolaire.add(rel.etabId);
+        }
+        for (const rel of Object.values(this.#storage.dispositifs_par_etablissement || {})) {
+            if (rel.etabId) etabIdsAvecScolaire.add(rel.etabId);
+        }
+        
+        const etabIdsAvecApprentissage = new Set();
+        for (const rel of Object.values(this.#storage.diplomes_apprentissage_par_etablissement || {})) {
+            if (rel.etabId) etabIdsAvecApprentissage.add(rel.etabId);
+        }
+        
+        let repares = 0;
+        const details = [];
+        
+        for (const [id, etab] of Object.entries(this.#storage.etablissements)) {
+            if (!etab.voies) etab.voies = [];
+            const voiesAvant = [...etab.voies];
+            
+            const doitAvoirScolaire = etabIdsAvecScolaire.has(id);
+            const doitAvoirApprentissage = etabIdsAvecApprentissage.has(id);
+            
+            // Ajouter 'scolaire' si relations scolaires existent
+            if (doitAvoirScolaire && !etab.voies.includes('scolaire')) {
+                etab.voies.push('scolaire');
+            }
+            // Ajouter 'apprentissage' si relations apprentissage existent
+            if (doitAvoirApprentissage && !etab.voies.includes('apprentissage')) {
+                etab.voies.push('apprentissage');
+            }
+            // Retirer 'apprentissage' si aucune relation apprentissage
+            if (!doitAvoirApprentissage && etab.voies.includes('apprentissage')) {
+                etab.voies = etab.voies.filter(v => v !== 'apprentissage');
+            }
+            // Par défaut si aucune voie
+            if (etab.voies.length === 0) {
+                etab.voies = ['scolaire'];
+            }
+            
+            // Vérifier si des changements ont été faits
+            if (JSON.stringify(voiesAvant) !== JSON.stringify(etab.voies)) {
+                repares++;
+                details.push(`${id} (${etab.nom}): [${voiesAvant}] → [${etab.voies}]`);
+            }
+        }
+        
+        if (repares > 0) {
+            console.log(`[DatabaseService] 🔧 verifierCoherenceVoies: ${repares} établissement(s) corrigé(s)`);
+            details.forEach(d => console.log(`  → ${d}`));
+            this.#saveToLocalStorage();
+        } else {
+            console.log('[DatabaseService] ✅ verifierCoherenceVoies: toutes les voies sont cohérentes');
+        }
+        
+        return { repares, details };
     }
 
         /**
@@ -1372,24 +1779,6 @@ async clearGeoData() {
     // MÉTHODES COMPATIBILITÉ (anciennes interfaces)
     // =====================================
 
-    /**
-     * @deprecated Utiliser updateEtablissementByUai ou updateEtablissement(_id)
-     */
-    async updateEtablissement(idOrUai, updates) {
-        // Essai direct par _id
-        if (this.#storage.etablissements[idOrUai]) {
-            Object.assign(this.#storage.etablissements[idOrUai], updates);
-            return;
-        }
-        // Fallback : chercher par UAI
-        const etab = this.getEtablissementByUaiSync(idOrUai);
-        if (etab) {
-            Object.assign(etab, updates);
-        } else {
-            console.warn(`[DatabaseService] ⚠️ updateEtablissement: ${idOrUai} non trouvé`);
-        }
-    }
-
     // =====================================
     // CROSS-VOIES (compatibilité croisée scolaire/apprentissage)
     // =====================================
@@ -1420,63 +1809,12 @@ async clearGeoData() {
     // Toute la couche UI doit passer par ces méthodes, jamais par localStorage.
     // ══════════════════════════════════════════════════════
 
-    /**
-     * Retourne tous les établissements sous forme d'objet indexé par _id.
-     * @returns {Object.<string, Object>}
-     */
-    lireEtablissements() {
-        return { ...this.#storage.etablissements };
-    }
+    // lireEtablissements, lireEtablissementsAsync, sauvegarderEtablissement
+    // supprimées en v0.59 : aucun appelant externe. Remplacées par getAllEtablissements()
+    // et insertEtablissement() / updateEtablissement().
 
-    /**
-     * Alias async (pour les contrôleurs qui attendent une Promise).
-     * @returns {Promise<Object.<string, Object>>}
-     */
-    async lireEtablissementsAsync() {
-        return this.lireEtablissements();
-    }
-
-    /**
-     * Sauvegarde (insert ou update) un établissement.
-     * Clé : `uai` si définie, sinon `_id` généré.
-     * @param {Object} etablissement
-     * @returns {string} _id interne de l'établissement.
-     */
-    sauvegarderEtablissement(etablissement) {
-        // Chercher par UAI d'abord
-        if (etablissement.uai) {
-            const existing = this.getEtablissementByUaiSync(etablissement.uai);
-            if (existing) {
-                Object.assign(existing, etablissement);
-                return existing._id;
-            }
-        }
-        const id = etablissement._id || `etab_${_genId()}`;
-        this.#storage.etablissements[id] = { _id: id, ...etablissement };
-        return id;
-    }
-
-    /**
-     * Enrichit un établissement existant (par UAI) sans écraser les champs déjà renseignés.
-     * Si les deux sources sont présentes, met `source` à 'both'.
-     * @param {string} uai    - Code UAI de l'établissement à enrichir.
-     * @param {Object} champs - Champs à ajouter (ignorés s'ils existent déjà).
-     * @returns {boolean} true si l'établissement a été trouvé et enrichi.
-     */
-    enrichirEtablissement(uai, champs) {
-        const etab = this.getEtablissementByUaiSync(uai);
-        if (!etab) return false;
-        for (const [cle, valeur] of Object.entries(champs)) {
-            // Ne pas écraser un champ déjà renseigné, sauf 'source'
-            if (cle === 'source') {
-                if (etab.source && etab.source !== valeur) etab.source = 'both';
-                else etab.source = valeur;
-            } else if (etab[cle] === undefined || etab[cle] === null || etab[cle] === '') {
-                etab[cle] = valeur;
-            }
-        }
-        return true;
-    }
+    // enrichirEtablissement supprimée en v0.59 : remplacée par updateEtablissement(id, updates)
+    // qui fait du enrichissement non-destructif par défaut.
 
     /**
      * Retourne toutes les formations sous forme d'objet indexé par id.
@@ -1595,6 +1933,8 @@ async clearGeoData() {
             langues: {}, communes: {}, departements: {}, regions: {}, epci: {},
             preferences,
         };
+        this.#etabUniquenessIndex.clear();
+        this.#nextEtabId = 1;
         this.#saveToLocalStorage();
         console.log('[DatabaseService] 🗑️ Base purgée (préférences conservées)');
     }

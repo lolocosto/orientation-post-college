@@ -243,6 +243,8 @@ class OnisepParser {
             result.diplomes.push({
                 // Identification (CLÉ PRIMAIRE = libelle, pas codeRNCP)
                 libelle: action.formation_for_libelle,
+                libelleOnisep: action.formation_for_libelle,
+                libelleCarif: null,
                 
                 // Type et nature
                 type: action.for_type || null,
@@ -291,6 +293,11 @@ class OnisepParser {
         // Stocké par UAI (première valeur rencontrée lors du traitement amont)
         if (action.ens_code_uai) {
             const enrich = {};
+            // Nom de l'établissement (pour résolution UAI+nom → _id)
+            const etabNom = action.lieu_denseignement_ens_libelle
+                         || action.structure_denseignement_ens_libelle
+                         || null;
+            if (etabNom) enrich.etabNom = etabNom;
             if (action.ens_hebergement)       enrich.hebergement   = action.ens_hebergement;
             if (action.ens_site_web)          enrich.siteWeb       = action.ens_site_web;
             if (action.ens_accessibilite)     enrich.accessibilite = action.ens_accessibilite;
@@ -310,6 +317,10 @@ class OnisepParser {
                 id: action.action_de_formation_af_identifiant_onisep || null,
                 // Clés étrangères
                 uai: action.ens_code_uai,
+                // Nom de l'établissement (clé composite UAI+nom pour unicité)
+                etabNom: action.lieu_denseignement_ens_libelle
+                      || action.structure_denseignement_ens_libelle
+                      || null,
                 libelle: action.formation_for_libelle,                 
                 
                 // Champs AF (informations spécifiques à l'action de formation)
@@ -403,6 +414,10 @@ class OnisepParser {
                 id: action.action_de_dispositif_ad_identifiant_onisep || null,
                 // Clés étrangères
                 uai: action.ens_code_uai,
+                // Nom de l'établissement (clé composite UAI+nom pour unicité)
+                etabNom: action.lieu_denseignement_ens_libelle
+                      || action.structure_denseignement_ens_libelle
+                      || null,
                 libelle: action.type_de_dispositif_typdisp_libelle,
                 
                 // Champs AD (informations spécifiques à l'action de dispositif)
@@ -442,6 +457,8 @@ class OnisepParser {
                 uai: structure.code_uai,
                 siret: structure.n_siret || null,
                 nom: structure.nom,
+                nomOnisep: structure.nom || null,
+                nomCarif: null,
                 sigle: structure.sigle || null,
                 type: structure.type_detablissement || null,
                 
@@ -540,6 +557,8 @@ class OnisepParser {
                     id: option + '_' + data.uai_lieu_de_cours,
                     // Clés étrangères
                     uai: data.uai_lieu_de_cours,
+                    // Nom de l'établissement (clé composite UAI+nom pour unicité)
+                    etabNom: data.libelle_lieu_de_cours || null,
                     libelle: option,
                     
                     // Identifiant de l'action de formation pour référence (dupliqué pour toutes les options liées au même établissement !)
@@ -603,6 +622,8 @@ class OnisepParser {
 
                     // Clés étrangères
                     uai: data.uai_lieu_de_cours,
+                    // Nom de l'établissement (clé composite UAI+nom pour unicité)
+                    etabNom: data.libelle_lieu_de_cours || null,
                     libelle: specialite,
                     
                     // Identifiant de l'action de formation pour référence (dupliqué pour toutes les spécialités liées au même établissement !)
@@ -664,13 +685,15 @@ class OnisepParser {
         
         const result = {
             diplomes: [],
-            diplomes_par_etablissement: []
+            diplomes_par_etablissement: [],
+            enrichissements_etab: []  // v0.60 : collecte des enrichissements (hébergement, site web…)
         };
         
         for (const action of actions) {
             const parsed = this._parseActionSup(action);
             result.diplomes.push(...parsed.diplomes);
             result.diplomes_par_etablissement.push(...parsed.diplomes_par_etablissement);
+            if (parsed.enrichissements_etab) result.enrichissements_etab.push(...parsed.enrichissements_etab);
         }
         
         return result;

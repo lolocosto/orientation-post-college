@@ -82,7 +82,10 @@ class DetailsModal extends Modal {
         this.#currentIndex = index;
 
         const nom = etablissementEnrichi.etablissement.nom || 'Établissement';
-        const id  = etablissementEnrichi.etablissement._id || etablissementEnrichi.etablissement.uai;
+        const id  = etablissementEnrichi.etablissement._id;
+        if (!id) {
+            console.warn('[DetailsModal] ⚠️ Établissement sans _id:', nom);
+        }
 
         this.#renderModal({
             titre:     nom,
@@ -346,7 +349,7 @@ class DetailsModal extends Modal {
         try {
             let enriched = null;
             if (this.#currentType === 'etablissement') {
-                enriched = await window.databaseService.getEtablissementEnrichi(item._id || item.uai);
+                enriched = await window.databaseService.getEtablissementEnrichi(item._id);
                 if (enriched) this.showEtablissement(enriched, this.#currentList, newIndex);
             } else if (this.#currentType === 'diplome') {
                 enriched = await window.databaseService.getDiplomeEnrichi(item.libelle);
@@ -372,10 +375,14 @@ class DetailsModal extends Modal {
 // FONCTIONS GLOBALES — ouverture depuis lien dans une autre modale
 // ─────────────────────────────────────────────────────────────────
 
-window.openEtablissementDetailsFromModal = async function(uai) {
+window.openEtablissementDetailsFromModal = async function(etabId) {
     try {
-        const enriched = await window.databaseService.getEtablissementEnrichi(uai);
-        if (!enriched) return;
+        // Recherche par _id interne uniquement (v0.58+)
+        const enriched = await window.databaseService.getEtablissementEnrichi(etabId);
+        if (!enriched) {
+            console.warn(`[openEtablissementDetailsFromModal] Établissement non trouvé: ${etabId}`);
+            return;
+        }
         new DetailsModal('etablissement-details-modal').showEtablissement(enriched);
     } catch (err) { console.error('[openEtablissementDetailsFromModal]', err); }
 };

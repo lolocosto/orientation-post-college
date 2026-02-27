@@ -359,7 +359,7 @@ setGeoController(geoController) {
         let nbEtabStockes = 0;
         let nbEtabRefuses = 0;
         for (const e of etablissements) {
-            const key = await this.#databaseService.fusionnerEtablissementAprentissage(e);
+            const key = await this.#fusionnerOuInsererEtablissement(e);
             if (key) {
                 nbEtabStockes++;
             } else {
@@ -446,7 +446,7 @@ setGeoController(geoController) {
         let nbEtabStockes = 0;
         let nbEtabRefuses = 0;
         for (const e of etablissements) {
-            const key = await this.#databaseService.fusionnerEtablissementAprentissage(e);
+            const key = await this.#fusionnerOuInsererEtablissement(e);
             if (key) {
                 nbEtabStockes++;
             } else {
@@ -579,10 +579,18 @@ setGeoController(geoController) {
             }
         }
         for (const r of relationsMap.values()) {
-            // Enrichir avec etabId (_id interne) si disponible via UAI
+            // Résoudre etabId (_id interne) via UAI+nom ou UAI seul
             if (!r.etabId && r.uai) {
-                const etabExistant = await this.#databaseService.getEtablissementByUai(r.uai);
-                if (etabExistant) r.etabId = etabExistant._id;
+                if (r.etabNom) {
+                    // Recherche exacte UAI+nom
+                    const etabExact = this.#databaseService.getEtablissementByUaiSync(r.uai, r.etabNom);
+                    if (etabExact) r.etabId = etabExact._id;
+                }
+                // Fallback : premier établissement avec cet UAI
+                if (!r.etabId) {
+                    const etabs = this.#databaseService.getEtablissementsByUaiSync(r.uai);
+                    if (etabs.length > 0) r.etabId = etabs[0]._id;
+                }
             }
             const key = await this.#databaseService.insertDiplomeApprentissageParEtablissement(r);
             if (key) nbRelations++;
@@ -633,36 +641,155 @@ setGeoController(geoController) {
             return;
         }
 
-        // Agréger par UAI
-        const parUai = new Map(); // UAI → Set<libelle_niveau>
+        // Agréger par (UAI, nom) — clé composite pour gérer les multi-structures
+        const parEtab = new Map(); // clé "UAI||nom" → { uai, etabNom, formations: Map }
         for (const f of formationsBrutes) {
             const uai = (f.etablissement_formateur_uai || '').trim();
             if (!uai) continue;
+            const etabNom = (f.etablissement_formateur_enseigne || '').trim()
+                         || (f.etablissement_formateur_entreprise_raison_sociale || '').trim()
+                         || '';
 
-            if (!parUai.has(uai)) parUai.set(uai, new Map());
+            const cleEtab = `${uai}||${etabNom}`;
+            if (!parEtab.has(cleEtab)) parEtab.set(cleEtab, { uai, etabNom: etabNom || null, formations: new Map() });
+
+            const entry = parEtab.get(cleEtab);
             const libelle = (f.intitule_long || f.intitule_court || '').trim();
             const cleUnique = libelle.toLowerCase();
-            if (!libelle || parUai.get(uai).has(cleUnique)) continue;
+            if (!libelle || entry.formations.has(cleUnique)) continue;
 
-            parUai.get(uai).set(cleUnique, {
+            entry.formations.set(cleUnique, {
                 libelle,
                 niveau:      (f.niveau  || '').trim(),
-                typeDiplome: (f.diplome || '').trim()
+                typeDiplome: (f.diplome || '').trim(),
+                source:      'carif'
             });
         }
 
-        // Stocker en base par UAI
-        let nbUais = 0;
+        // Stocker en base par _id interne, résolution par UAI+nom puis fallback UAI seul
+        let nbEtabs = 0;
         let nbFormations = 0;
-        for (const [uai, formationsMap] of parUai) {
+        for (const [, { uai, etabNom, formations: formationsMap }] of parEtab) {
             const formations = Array.from(formationsMap.values());
-            await this.#databaseService.insertAutresFormationsParEtablissement(uai, formations);
-            nbUais++;
-            nbFormations += formations.length;
+
+            // Résoudre vers l'_id interne par UAI+nom
+            let etabId = null;
+            if (etabNom) {
+                const etabExact = this.#databaseService.getEtablissementByUaiSync(uai, etabNom);
+                if (etabExact) etabId = etabExact._id;
+            }
+            // Fallback : si un seul étab pour cet UAI, on le prend ;
+            //            si plusieurs, on applique à tous (formations partagées par site)
+            if (!etabId) {
+                const etabs = this.#databaseService.getEtablissementsByUaiSync(uai);
+                if (etabs.length === 0) continue;
+                if (etabs.length === 1) {
+                    etabId = etabs[0]._id;
+                } else {
+                    // Plusieurs structures : appliquer à toutes (formations niv5+ = site physique)
+                    for (const etab of etabs) {
+                        const existantes = this.#databaseService.getAutresFormationsParEtablissement(etab._id) || [];
+                        const existantesSet = new Set(existantes.map(f => f.libelle.toLowerCase()));
+                        const nouvelles = formations.filter(f => !existantesSet.has(f.libelle.toLowerCase()));
+                        if (nouvelles.length > 0) {
+                            await this.#databaseService.insertAutresFormationsParEtablissement(etab._id, [...existantes, ...nouvelles]);
+                            nbEtabs++;
+                            nbFormations += nouvelles.length;
+                        }
+                    }
+                    continue;
+                }
+            }
+
+            // Cas simple : un seul étab résolu
+            const existantes = this.#databaseService.getAutresFormationsParEtablissement(etabId) || [];
+            const existantesSet = new Set(existantes.map(f => f.libelle.toLowerCase()));
+            const nouvelles = formations.filter(f => !existantesSet.has(f.libelle.toLowerCase()));
+            if (nouvelles.length > 0) {
+                await this.#databaseService.insertAutresFormationsParEtablissement(etabId, [...existantes, ...nouvelles]);
+                nbEtabs++;
+                nbFormations += nouvelles.length;
+            }
         }
 
         this.#databaseService.flush();
-        this.#detail(`✅ ${nbFormations} formations niveau 5+ réparties sur ${nbUais} établissement(s)`);
+        this.#detail(`✅ ${nbFormations} formations niveau 5+ réparties sur ${nbEtabs} établissement(s)`);
+    }
+
+    /**
+     * Fusionne un établissement CARIF avec un existant (scolaire),
+     * ou insère un nouvel établissement en voie apprentissage.
+     * 
+     * Logique de recherche (déplacée depuis DatabaseService.fusionnerEtablissementAprentissage) :
+     *   1. Cherche un existant avec même UAI ET même nom (normalisé)
+     *      → enrichissement + ajout voie 'apprentissage'
+     *   2. Si aucun match par nom mais un seul existant avec cet UAI
+     *      → enrichissement (cas fréquent : un seul établissement par UAI)
+     *   3. Si plusieurs existants et aucun match par nom → nouvel enregistrement
+     *   4. Si aucun existant → nouvel enregistrement
+     * 
+     * @param {Object} etabCarif - Données CARIF de l'établissement
+     * @returns {Promise<string|null>} _id interne ou null si refusé
+     * @private
+     */
+    async #fusionnerOuInsererEtablissement(etabCarif) {
+        const uai   = etabCarif.uai   ? String(etabCarif.uai).trim()   : null;
+        const siret = etabCarif.siret ? String(etabCarif.siret).trim() : null;
+
+        if (!uai && !siret) {
+            console.warn('[CARIFController] ❌ Établissement sans UAI ni SIRET');
+            return null;
+        }
+
+        // S'assurer que nomCarif est renseigné
+        if (!etabCarif.nomCarif) {
+            etabCarif.nomCarif = etabCarif.nom || null;
+        }
+
+        // Chercher les existants par UAI
+        const existants = uai ? this.#databaseService.getEtablissementsByUaiSync(uai) : [];
+
+        // Chercher un match par nom normalisé
+        const nomCarifLower = (etabCarif.nomCarif || etabCarif.nom || '').trim().toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        let existant = null;
+
+        if (existants.length > 0) {
+            // Match exact par nom normalisé
+            existant = existants.find(e => {
+                const nomExistant = (e.nomOnisep || e.nomCarif || e.nom || '').trim().toLowerCase()
+                    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                return nomExistant === nomCarifLower;
+            });
+
+            // Si pas de match par nom mais un seul existant → fusion par défaut
+            if (!existant && existants.length === 1) {
+                existant = existants[0];
+            }
+            // Si plusieurs existants et aucun match par nom → nouvel enregistrement
+        }
+
+        if (existant) {
+            // Enrichir l'existant : nomCarif, champs manquants, ajouter voie apprentissage
+            const updates = {};
+            for (const [key, val] of Object.entries(etabCarif)) {
+                if (key === 'voies' || key === '_id' || key === 'nom') continue;
+                if (val !== null && val !== undefined && val !== '') {
+                    updates[key] = val;
+                }
+            }
+            // Toujours pousser nomCarif
+            if (etabCarif.nomCarif) updates.nomCarif = etabCarif.nomCarif;
+            // Ajouter la voie apprentissage
+            updates.voies = ['apprentissage'];
+            this.#databaseService.updateEtablissement(existant._id, updates);
+            return existant._id;
+        } else {
+            // Nouvel établissement : préparer les champs obligatoires pour insertEtablissement
+            etabCarif.voies = ['apprentissage'];
+            if (!etabCarif.nomCarif) etabCarif.nomCarif = etabCarif.nom || null;
+            return await this.#databaseService.insertEtablissement(etabCarif);
+        }
     }
 
     #checkStopped() {

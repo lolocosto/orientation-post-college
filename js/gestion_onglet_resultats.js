@@ -432,7 +432,7 @@ async function loadDiplomesView() {
                 etablissements: new Set()
             };
         }
-        diplomesAvecComptage[rel.libelle].etablissements.add(rel.uai);
+        diplomesAvecComptage[rel.libelle].etablissements.add(rel.etabId);
     }
     
     // Convertir en tableau avec comptage
@@ -570,7 +570,7 @@ async function loadDiplomesApprentissageView() {
     const comptageUais = {};
     for (const rel of allRelations) {
         if (!comptageUais[rel.diplomId]) comptageUais[rel.diplomId] = new Set();
-        if (rel.uai) comptageUais[rel.diplomId].add(rel.uai);
+        if (rel.etabId) comptageUais[rel.diplomId].add(rel.etabId);
     }
 
     const diplomesArray = allDiplomes.map(d => ({
@@ -735,7 +735,7 @@ function buildDiplomeApprentissageDetailsHTML(diplomeEnrichi) {
         etabBody += '<ul class="detail-list">';
         for (const etab of etablissements) {
             // Trouver la relation pour récupérer courriel (v0.56 : email déplacé vers fiche établissement)
-            const relation = diplomeEnrichi.relations?.find(r => r.uai === etab.uai) || {};
+            const relation = diplomeEnrichi.relations?.find(r => r.etabId === etab._id) || {};
             const certifBadge = etab.certifieQualite
                 ? ` <span class="voie-badge voie-badge--qualite" title="Certifié Qualiopi">✓ Qualiopi</span>` : '';
             // v0.56 : badge statut de l'établissement
@@ -827,7 +827,7 @@ async function loadDispositifsView() {
         }
 
         // Ajouter l'établissement à l'ensemble du dispositif
-        dispositifsAvecComptage[key].etablissements.add(rel.uai);
+        dispositifsAvecComptage[key].etablissements.add(rel.etabId);
     }
     
     // Convertir en tableau avec comptage
@@ -1449,7 +1449,10 @@ async function initResultsTab() {
  */
 function buildEtablissementDetailsHTML(etablissementEnrichi) {
     const { etablissement, diplomes, diplomes_apprentissage, dispositifs, options2ndeGT, specialites1ereG } = etablissementEnrichi;
-    const id       = etablissement._id || etablissement.uai;
+    const id       = etablissement._id;
+    if (!id) {
+        console.warn('[buildEtablissementDetailsHTML] ⚠️ Établissement sans _id:', etablissement.nom || etablissement.uai);
+    }
     const nomEchap = (etablissement.nom || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
     let html = '';
 
@@ -1489,7 +1492,7 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
     if (!etablissement.email && window.databaseService) {
         try {
             const apprRels = Object.values(window.databaseService._getApprentissageRelations?.() || {})
-                .filter(r => r.uai === etablissement.uai && r.courriel);
+                .filter(r => r.etabId === etablissement._id && r.courriel);
             if (apprRels.length > 0 && apprRels[0].courriel) {
                 infoBody += `<li class="detail-item detail-item--info"><div><strong>Email :</strong> <a href="mailto:${apprRels[0].courriel}">${apprRels[0].courriel}</a></div></li>`;
             }
@@ -1645,8 +1648,8 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
     // ── SECTION : AUTRES FORMATIONS ET DIPLÔMES (niveau 5+) ────────────
     // Formations post-bac issues d'ONISEP (actions_sup : BTS, CPGE…) et/ou de
     // CARIF-OREF (BTS apprentissage, licence pro…). Informatives, non cliquables.
-    if (etablissement.uai && window.databaseService?.getAutresFormationsParEtablissement) {
-        const autresFormations = window.databaseService.getAutresFormationsParEtablissement(etablissement.uai);
+    if (etablissement._id && window.databaseService?.getAutresFormationsParEtablissement) {
+        const autresFormations = window.databaseService.getAutresFormationsParEtablissement(etablissement._id);
         if (autresFormations && autresFormations.length > 0) {
             // Grouper par niveau
             const parNiveau = {};

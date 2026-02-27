@@ -8,10 +8,17 @@
  *
  * @module utils
  * @author Laurent COSTE / Claude
- * @version 0.45
+ * @version 0.58e
  */
 
 'use strict';
+
+/**
+ * Version de l'application — affiché dans les logs d'initialisation.
+ * À incrémenter à chaque livraison.
+ * @constant {string}
+ */
+const APP_VERSION = '0.58e';
 
 // ══════════════════════════════════════════════════════════
 // INITIALISATION DE L'APPLICATION
@@ -31,7 +38,7 @@ async function init() {
     const _lap = (label) => console.log(`[INIT] ⏱️ ${label}: ${Math.round(performance.now()-_t0)}ms`);
 
     console.log('════════════════════════════════════════════════');
-    console.log('🚀 INITIALISATION DÉMARRÉE - V0.51');
+    console.log('🚀 INITIALISATION DÉMARRÉE - V' + APP_VERSION);
     console.log('════════════════════════════════════════════════');
 
     try {
@@ -119,7 +126,7 @@ async function init() {
         }
 
         _lap('Total init');
-        console.log('✅ INITIALISATION TERMINÉE - V0.51');
+        console.log('✅ INITIALISATION TERMINÉE - V' + APP_VERSION);
 
     } catch (error) {
         console.error('❌ ERREUR D\'INITIALISATION', error);
@@ -502,7 +509,8 @@ function _onDbReady() {
 /**
  * Normalise un nom de commune en « Title Case » : première lettre de chaque mot en majuscule,
  * reste en minuscules. Gère les particules françaises (de, du, des, la, le, les, en, sur, sous, lès, l').
- * Ex : "BRUZ" → "Bruz", "CESSON-SEVIGNE" → "Cesson-Sévigné" (si les accents sont présents),
+ * Préserve les accents existants dans la source.
+ * Ex : "BRUZ" → "Bruz", "CESSON-SÉVIGNÉ" → "Cesson-Sévigné",
  *      "SAINT MALO" → "Saint-Malo", "la roche sur yon" → "La Roche-sur-Yon"
  * @param {string|null} commune
  * @returns {string|null}
@@ -520,6 +528,18 @@ function normaliserNomCommune(commune) {
             return part.charAt(0).toUpperCase() + part.slice(1);
         })
         .join('');
+}
+
+/**
+ * Clé de déduplication pour les communes : supprime accents et met en minuscules.
+ * Permet de dédupliquer "Cesson-Sévigné" (ONISEP) et "Cesson-Sevigne" (CARIF-OREF)
+ * tout en conservant la version accentuée comme nom affiché.
+ * @param {string|null} commune
+ * @returns {string} Clé normalisée sans accents, ou ''
+ */
+function _communeDeduplicationKey(commune) {
+    if (!commune || typeof commune !== 'string') return '';
+    return commune.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 }
 
 /**
@@ -601,6 +621,27 @@ function _titleCaseIntitule(intitule) {
     return lower.charAt(0).toUpperCase() + lower.slice(1);
 }
 
+/**
+ * Compare deux variantes d'un nom de commune et retourne celle qui porte
+ * le plus de caractères diacritiques (accents, cédilles, etc.).
+ * Permet de conserver "Cesson-Sévigné" plutôt que "Cesson-Sevigne".
+ * 
+ * @param {string|null} a - Première variante
+ * @param {string|null} b - Deuxième variante
+ * @returns {string|null} La variante la plus riche en diacritiques, ou la non-nulle
+ */
+function preferAccentedCommune(a, b) {
+    if (!a && !b) return null;
+    if (!a) return b;
+    if (!b) return a;
+    // Compter les caractères diacritiques (ceux qui s'allongent avec NFD)
+    const countDiacritics = (s) => s.normalize('NFD').length - s.length;
+    const da = countDiacritics(a);
+    const db = countDiacritics(b);
+    // Garder celui qui a le plus de diacritiques ; en cas d'égalité, garder le premier
+    return db > da ? b : a;
+}
+
 // ══════════════════════════════════════════════════════════
 // EXPOSITION GLOBALE
 // ══════════════════════════════════════════════════════════
@@ -608,6 +649,8 @@ if (typeof window !== 'undefined') {
     window.init      = init;
     window.showAlert = showAlert;
     window.Utils     = Utils;
-    window.normaliserNomCommune     = normaliserNomCommune;
-    window.normaliserLibelleDiplome = normaliserLibelleDiplome;
+    window.normaliserNomCommune         = normaliserNomCommune;
+    window._communeDeduplicationKey     = _communeDeduplicationKey;
+    window.normaliserLibelleDiplome     = normaliserLibelleDiplome;
+    window.preferAccentedCommune        = preferAccentedCommune;
 }

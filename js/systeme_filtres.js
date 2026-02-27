@@ -172,11 +172,26 @@ async function populateTypeFilter() {
 
 /**
  * Remplit le filtre 'Commune' avec les communes des établissements.
+ * Déduplication insensible aux accents : si "Cesson-Sévigné" (ONISEP) et
+ * "Cesson-Sevigne" (CARIF-OREF) coexistent, on conserve la version accentuée.
  * @returns {Promise<void>}
  */
 async function populateCommuneFilter() {
     const etablissements = await window.databaseService.getAllEtablissements();
-    const communes = [...new Set(etablissements.map(e => e.commune).filter(Boolean))].sort();
+    // Dédupliquer par clé sans accent, en gardant la version la plus longue (= accentuée)
+    const communesMap = new Map(); // clé sans accent → nom affiché (avec accents)
+    for (const e of etablissements) {
+        if (!e.commune) continue;
+        const key = typeof _communeDeduplicationKey === 'function'
+            ? _communeDeduplicationKey(e.commune)
+            : e.commune.toLowerCase();
+        const existing = communesMap.get(key);
+        // Préférer la version avec accents (elle est plus longue en NFD)
+        if (!existing || e.commune.normalize('NFD').length > existing.normalize('NFD').length) {
+            communesMap.set(key, e.commune);
+        }
+    }
+    const communes = [...communesMap.values()].sort((a, b) => a.localeCompare(b, 'fr'));
     _populateSelect(document.getElementById('filter-commune'), communes, 'Toutes les communes');
 }
 
@@ -293,12 +308,18 @@ function applyFilters() {
 
 /**
  * Filtre les lignes de la vue Établissements (texte, type, commune, statut).
+ * Le filtre commune est insensible aux accents pour traiter les doublons ONISEP/CARIF.
  * @returns {void}
  */
 function filterEtablissements() {
     const rows = document.querySelectorAll('#results-body tr[data-id]');
     const cards = document.querySelectorAll('.results-cards .result-card[data-id]');
     let visibleCount = 0;
+
+    // Pré-normaliser les valeurs de filtre commune (sans accents) pour comparaison
+    const communeFilterKeys = filtersState.commune.map(c =>
+        typeof _communeDeduplicationKey === 'function' ? _communeDeduplicationKey(c) : c.toLowerCase()
+    );
 
     // Collecter les IDs visibles en filtrant les lignes tableau
     const visibleIds = new Set();
@@ -308,10 +329,15 @@ function filterEtablissements() {
         const commune= row.dataset.commune || '';
         const statut = row.dataset.statut  || '';
 
+        // Commune : comparaison insensible aux accents
+        const communeKey = typeof _communeDeduplicationKey === 'function'
+            ? _communeDeduplicationKey(commune) : commune.toLowerCase();
+        const passesCommune = communeFilterKeys.length === 0 || communeFilterKeys.includes(communeKey);
+
         const visible =
             (!filtersState.search || nom.includes(filtersState.search)) &&
             _passesMultiFilter(filtersState.type,    type)    &&
-            _passesMultiFilter(filtersState.commune, commune) &&
+            passesCommune &&
             _passesMultiFilter(filtersState.statut,  statut);
 
         row.style.display = visible ? '' : 'none';

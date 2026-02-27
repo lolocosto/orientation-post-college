@@ -299,9 +299,13 @@ class DataEducationExtractionController {
                 await this.#databaseService.insertLangue(langue);
             }
             
-            // Mettre à jour établissements
+            // Mettre à jour établissements (résoudre UAI → _id interne)
             for (const infos of enrichmentData.etablissementsInfos || []) {
-                await this.#databaseService.updateEtablissement(infos.uai, infos);
+                if (!infos.uai) continue;
+                const etabs = this.#databaseService.getEtablissementsByUaiSync(infos.uai);
+                for (const etab of etabs) {
+                    this.#databaseService.updateEtablissement(etab._id, infos);
+                }
             }
             
             // Mettre à jour dispositifs avec sports

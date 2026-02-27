@@ -460,7 +460,7 @@ static async #generateEnrichedEtablissementsPDF(doc, data, dateStr) {
             doc.addPage();
             let y = 20;
 
-            const enrichi = await window.databaseService.getEtablissementEnrichi(etab.uai);
+            const enrichi = await window.databaseService.getEtablissementEnrichi(etab._id);
             if (!enrichi) continue;
             const e = enrichi.etablissement;
 

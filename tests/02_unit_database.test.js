@@ -247,10 +247,10 @@ describe('fusionnerEtablissementAprentissage — établissement nouveau', () => 
         expect(e).toBeTruthy();
         expect(JSON.stringify(e.voies)).toContain('apprentissage');
     });
-    it('l\'_id généré vaut etab_<UAI> quand UAI présent', async () => {
+    it('l\'_id généré est un numérique séquentiel (etab_N)', async () => {
         await freshDb();
         const id = await db.fusionnerEtablissementAprentissage(ETAB_CARIF);
-        expect(id).toBe(ETAB_ID);
+        expect(/^etab_\d+$/.test(id)).toBe(true);
     });
 });
 
