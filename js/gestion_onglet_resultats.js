@@ -1925,11 +1925,27 @@ function buildDispositifDetailsHTML(dispositifEnrichi) {
  * @param {boolean} collapsed - true = replié par défaut
  * @returns {string} HTML de la section accordéon
  */
+/**
+ * Génère une section accordéon repliable avec titre, compteur et contenu.
+ * Si le nombre d'items dépasse SCROLL_THRESHOLD, un ascenseur apparaît
+ * pour limiter la hauteur de la section (générique, toutes sections).
+ *
+ * @param {string} icon       - Emoji ou icône à afficher devant le titre
+ * @param {string} titre      - Titre de la section
+ * @param {number|string} count - Nombre d'items (affiché entre parenthèses ; '' = masqué)
+ * @param {string} bodyHtml   - Contenu HTML de la section
+ * @param {boolean} [collapsed=false] - Si true, la section est repliée au chargement
+ * @returns {string} HTML de la section accordéon
+ */
 function accordionSection(icon, titre, count, bodyHtml, collapsed = false) {
+    const SCROLL_THRESHOLD = 10; // Au-delà de ce nombre d'items → ascenseur
     const cls      = collapsed ? ' detail-section--collapsed' : '';
     const countStr = count !== '' ? ` (${count})` : '';
+    const numCount = typeof count === 'number' ? count : parseInt(count, 10);
+    const scrollCls = (!isNaN(numCount) && numCount > SCROLL_THRESHOLD)
+        ? ' detail-section--scrollable' : '';
     return `
-<div class="detail-section${cls}">
+<div class="detail-section${cls}${scrollCls}">
     <h3 class="detail-section-title detail-section-title--accordion"
         onclick="toggleDetailSection(this.parentElement)">
         ${icon} ${titre}${countStr}
@@ -1945,12 +1961,53 @@ function accordionSection(icon, titre, count, bodyHtml, collapsed = false) {
 /**
  * Bascule l'état replié/déplié d'une section accordéon dans les fiches détail.
  * Appelé par onclick sur .detail-section-title--accordion.
+ * Attache automatiquement un listener de scroll pour masquer le dégradé
+ * indicateur quand l'utilisateur a atteint le bas de la section.
  * @param {HTMLElement} sectionEl - L'élément .detail-section parent
  * @returns {void}
  */
 function toggleDetailSection(sectionEl) {
     if (!sectionEl) return;
     sectionEl.classList.toggle('detail-section--collapsed');
+
+    // Gestion du dégradé indicateur de scroll
+    if (sectionEl.classList.contains('detail-section--scrollable')
+        && !sectionEl.classList.contains('detail-section--collapsed')) {
+        const body = sectionEl.querySelector('.detail-section__body');
+        if (body && !body._scrollListenerAttached) {
+            body.addEventListener('scroll', _onSectionBodyScroll);
+            body._scrollListenerAttached = true;
+        }
+        // Évaluer immédiatement (le contenu peut tenir sans scroll)
+        if (body) _checkScrollEnd(body);
+    }
+}
+
+/**
+ * Callback de scroll sur .detail-section__body : ajoute/retire la classe
+ * detail-section--scroll-end selon que l'utilisateur a atteint le bas.
+ * @param {Event} e - Événement scroll
+ * @private
+ */
+function _onSectionBodyScroll(e) {
+    _checkScrollEnd(e.target);
+}
+
+/**
+ * Vérifie si un élément scrollable est arrivé en bas et met à jour
+ * la classe du parent pour masquer/afficher le dégradé indicateur.
+ * @param {HTMLElement} bodyEl - L'élément .detail-section__body
+ * @private
+ */
+function _checkScrollEnd(bodyEl) {
+    if (!bodyEl) return;
+    const section = bodyEl.closest('.detail-section--scrollable');
+    if (!section) return;
+    // Tolérance de 8px pour le seuil « en bas »
+    const atBottom = bodyEl.scrollHeight - bodyEl.scrollTop - bodyEl.clientHeight < 8;
+    // Pas de scroll nécessaire si le contenu tient dans la hauteur
+    const noOverflow = bodyEl.scrollHeight <= bodyEl.clientHeight + 2;
+    section.classList.toggle('detail-section--scroll-end', atBottom || noOverflow);
 }
 
 // =====================================

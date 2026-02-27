@@ -469,6 +469,73 @@ tbody tr:hover { background: var(--bg-light); }
     opacity: 0;
     margin-top: 0;
 }
+
+/* ── Ascenseur générique pour sections longues (> SCROLL_THRESHOLD items) ── */
+/* Conteneur : position relative pour le dégradé indicateur */
+.detail-section--scrollable {
+    position: relative;
+}
+/* Corps scrollable quand la section est dépliée */
+.detail-section--scrollable .detail-section__body {
+    max-height: 500px;           /* ~10 items desktop */
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    /* Barre de défilement fine sur navigateurs WebKit */
+    scrollbar-width: thin;       /* Firefox */
+    scrollbar-color: var(--primary-light) var(--bg-light);
+}
+/* Quand scrollable ET collapsed → collapsed doit gagner */
+.detail-section--scrollable.detail-section--collapsed .detail-section__body {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    margin-top: 0;
+}
+.detail-section--scrollable .detail-section__body::-webkit-scrollbar {
+    width: 6px;
+}
+.detail-section--scrollable .detail-section__body::-webkit-scrollbar-track {
+    background: var(--bg-light);
+    border-radius: 3px;
+}
+.detail-section--scrollable .detail-section__body::-webkit-scrollbar-thumb {
+    background: var(--primary-light);
+    border-radius: 3px;
+}
+.detail-section--scrollable .detail-section__body::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+}
+/* Dégradé en bas pour indiquer du contenu caché — visible uniquement si scrollable */
+.detail-section--scrollable::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    background: linear-gradient(transparent, var(--surface));
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+    pointer-events: none;
+    z-index: 1;
+    transition: opacity 0.2s ease;
+}
+/* Masquer le dégradé si la section est repliée ou si on a scrollé jusqu'en bas */
+.detail-section--scrollable.detail-section--collapsed::after,
+.detail-section--scrollable.detail-section--scroll-end::after {
+    opacity: 0;
+}
+
+/* ── Responsive : hauteur réduite sur tablette et mobile ── */
+@media (max-width: 1024px) {
+    .detail-section--scrollable .detail-section__body {
+        max-height: 420px;       /* ~8 items tablette */
+    }
+}
+@media (max-width: 767px) {
+    .detail-section--scrollable .detail-section__body {
+        max-height: 350px;       /* ~7 items mobile */
+    }
+}
 /* Sous-sections diplômes par catégorie */
 .diplomes-categorie { margin-bottom: var(--spacing-md); }
 .diplomes-categorie-title {
