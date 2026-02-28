@@ -1,9 +1,9 @@
+// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /************************************************
  * Fichier : carif_oref_extraction_controller.js
  * Description : Contrôleur d'extraction des données CARIF-OREF (apprentissage)
  * Auteur : Laurent COSTE
  * Date : 2026-02-20
- * Version : 2.0
  *
  * Séparation stricte des responsabilités :
  *   - Ce contrôleur ne connaît pas OnisepExtractionController.

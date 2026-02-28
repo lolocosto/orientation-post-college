@@ -1,9 +1,9 @@
+// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /************************************************
  * Fichier : carif_oref_parser.js
  * Description : Parsers pour les données CARIF-OREF (apprentissage)
  * Auteur : Laurent COSTE
  * Date : 2026-02-20
- * Version : 2.0
  *
  * Deux parsers distincts selon la source API :
  *

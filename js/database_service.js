@@ -1,9 +1,9 @@
+// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /************************************************
  * Fichier : database_service.js
  * Description : Service de base de données (localStorage)
  * Auteur : Laurent COSTE / Claude
  * Date : 2026-02-04
- * Version : 1.0 - localStorage (compatible navigateurs modernes)
  ************************************************/
 
 /**
@@ -1795,6 +1795,12 @@ async clearGeoData() {
         });
     }
 
+    /**
+     * Vérifie si un diplôme d'apprentissage existe aussi en voie scolaire,
+     * par comparaison insensible à la casse des libellés.
+     * @param {string|null} onisepIntitule - Libellé du diplôme à chercher
+     * @returns {Promise<boolean>} true si un diplôme scolaire de même libellé existe
+     */
     async estAussiEnScolaire(onisepIntitule) {
         if (!onisepIntitule) return false;
         const libelleNorm = onisepIntitule.toLowerCase().trim();

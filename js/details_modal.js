@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /**
  * Modale de détails — établissements, diplômes, dispositifs, options 2nde GT
  *

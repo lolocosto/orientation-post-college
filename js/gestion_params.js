@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /**
  * @file gestion_params.js
  * @description Panneau de paramètres — navigation menu/section avec slide (v0.45).

@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /**
  * Service d'export des données en PDF et CSV
  * v0.35 — Page de titre, sommaire, pagination, sans emojis, CEDEX, nommage

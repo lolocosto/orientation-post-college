@@ -1,9 +1,9 @@
+// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /************************************************
  * Fichier : geo_data_parser.js
  * Description : Parsers spécialisés pour les données de l'API Géo
  * Auteur : Laurent COSTE
  * Date : 2026-02-03
- * Version : 1.0 - Phase 2
  ************************************************/
 
 /**

@@ -75,9 +75,15 @@
 	<!-- 7. Service de préférences chiffrées (AES-GCM) -->
 	<script src="js/preferences_crypto_service.js?v=1772500100"></script>
 	
-	<!-- 7. Initialisation -->
+	<!-- 8. Initialisation -->
 	<script>
-		document.addEventListener('DOMContentLoaded', init);
+		document.addEventListener('DOMContentLoaded', () => {
+			// Injecter la version dans le panneau « À propos »
+			const vEl = document.getElementById('app-version-display');
+			if (vEl && typeof APP_VERSION !== 'undefined') vEl.textContent = 'v' + APP_VERSION;
+			// Lancer l'init principale
+			init();
+		});
 	</script>
 
 </head>
@@ -313,9 +319,71 @@
                     <div class="form-group">
                         <label class="setting-label">À propos</label>
                         <div class="about-text">
-                            <p><strong>Orientation Post-Collège v0.52</strong></p>
+                            <p><strong>Orientation Post-Collège <span id="app-version-display"></span></strong></p>
+                            <p class="u-mt-1" style="font-size:0.85em;color:#666;">© 2026 Laurent COSTE — Licence EUPL v1.2</p>
                             <p class="u-mt-3"><strong>📓 Historique des versions</strong></p>
                             <div class="changelog-scroll">
+                                <p><strong>v0.60</strong> (28 février 2026) - Correction écrasement formations 5+, accents communes</p>
+                                <ul class="u-ml-4 u-mt-1">
+                                    <li>Corrigé : les formations scolaires niveau 5+ (CPGE, BTS scolaires) disparaissaient après extraction CARIF-OREF</li>
+                                    <li>Corrigé : purge sélective par source (carif/onisep) dans clearAprentissageData()</li>
+                                    <li>Corrigé : communes avec/sans accents dédupliquées correctement (preferAccentedCommune)</li>
+                                    <li>Corrigé : parseActionsSup collecte désormais les enrichissements_etab</li>
+                                    <li>Nouveau : création d'établissements minimaux pour les formations sup-only</li>
+                                    <li>22 tests unitaires spécifiques</li>
+                                </ul>
+                                <p><strong>v0.59</strong> (27 février 2026) - Refonte complète en 5 phases</p>
+                                <ul class="u-ml-4 u-mt-1">
+                                    <li>Phase 1 : refactoring database_service.js — stockage « bête » sans décision métier</li>
+                                    <li>Phase 2 : refonte onisep_parser.js — séparation parsing/décisions métier</li>
+                                    <li>Phase 3 : refonte onisep_extraction_controller.js — orchestration correcte</li>
+                                    <li>Phase 4 : refonte carif_oref_extraction_controller.js — alignement architecture</li>
+                                    <li>Phase 5 : nettoyage des fallbacks dans les vues et l'export</li>
+                                </ul>
+                                <p><strong>v0.58</strong> (27 février 2026) - ID internes, unicité, déduplication</p>
+                                <ul class="u-ml-4 u-mt-1">
+                                    <li>Nouveau : ID internes numériques séquentiels (etab_1, etab_2…) pour gérer les UAI partagés</li>
+                                    <li>Nouveau : unicité testée sur combinaison UAI+nom (pas UAI seul)</li>
+                                    <li>Nouveau : déduplication communes insensible aux accents</li>
+                                    <li>Corrigé : triple nom (enseigne/raison_sociale/nom) correctement fusionné</li>
+                                    <li>Corrigé : double libellé diplôme apprentissage éliminé</li>
+                                </ul>
+                                <p><strong>v0.57</strong> (26 février 2026) - CSS lisibilité, filtres carte, normalisation casse</p>
+                                <ul class="u-ml-4 u-mt-1">
+                                    <li>Corrigé : boutons popup carte et titres tour guidé illisibles (conflit CSS Leaflet/driver.js)</li>
+                                    <li>Nouveau : filtres multi-sélection sur la carte (type, statut, commune, voie)</li>
+                                    <li>Nouveau : normalisation casse des communes en Title Case (normaliserNomCommune)</li>
+                                    <li>Nouveau : normalisation des libellés de diplômes CARIF-OREF (normaliserLibelleDiplome)</li>
+                                </ul>
+                                <p><strong>v0.56</strong> (26 février 2026) - Contraste, préférences chiffrées, marqueur domicile</p>
+                                <ul class="u-ml-4 u-mt-1">
+                                    <li>Corrigé : contrastes texte/fond insuffisants (tour-hint, setting-help, mode-help…)</li>
+                                    <li>Nouveau : sauvegarde/restauration chiffrée des préférences (AES-256-GCM via Web Crypto API)</li>
+                                    <li>Nouveau : marqueur domicile sur la carte avec icône distincte</li>
+                                    <li>Nouveau : filtres dynamiques sur la carte (type établissement, statut)</li>
+                                    <li>Corrigé : sections détails établissement — niveaux de formation affichés correctement</li>
+                                </ul>
+                                <p><strong>v0.55</strong> (25 février 2026) - Corrections durées, enrichissement, autres formations</p>
+                                <ul class="u-ml-4 u-mt-1">
+                                    <li>Corrigé : durées de formation codées en dur (l'API ONISEP renvoie la durée du dernier cycle, pas du parcours complet)</li>
+                                    <li>Amélioré : informations générales présentées en liste au lieu de grille 2 colonnes</li>
+                                    <li>Nouveau : section « Autres formations » (niveau 5+) dans les fiches établissement</li>
+                                    <li>Nouveau : enrichissement des données enseignements (ens_*) pour les établissements</li>
+                                </ul>
+                                <p><strong>v0.54</strong> (25 février 2026) - Parcours de formation, durée du cycle</p>
+                                <ul class="u-ml-4 u-mt-1">
+                                    <li>Nouveau : section « Parcours de formation » dans les fiches diplômes scolaires</li>
+                                    <li>Nouveau : durée du cycle affichée dans les fiches</li>
+                                    <li>Amélioré : toutes les sections repliées par défaut dans les modales de détail</li>
+                                </ul>
+                                <p><strong>v0.53.1</strong> (24 février 2026) - 5 correctifs</p>
+                                <ul class="u-ml-4 u-mt-1">
+                                    <li>Corrigé : filtres inopérants sur téléphone (cartes mobiles non filtrées)</li>
+                                    <li>Corrigé : éléments cliquables non homogènes dans les résultats</li>
+                                    <li>Amélioré : blocs de compétences lisibles dans les fiches</li>
+                                    <li>Amélioré : parcours bac pro harmonisé</li>
+                                    <li>Corrigé : favori recherche jamais sauvegardé</li>
+                                </ul>
                                 <p><strong>v0.52</strong> (23 février 2026) - Corrections de bugs</p>
                                 <ul class="u-ml-4 u-mt-1">
                                     <li>Corrigé : bouton "Voir la fiche" toujours large dans les cartes favoris (spécificité CSS renforcée)</li>

@@ -1,9 +1,9 @@
+// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /************************************************
  * Fichier : itineraire_modal.js
  * Description : Modale itinéraire — calcul via redirection Google Maps
  * Auteur : Laurent COSTE / Claude
  * Date : 2026-02-21
- * Version : 1.0 (v0.43)
  *
  * Fonctionnement :
  *   - Départ : domicile (pref_user_domicile) ou établissement (pref_user_etablissement)

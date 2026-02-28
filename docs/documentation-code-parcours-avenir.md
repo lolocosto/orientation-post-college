@@ -1,8 +1,8 @@
-# Documentation du code — Parcours Avenir v0.51
+# Documentation du code — Parcours Avenir v0.60
 
 > **Auteur :** Laurent COSTE  
-> **Date :** 23 février 2026  
-> **Version documentée :** 0.51  
+> **Date :** 28 février 2026  
+> **Version documentée :** 0.60  
 > **Objet :** Référence complète de l'architecture, des fichiers et des fonctions de l'application.
 
 ---
@@ -1889,7 +1889,41 @@ Fichier résiduel (intentionnellement quasi-vide depuis v0.29). Contient uniquem
 
 | Version | Date | Modifications |
 |---------|------|---------------|
+| v0.60 | 28 fév. 2026 | Mise à jour complète : ajout tour_guide.js (§7.5), preferences_crypto_service.js (§8.2), normalisation casse dans utils.js (§11.1), preferAccentedCommune, normaliserNomCommune, normaliserLibelleDiplome. Ajout CHANGELOG.md, README.md, LICENSE. En-têtes copyright dans tous les fichiers JS. Version centralisée dans APP_VERSION. |
 | v0.51 | 23 fév. 2026 | Ajout service `favorisDivers` (§7.3), guard `_detailsModalOpening` (§7.3), panneau favoris 6 catégories (§8.1), suppression bouton purge CARIF (§8.1), compteur nav relatif à la liste filtrée (§6.3) |
 | v0.43 | 22 fév. 2026 | Création initiale |
 
-*Documentation générée le 23 février 2026 — Parcours Avenir v0.51*
+---
+
+## Modules ajoutés depuis v0.51
+
+### `js/tour_guide.js` — Tour guidé de première utilisation (v0.44)
+
+**Rôle :** Présenter les fonctions essentielles en 10 étapes lors de la première visite, via driver.js (CDN).
+
+**Classe : `TourGuide`**
+
+| Méthode | Description |
+|---------|-------------|
+| `static isPremiereLancement()` | Vérifie si le tour a déjà été vu (localStorage) |
+| `static resetTour()` | Efface le flag pour permettre de rejouer |
+| `async start()` | Charge driver.js et démarre le tour |
+| `#construireEtapes()` | Retourne les 10 étapes avec callbacks |
+| `#chargerDriver()` | Charge CSS+JS du CDN si nécessaire |
+
+**Exposition globale :** `window.TourGuide`, `window.lancerTourGuide()`
+
+### `js/preferences_crypto_service.js` — Sauvegarde chiffrée des préférences (v0.56)
+
+**Rôle :** Sauvegarde et restauration des préférences utilisateur (identifiants, établissement, domicile, favoris) dans un fichier chiffré AES-256-GCM via Web Crypto API.
+
+### Fonctions ajoutées dans `js/utils.js` (v0.57–v0.60)
+
+| Fonction | Version | Description |
+|----------|---------|-------------|
+| `normaliserNomCommune(commune)` | v0.57 | Title Case français avec gestion des particules |
+| `_communeDeduplicationKey(commune)` | v0.57 | Clé de déduplication sans accents |
+| `normaliserLibelleDiplome(libelle)` | v0.57 | Normalisation des libellés CARIF-OREF |
+| `preferAccentedCommune(a, b)` | v0.60 | Compare et retient la variante la plus accentuée |
+
+*Documentation mise à jour le 28 février 2026 — Parcours Avenir v0.60*

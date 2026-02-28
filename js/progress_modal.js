@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /**
  * Classe pour gérer la modale de progrès d'extraction
  * Évite la duplication de code entre les différents types d'extraction

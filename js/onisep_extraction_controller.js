@@ -1,9 +1,9 @@
+// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /************************************************
  * Fichier : onisep_extraction_controller.js
  * Description : Contrôleur d'extraction des données ONISEP
  * Auteur : Laurent COSTE
  * Date : 2026-02-16
- * Version : v0.28.10 - Fix stockage dispositifs avec logs
  ************************************************/
 
 /**

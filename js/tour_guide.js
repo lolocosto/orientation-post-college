@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /**
  * @file tour_guide.js
  * @description Tour guidé de première utilisation — driver.js (v0.44).
@@ -116,8 +117,8 @@ class TourGuide {
                         '<p>En mode connecté, tout commence ici. Trois types de recherches sont disponibles :</p>' +
                         '<ul>' +
                         '<li><strong>🌍 Géographique</strong> — tous les établissements d\'une commune ou intercommunalité</li>' +
-                        '<li><strong>🎓 Par diplôme</strong> — tous les lycées proposant un Bac ou un CAP</li>' +
-                        '<li><strong>📚 Par option</strong> — toutes les 2ndes GT avec une option spécifique</li>' +
+                        '<li><strong>🎓 Par diplôme</strong> — tous les établissements d\'un département ou d\'une académie proposant des Bac ou CAP spécifiques</li>' +
+                        '<li><strong>📚 Par option</strong> — tous les établissements d\'un département ou d\'une académie proposant des options de 2nde GT</li>' +
                         '</ul>',
                     side: 'bottom',
                 },
@@ -133,9 +134,8 @@ class TourGuide {
                 popover: {
                     title: '📍 Recherche géographique',
                     description:
-                        '<p>Tapez au moins 3 lettres du nom de la <strong>commune</strong>.</p>' +
-                        '<p>Les résultats sont filtrés en temps réel.</p>' +
-                        '<p>Choisissez le vôtre, et le périmètre de la recherche&nbsp;:' +
+                        '<p>Tapez au moins 3 lettres du nom de la <strong>commune</strong>&nbsp: les résultats sont filtrés en temps réel.</p>' +
+                        '<p>Choisissez dans la liste qui s\'affiche, et définissez le périmètre de la recherche&nbsp;:' +
                         'commune seule ou toute l\'<strong>intercommunalité</strong>.</p>',
                     side: 'bottom',
                 },
@@ -177,7 +177,7 @@ class TourGuide {
                 popover: {
                     title: '📊 Onglet Résultats',
                     description:
-                        '<p>Après l\'extraction, consultez les données en 5 vues :</p>' +
+                        '<p>Après l\'extraction, consultez les données selon 5 vues :</p>' +
                         '<ul>' +
                         '<li>🏫 <strong>Établissements</strong></li>' +
                         '<li>📜 <strong>Diplômes scolaires</strong></li>' +
@@ -217,17 +217,15 @@ class TourGuide {
                 popover: {
                     title: '🗺️ Onglet Carte',
                     description:
-                        '<p>Visualisez tous les établissements sur une carte interactive.</p>' +
+                        '<p>Visualisez les établissements sur une carte interactive.</p>' +
+                        '<p>Chaque type d\'établissement a un marqueur spécifique, chaque voie de formation a une couleur spécifique.</p>' +
                         '<p>Cliquez sur un marqueur pour voir le résumé, puis&nbsp;:</p>' +
                         '<ul>' +
                         '<li>Ouvrez la <strong>fiche détaillée</strong></li>' +
                         '<li>Calculez un <strong>itinéraire</strong> depuis votre domicile ' +
                         'ou votre établissement (s\'ouvre dans Google Maps)</li>' +
                         '</ul>' +
-                        '<p>Marqueurs&nbsp;: ' +
-                        '<span class="tour-badge tour-badge--scolaire">scolaire</span> ' +
-                        '<span class="tour-badge tour-badge--apprentissage">apprentissage</span> ' +
-                        '<span class="tour-badge tour-badge--mixte">les deux</span></p>',
+                        '<p class="tour-hint">Vous disposez de filtres pour affiner ce qui s\'affiche sur la carte.</p>',
                     side: 'bottom',
                 },
                 onHighlightStarted: () => {

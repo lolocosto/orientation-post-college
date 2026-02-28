@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /************************************************
  * Fichier : gestion_carte.js
  * Description : Gestion de la carte Leaflet et des marqueurs

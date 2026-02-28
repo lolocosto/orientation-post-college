@@ -1,9 +1,9 @@
+// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /************************************************
  * Fichier : data_education_parser.js
  * Description : Parsers spécialisés pour Data.Education.gouv.fr
  * Auteur : Laurent COSTE
  * Date : 2026-02-03
- * Version : 1.0 - Phase 2
  ************************************************/
 
 /**
