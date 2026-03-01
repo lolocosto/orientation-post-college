@@ -1,9 +1,9 @@
-// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /************************************************
  * Fichier : gestion_onglet_recherche.js
  * Description : Gestion de l'onglet Recherche (formulaires et extraction)
  * Auteur : Laurent COSTE
  * Date : 2026-02-03
+ * Version : 2.0
  ************************************************/
 
 // ── Couche d'abstraction préférences (v0.45) ──────────────────────────────────

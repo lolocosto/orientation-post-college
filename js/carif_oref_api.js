@@ -1,9 +1,9 @@
-// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /************************************************
  * Fichier : carif_oref_api.js
  * Description : Classe pour interagir avec l'API CARIF-OREF (catalogue apprentissage)
  * Auteur : Laurent COSTE
  * Date : 2026-02-20
+ * Version : 2.0
  * Documentation API : https://catalogue-apprentissage.intercariforef.org/api/swagger
  *
  * Endpoints utilisés :

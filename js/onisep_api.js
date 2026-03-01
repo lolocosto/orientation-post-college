@@ -1,9 +1,9 @@
-// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /************************************************
  * Fichier : onisep_api.js
  * Description : Classe pour interagir avec l'API OpenData ONISEP
  * Auteur : Laurent COSTE
  * Date : 2026-02-03
+ * Version : 2.0 (nettoyée - Phase 1)
  ************************************************/
 
 /**

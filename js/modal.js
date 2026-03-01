@@ -1,4 +1,3 @@
-// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /**
  * Système unifié de modales v0.23
  * Gestion de modales empilables avec z-index automatique

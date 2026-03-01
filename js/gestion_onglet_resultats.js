@@ -1,9 +1,9 @@
-// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /************************************************
  * Fichier : gestion_onglet_resultats.js
  * Description : Gestion de l'onglet Résultats (tableaux et statistiques)
  * Auteur : Laurent COSTE
  * Date : 2026-02-03
+ * Version : 2.0
  ************************************************/
 
 // =====================================
@@ -1506,11 +1506,10 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
     // ── SECTION 2 : DIPLÔMES VOIE SCOLAIRE ────────────────────────────
     if (diplomes && diplomes.length > 0) {
         const groupes = groupDiplomesByCategorie(diplomes);
-        Object.keys(groupes).forEach(n => groupes[n].sort((a, b) => a.libelle.localeCompare(b.libelle)));
         let body = '';
         for (const [categorie, liste] of Object.entries(groupes)) {
-            body += `<div class="diplomes-categorie">
-                <h4 class="diplomes-categorie-title">${categorie} (${liste.length})</h4>
+            body += `<div class="detail-categorie">
+                <h4 class="detail-categorie__title">${categorie} (${liste.length})</h4>
                 <ul class="detail-list">`;
             for (const d of liste) {
                 const mod = d.modalites?.length ? ` <span class="diplome-modalite">${d.modalites.join(', ')}</span>` : '';
@@ -1526,17 +1525,20 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
 
     // ── SECTION 3 : DIPLÔMES VOIE APPRENTISSAGE ────────────────────────
     if (diplomes_apprentissage && diplomes_apprentissage.length > 0) {
-        const sorted = [...diplomes_apprentissage].sort((a, b) => (a.libelle||''). localeCompare(b.libelle||'', 'fr'));
+        // Grouper par niveau
         const niveaux = {};
-        for (const d of sorted) {
+        for (const d of diplomes_apprentissage) {
             const niv = d.niveau || 'Autre';
             if (!niveaux[niv]) niveaux[niv] = [];
             niveaux[niv].push(d);
         }
+        // Trier les niveaux dans l'ordre canonique, items alphabétiques
+        const niveauxTries = trierCategories(Object.keys(niveaux));
         let body = '';
-        for (const [niv, liste] of Object.entries(niveaux)) {
-            body += `<div class="diplomes-categorie">
-                <h4 class="diplomes-categorie-title">${niv} (${liste.length})</h4>
+        for (const niv of niveauxTries) {
+            const liste = niveaux[niv].sort((a, b) => (a.libelle||'').localeCompare(b.libelle||'', 'fr'));
+            body += `<div class="detail-categorie">
+                <h4 class="detail-categorie__title">${niv} (${liste.length})</h4>
                 <ul class="detail-list">`;
             for (const d of liste) {
                 const qBadge = d.certifieQualite
@@ -1658,14 +1660,14 @@ function buildEtablissementDetailsHTML(etablissementEnrichi) {
                 if (!parNiveau[niv]) parNiveau[niv] = [];
                 parNiveau[niv].push(f);
             }
-            // Trier les niveaux (alphabétique → 5…, 6…, 7…, BTS ou…, etc.)
-            const niveauxTries = Object.keys(parNiveau).sort();
+            // Trier les niveaux dans l'ordre canonique
+            const niveauxTries = trierCategories(Object.keys(parNiveau));
 
             let body = '';
             for (const niv of niveauxTries) {
                 const liste = parNiveau[niv].sort((a, b) => a.libelle.localeCompare(b.libelle, 'fr'));
-                body += `<div class="diplomes-categorie">
-                    <h4 class="diplomes-categorie-title">${niv} (${liste.length})</h4>
+                body += `<div class="detail-categorie">
+                    <h4 class="detail-categorie__title">${niv} (${liste.length})</h4>
                     <ul class="detail-list">`;
                 for (const f of liste) {
                     const typeInfo = f.typeDiplome ? ` <span class="dispositif-type">${f.typeDiplome}</span>` : '';
@@ -1721,28 +1723,145 @@ function buildInfoRow(label, value) {
 }
 
 /**
+ * Ordre canonique des catégories de formations/diplômes.
+ * Utilisé pour trier les niveaux dans les fiches de détail (établissements,
+ * diplômes, dispositifs) et dans les vues résultats.
+ *
+ * Chaque entrée a un rang numérique et un ou plusieurs patterns de correspondance
+ * (testés en minuscules). Le premier pattern matché détermine le rang.
+ * Les catégories non reconnues sont classées en fin (rang 9999).
+ *
+ * @type {Array<{rang: number, patterns: string[]}>}
+ */
+const ORDRE_CATEGORIES_FORMATIONS = [
+    // ── Niveau 3 : CAP et équivalents ──
+    // Ancien système : niveau V
+    { rang: 100, patterns: ['cap ou équivalent', 'cap', '3 (cap', '3(cap', 'niveau 3'] },
+    { rang: 100, exact: ['niveau v'] },
+    { rang: 101, exact: ['3'] },
+
+    // ── Intermédiaire 3→4 : classes de lycée (seconde puis première) ──
+    { rang: 200, patterns: ['seconde', '2nde', '2de', 'classe de 2'] },
+    { rang: 250, patterns: ['première', 'premiere', '1re', '1ère', 'classe de 1'] },
+
+    // ── Niveau 4 : Bac et équivalents (ordre : général, techno, pro, autres) ──
+    // Ancien système : niveau IV
+    { rang: 300, patterns: ['bac général', 'bac general'] },
+    { rang: 310, patterns: ['bac technologique', 'bac techno'] },
+    { rang: 320, patterns: ['bac professionnel', 'bac pro'] },
+    { rang: 330, patterns: ['bac ou équivalent', 'bac ou equivalent'] },
+    { rang: 340, patterns: ['4 (bac', '4(bac', 'niveau 4'] },
+    { rang: 340, exact: ['niveau iv'] },
+    { rang: 341, exact: ['4'] },
+
+    // ── Intermédiaire 4→5 : Bac+1 (CPGE 1ère année, mise à niveau…) ──
+    { rang: 400, patterns: ['bac + 1', 'bac+1'] },
+
+    // ── Niveau 5 : Bac+2 (CPGE 2e année, BTS, DUT…) ──
+    // Ancien système : niveau III
+    { rang: 500, patterns: ['bac + 2', 'bac+2', 'bts ou équivalent', 'bts ou equivalent'] },
+    { rang: 510, patterns: ['5 (bts', '5(bts', 'niveau 5'] },
+    { rang: 510, exact: ['niveau iii'] },
+    { rang: 511, exact: ['5'] },
+
+    // ── Niveau 6 : Bac+3 / Bac+4 (Licence, BUT, Maîtrise…) ──
+    // Ancien système : niveau II
+    { rang: 600, patterns: ['bac + 3', 'bac+3', 'licence'] },
+    { rang: 650, patterns: ['bac + 4', 'bac+4', 'maîtrise', 'maitrise'] },
+    { rang: 660, patterns: ['6 (licence', '6(licence', 'niveau 6'] },
+    { rang: 660, exact: ['niveau ii'] },
+    { rang: 661, exact: ['6'] },
+
+    // ── Niveau 7 : Bac+5 (Master, ingénieur…) ──
+    // Ancien système : niveau I (partagé avec niveau 8)
+    { rang: 700, patterns: ['bac + 5', 'bac+5', 'master', 'ingénieur', 'ingenieur'] },
+    { rang: 710, patterns: ['7 (master', '7(master', 'niveau 7'] },
+    { rang: 710, exact: ['niveau i'] },
+    { rang: 711, exact: ['7'] },
+
+    // ── Niveau 8 : Doctorat ──
+    // Ancien système : niveau I (partagé avec niveau 7)
+    { rang: 800, patterns: ['bac + 8', 'bac+8', 'doctorat'] },
+    { rang: 810, patterns: ['8 (doctorat', '8(doctorat', 'niveau 8'] },
+    { rang: 811, exact: ['8'] },
+];
+
+/**
+ * Retourne le rang de tri d'une catégorie/niveau pour le classement canonique.
+ * Teste d'abord les correspondances exactes (exact), puis les inclusions (patterns).
+ * Les catégories non reconnues retournent 9999 (fin de liste).
+ *
+ * @param {string} categorie - Libellé brut du niveau/catégorie
+ * @returns {number} Rang numérique pour le tri
+ */
+function getRangCategorie(categorie) {
+    if (!categorie) return 9999;
+    const lower = categorie.toLowerCase().trim();
+    if (lower === 'autre' || lower === '') return 9999;
+
+    // Passe 1 : correspondances exactes (prioritaires pour éviter les ambiguïtés
+    // entre chiffres romains : "niveau i" ne doit pas matcher "niveau iii")
+    for (const entry of ORDRE_CATEGORIES_FORMATIONS) {
+        if (entry.exact) {
+            for (const pattern of entry.exact) {
+                if (lower === pattern) return entry.rang;
+            }
+        }
+    }
+
+    // Passe 2 : correspondances par inclusion (includes / startsWith)
+    for (const entry of ORDRE_CATEGORIES_FORMATIONS) {
+        if (entry.patterns) {
+            for (const pattern of entry.patterns) {
+                if (lower.includes(pattern) || lower.startsWith(pattern)) return entry.rang;
+            }
+        }
+    }
+
+    return 9999;
+}
+
+/**
+ * Trie un tableau de clés de catégories selon l'ordre canonique des formations.
+ * Les catégories de même rang sont triées alphabétiquement entre elles.
+ *
+ * @param {string[]} categories - Libellés bruts des catégories/niveaux
+ * @returns {string[]} Catégories triées
+ */
+function trierCategories(categories) {
+    return [...categories].sort((a, b) => {
+        const rangA = getRangCategorie(a);
+        const rangB = getRangCategorie(b);
+        if (rangA !== rangB) return rangA - rangB;
+        return a.localeCompare(b, 'fr');
+    });
+}
+
+/**
  * Groupe les diplômes par catégorie (niveauSortie), dans l'ordre canonique.
- * @param {Object[]} diplomes
- * @returns {Object} { categorie: diplome[] }
+ * Les items de chaque catégorie sont triés alphabétiquement par libellé.
+ * Les catégories vides sont masquées (non créées).
+ *
+ * @param {Object[]} diplomes - Tableau de diplômes avec propriété niveauSortie
+ * @returns {Object} { categorie: diplome[] } trié dans l'ordre canonique
  */
 function groupDiplomesByCategorie(diplomes) {
-    console.log('[groupDiplomesByCategorie] Groupement diplômes, premier diplôme:', diplomes[0]);
     const groupes = {};
     for (const diplome of diplomes) {
         const cat = diplome.niveauSortie || 'Autre';
         if (!groupes[cat]) groupes[cat] = [];
         groupes[cat].push(diplome);
     }
-    
-    console.log('[groupDiplomesByCategorie] Groupes créés:', Object.keys(groupes));
-    
-    const ordre = ['CAP', 'Bac professionnel', 'Bac technologique', 'Bac général', 'BTS', 'Autre'];
+
+    // Trier les catégories dans l'ordre canonique
+    const categoriesTriees = trierCategories(Object.keys(groupes));
+
     const result = {};
-    for (const cat of ordre) {
-        if (groupes[cat]) result[cat] = groupes[cat];
-    }
-    for (const [cat, liste] of Object.entries(groupes)) {
-        if (!result[cat]) result[cat] = liste;
+    for (const cat of categoriesTriees) {
+        // Trier les items alphabétiquement dans chaque catégorie
+        result[cat] = groupes[cat].sort((a, b) =>
+            (a.libelle || '').localeCompare(b.libelle || '', 'fr')
+        );
     }
     return result;
 }
@@ -1804,11 +1923,11 @@ function buildDiplomeDetailsHTML(diplomeEnrichi) {
             if (d.categorie && d.categorie.trim()) parDomaine[d.domaine].push(d.categorie);
         });
         if (Object.keys(parDomaine).length > 0) {
-            let domainesBody = '<div class="diplomes-groupes">';
+            let domainesBody = '<div class="detail-categories-group">';
             Object.entries(parDomaine).forEach(([domaine, categories]) => {
                 if (categories.length > 0) {
-                    domainesBody += `<div class="diplomes-categorie">
-                        <h4 class="diplomes-categorie-title">${domaine}</h4>
+                    domainesBody += `<div class="detail-categorie">
+                        <h4 class="detail-categorie__title">${domaine}</h4>
                         <div class="detail-list">${categories.map(c => `<div class="detail-item">${c}</div>`).join('')}</div>
                     </div>`;
                 }
@@ -1865,11 +1984,11 @@ function buildDispositifDetailsHTML(dispositifEnrichi) {
             if (d.categorie && d.categorie.trim()) parDomaine[d.domaine].push(d.categorie);
         });
         if (Object.keys(parDomaine).length > 0) {
-            let domainesBody = '<div class="diplomes-groupes">';
+            let domainesBody = '<div class="detail-categories-group">';
             Object.entries(parDomaine).forEach(([domaine, categories]) => {
                 if (categories.length > 0) {
-                    domainesBody += `<div class="diplomes-categorie">
-                        <h4 class="diplomes-categorie-title">${domaine}</h4>
+                    domainesBody += `<div class="detail-categorie">
+                        <h4 class="detail-categorie__title">${domaine}</h4>
                         <div class="detail-list">${categories.map(c => `<div class="detail-item">${c}</div>`).join('')}</div>
                     </div>`;
                 }
@@ -2205,10 +2324,10 @@ function afficherListeFavorisEtablissements() {
     favoris.forEach(f => {
         const date = new Date(f.date).toLocaleDateString('fr-FR');
         html += `
-        <div class="favori-card--etab">
-            <div class="favori-card--etab__nom">🏫 ${f.nom}</div>
-            <div class="favori-card--etab__meta">${f.type || ''} · ${f.commune || ''} · ajouté le ${date}</div>
-            <div class="favori-card--etab__actions">
+        <div class="favori-card">
+            <div class="favori-card__nom">🏫 ${f.nom}</div>
+            <div class="favori-card__meta">${f.type || ''} · ${f.commune || ''} · ajouté le ${date}</div>
+            <div class="favori-card__actions">
                 <button class="setting-button" style="flex:1;padding:8px;font-size:13px"
                     data-etab-id="${f.id}"
                     onclick="toggleSettings();setTimeout(()=>showEtablissementDetails(this.dataset.etabId),200)">

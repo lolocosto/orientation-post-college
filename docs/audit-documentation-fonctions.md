@@ -1,13 +1,7 @@
 # Audit de documentation des fonctions JavaScript
-## Parcours Avenir — v0.60
-**Date** : 28 février 2026  
-**Périmètre** : 29 fichiers JavaScript, ~18 500 lignes de code
-
-> **Note v0.60 :** Cet audit a été initialement réalisé en v0.51. Depuis, la couverture JSDoc
-> a été considérablement améliorée, notamment sur `database_service.js` (quasi-complet),
-> et les nouveaux modules (`tour_guide.js`, `preferences_crypto_service.js`) sont documentés
-> dès leur création. Les @version locales par fichier ont été supprimées au profit d'une
-> version centralisée unique dans `utils.js → APP_VERSION`.
+## Parcours Avenir — v0.51
+**Date** : 23 février 2026  
+**Périmètre** : 22 fichiers JavaScript, ~5 000 lignes de code
 
 ---
 

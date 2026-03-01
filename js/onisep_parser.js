@@ -1,9 +1,9 @@
-// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /************************************************
  * Fichier : onisep_parser.js
  * Description : Parsers spécialisés par dataset ONISEP
  * Auteur : Laurent COSTE
  * Date : 2026-02-03
+ * Version : 2.0 - Phase 2 (refonte complète)
  ************************************************/
 
 /**

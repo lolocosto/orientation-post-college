@@ -1,10 +1,10 @@
-// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /************************************************
  * Fichier : http_client.js
  * Description : Client HTTP générique — retry automatique, rate limiting (429),
  *               backoff exponentiel. Factorise la logique commune à toutes les APIs.
  * Auteur : Laurent COSTE
  * Date : 2026-02-21
+ * Version : 1.0
  ************************************************/
 
 class HttpClient {

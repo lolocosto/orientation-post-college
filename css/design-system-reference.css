@@ -1,16 +1,22 @@
 /**
  * DESIGN SYSTEM — Parcours Avenir
- * Version : 0.61  —  Date : 2026-03-01
+ * Version : 0.61
+ * CSS update : refactoring nommage (detail-categorie, favori-card),
+ *              suppression classes inutilisées, intégration main.css
+ * Date    : 2026-03-01
  *
- * v0.61 : renommages (detail-categorie, favori-card), suppression classes
- *         inutilisées, intégration main.css, harmonisation commentaires.
- *         Réorganisation thématique prévue pour une version ultérieure.
- *
- * Organisation actuelle :
- *   1. Variables CSS     5. Composants spécifiques     6. Utilitaires
- *   2. Reset & Base         - Recherche, Résultats     7. Print
- *   3. Layout app           - Détails, Carte, Params   + Sections versionnées
- *   4. Composants UI        - Extraction, Diplômes       (v0.42→v0.56)
+ * Organisation :
+ *   1. Variables CSS (palette unique)
+ *   2. Reset & Base
+ *   3. Layout app
+ *   4. Composants generiques (BEM)
+ *      - Boutons  - Onglets  - Cartes  - Listes  - Tableaux
+ *      - Modales  - Badges   - Alertes - Formulaires - Etat vide - Stats
+ *   5. Composants specifiques
+ *      - Recherche  - Smart search  - Resultats  - Details  - Carte  - Params
+ *      - Extraction - Diplomes/Items
+ *   6. Utilitaires (u-*)
+ *   7. Print / Export PDF
  */
 
 /* ============================================================================
@@ -289,6 +295,19 @@ tbody tr:hover { background: var(--bg-light); }
 .badge--secondary { background: var(--surface-medium); color: var(--text); }
 .badge--lg        { padding: 6px 12px; font-size: var(--font-size-sm); }
 
+/* --- ICÔNE LIEN ↗ (ex main.css) --- */
+.link-icon {
+    font-size: 0.75em;
+    color: #888;
+    vertical-align: super;
+    opacity: 0.7;
+}
+tr:hover .link-icon,
+.detail-item:hover .link-icon {
+    color: var(--color-primary, #3b82f6);
+    opacity: 1;
+}
+
 /* --- ALERTES --- */
 .alert          { padding: var(--spacing-md); border-radius: var(--border-radius-md); border-left: 4px solid; margin-bottom: var(--spacing-md); display: flex; align-items: flex-start; gap: var(--spacing-sm); }
 .alert--success { background: var(--success-bg); border-color: var(--success); color: #155724; }
@@ -331,12 +350,9 @@ tbody tr:hover { background: var(--bg-light); }
    ============================================================================ */
 
 /* --- RECHERCHE & FILTRES --- */
-
 .search-panel         { border: 2px solid var(--border); border-radius: var(--border-radius-lg); padding: var(--spacing-xl); background: white; }
 .search-panel-header  { font-size: var(--font-size-lg); font-weight: 600; color: var(--primary); margin-bottom: var(--spacing-lg); padding-bottom: var(--spacing-md); border-bottom: 2px solid var(--border); }
 
-
-/* Selection commune */
 .selection-info    { padding: var(--spacing-md); background: var(--primary-bg); border: 2px solid var(--primary); border-radius: var(--border-radius); margin-bottom: var(--spacing-sm); }
 .selection-epci    { margin-top: var(--spacing-sm); padding: var(--spacing-sm); background: var(--bg-light); border-radius: var(--border-radius-sm); font-size: var(--font-size-sm); color: var(--text-light); }
 .selection-actions { margin-top: var(--spacing-md); }
@@ -372,6 +388,7 @@ tbody tr:hover { background: var(--bg-light); }
 .resultat-table th:hover        { background: var(--primary-dark); }
 .resultat-table tbody tr        { cursor: pointer; transition: background-color var(--transition-base); }
 .resultat-table tbody tr:hover  { background: var(--bg-light); }
+.resultat-table tbody tr[onclick] { cursor: pointer; }
 .resultat-table td              { padding: var(--spacing-md); border-bottom: 1px solid var(--border); }
 .resultat-table td:first-child  { font-weight: 600; color: var(--text); }
 .resultat-table td:first-child strong { font-weight: 700; color: var(--text); }
@@ -612,6 +629,7 @@ tbody tr:hover { background: var(--bg-light); }
 /* favori-card__actions → voir règles v0.51 ci-dessous */
 
 
+
 .bloc-information-specifique    { margin-top: var(--spacing-md); padding: var(--spacing-md); background: var(--surface-light); border-left: 4px solid var(--primary); border-radius: var(--border-radius-sm); }
 .bloc-information-specifique h5 { margin-top: 0; margin-bottom: var(--spacing-sm); color: var(--primary); font-size: var(--font-size-base); }
 .bloc-information-specifique p  { margin: var(--spacing-xs) 0; padding-left: var(--spacing-sm); border-left: 2px solid var(--accent); color: var(--text); }
@@ -621,7 +639,6 @@ tbody tr:hover { background: var(--bg-light); }
 .info-value { color: var(--text); flex: 1; }
 .info-value a       { color: var(--primary); text-decoration: none; }
 .info-value a:hover { text-decoration: underline; }
-
 
 /* --- CARTE LEAFLET --- */
 #map-container { width: 100%; height: calc(100vh - 200px); min-height: 500px; border-radius: var(--border-radius-md); overflow: hidden; box-shadow: var(--shadow-md); }
@@ -669,7 +686,6 @@ tbody tr:hover { background: var(--bg-light); }
 .voie-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); }
 .voie-badge--scolaire     { background: var(--primary-bg); color: var(--primary); }
 .voie-badge--apprentissage { background: #fef3e2; color: #e67e22; }
-
 
 @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
 
@@ -864,7 +880,6 @@ tbody tr:hover { background: var(--bg-light); }
 
 .settings-section { border-bottom: 1px solid var(--border); }
 
-
 /* Éléments de formulaire paramètres */
 .setting-item          { margin-bottom: 15px; }
 .setting-item:last-child { margin-bottom: 0; }
@@ -886,18 +901,16 @@ tbody tr:hover { background: var(--bg-light); }
 .icon        { margin-right: 10px; font-size: 16px; }
 .loading     { text-align: center; padding: 40px; color: var(--text-light); }
 
-/* Classes sans définition originale — inférées du contexte HTML */
-
+/* Classes inférées du contexte HTML */
 .export-buttons     { display: flex; gap: 10px; }
 .search-panel-content { padding: var(--spacing-lg) 0; }
 .help-content       { font-size: var(--font-size-sm); color: var(--text-light); line-height: 1.6; }
-
 
 @media print {
     .app-header, .tabs, .tabs__item, #tab-recherche, #tab-carte,
     .modal, .settings-panel, .settings-overlay, .hamburger-btn,
     .btn-export-pdf, #btn-stop-extraction, .search-mode-selector,
-    
+    .search-actions { display: none !important; }
 
     body, .app-container { background: white; }
     .main-content, .tabs__panel { overflow: visible !important; height: auto !important; }
@@ -956,7 +969,6 @@ tbody tr:hover { background: var(--bg-light); }
 
 /* Groupe de saisie UAI (input + bouton côte-à-côte) */
 .search-input-group { display: flex; gap: 10px; align-items: center; }
-
 .setting-button--nowrap { white-space: nowrap; margin: 0; }
 
 /* Section "À propos" */
@@ -1831,7 +1843,7 @@ tbody tr:hover { background: var(--bg-light); }
     font-size: 0.88em;
 }
 
-/* Lien ONISEP en bas de fiche */
+/* Liens externes en bas de fiche (site web, ONISEP, France Compétences) */
 .detail-external-links {
     margin-top: 20px;
     padding-top: 16px;
@@ -1841,12 +1853,14 @@ tbody tr:hover { background: var(--bg-light); }
     gap: 10px;
 }
 
-
-/* Ancien sélecteur conservé pour rétrocompatibilité */
+/* Ancien sélecteur — rétrocompatibilité, même style */
 .detail-onisep-link {
     margin-top: 20px;
     padding-top: 16px;
     border-top: 1px solid var(--border, #e2e8f0);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -2319,31 +2333,4 @@ tbody tr:hover { background: var(--bg-light); }
 }
 .pref-crypto-btns .setting-button {
     flex: 1;
-}
-/**
- * main.css — Parcours Avenir v0.34
- *
- * Ce fichier est intentionnellement vide.
- * Tous les styles sont desormais dans design-system.css
- */
-
-/* =====================================================
-   ICÔNE LIEN ↗ (v0.38)
-   ===================================================== */
-.link-icon {
-    font-size: 0.75em;
-    color: #888;
-    vertical-align: super;
-    opacity: 0.7;
-}
-
-tr:hover .link-icon,
-.detail-item:hover .link-icon {
-    color: var(--color-primary, #3b82f6);
-    opacity: 1;
-}
-
-/* Table rows cliquables : indiquer le curseur pointer */
-.resultat-table tbody tr[onclick] {
-    cursor: pointer;
 }

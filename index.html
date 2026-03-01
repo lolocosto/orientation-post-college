@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Parcours Avenir</title>
     <link rel="stylesheet" href="css/design-system.css">
-    <link rel="stylesheet" href="css/main.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
 
     <!-- Feuille de styles principale -->
@@ -32,58 +31,52 @@
 	<script src="data/academies_data.js"></script>
 
 	<!-- 2. Classes database, API et parser -->
-    <script src="js/http_client.js?v=1772500100"></script>
-    <script src="js/database_service.js?v=1772500100"></script>
-    <script src="js/systeme_filtres.js?v=1772500100"></script>
-    <script src="js/geo_api.js?v=1772500100"></script>
-    <script src="js/geo_parser.js?v=1772500100"></script>
-    <script src="js/data_education_api.js?v=1772500100"></script>
-    <script src="js/data_education_parser.js?v=1772500100"></script>
-    <script src="js/onisep_api.js?v=1772500100"></script>
-    <script src="js/onisep_parser.js?v=1772500100"></script>
-    <script src="js/carif_oref_api.js?v=1772500100"></script>
-    <script src="js/carif_oref_parser.js?v=1772500100"></script>
+    <script src="js/http_client.js?v=1772600100"></script>
+    <script src="js/database_service.js?v=1772600100"></script>
+    <script src="js/systeme_filtres.js?v=1772600100"></script>
+    <script src="js/geo_api.js?v=1772600100"></script>
+    <script src="js/geo_parser.js?v=1772600100"></script>
+    <script src="js/data_education_api.js?v=1772600100"></script>
+    <script src="js/data_education_parser.js?v=1772600100"></script>
+    <script src="js/onisep_api.js?v=1772600100"></script>
+    <script src="js/onisep_parser.js?v=1772600100"></script>
+    <script src="js/carif_oref_api.js?v=1772600100"></script>
+    <script src="js/carif_oref_parser.js?v=1772600100"></script>
 
 	<!-- 3. Classes contrôleur d'extraction -->
-    <script src="js/geo_extraction_controller.js?v=1772500100"></script>
-    <script src="js/data_education_extraction_controller.js?v=1772500100"></script>
-    <script src="js/onisep_extraction_controller.js?v=1772500100"></script>
-    <script src="js/carif_oref_extraction_controller.js?v=1772500100"></script>
+    <script src="js/geo_extraction_controller.js?v=1772600100"></script>
+    <script src="js/data_education_extraction_controller.js?v=1772600100"></script>
+    <script src="js/onisep_extraction_controller.js?v=1772600100"></script>
+    <script src="js/carif_oref_extraction_controller.js?v=1772600100"></script>
 
 	<!-- Modale de progrès (NOUVEAU) -->
-    <script src="js/modal.js?v=1772500100"></script>
-    <script src="js/progress_modal.js?v=1772500100"></script>
-    <!-- <script src="js/extraction_modal.js?v=1772500100"></script> → Supprimé v0.27.2 - Utiliser ProgressModal -->
-    <script src="js/details_modal.js?v=1772500100"></script>
+    <script src="js/modal.js?v=1772600100"></script>
+    <script src="js/progress_modal.js?v=1772600100"></script>
+    <!-- <script src="js/extraction_modal.js?v=1772600100"></script> → Supprimé v0.27.2 - Utiliser ProgressModal -->
+    <script src="js/details_modal.js?v=1772600100"></script>
 
     <!-- 4. Modules UI -->
-	<script src="js/gestion_params.js?v=1772500100"></script>
-	<script src="js/tour_guide.js?v=1772500100"></script>
-	<script src="js/itineraire_modal.js?v=1772500100"></script>
-	<script src="js/gestion_onglets.js?v=1772500100"></script>
-	<script src="js/gestion_onglet_recherche.js?v=1772500100"></script>
-	<script src="js/gestion_onglet_resultats.js?v=1772500100"></script>
-	<script src="js/gestion_onglet_carte.js?v=1772500100"></script>
+	<script src="js/gestion_params.js?v=1772600100"></script>
+	<script src="js/tour_guide.js?v=1772600100"></script>
+	<script src="js/itineraire_modal.js?v=1772600100"></script>
+	<script src="js/gestion_onglets.js?v=1772600100"></script>
+	<script src="js/gestion_onglet_recherche.js?v=1772600100"></script>
+	<script src="js/gestion_onglet_resultats.js?v=1772600100"></script>
+	<script src="js/gestion_onglet_carte.js?v=1772600100"></script>
 
 	<!-- 5. Export (PDF via CDN) -->
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-	<script src="js/export_service.js?v=1772500100"></script>
+	<script src="js/export_service.js?v=1772600100"></script>
 
 	<!-- 6. Utilitaires -->
-	<script src="js/utils.js?v=1772500100"></script>
+	<script src="js/utils.js?v=1772600100"></script>
 
 	<!-- 7. Service de préférences chiffrées (AES-GCM) -->
-	<script src="js/preferences_crypto_service.js?v=1772500100"></script>
+	<script src="js/preferences_crypto_service.js?v=1772600100"></script>
 	
-	<!-- 8. Initialisation -->
+	<!-- 7. Initialisation -->
 	<script>
-		document.addEventListener('DOMContentLoaded', () => {
-			// Injecter la version dans le panneau « À propos »
-			const vEl = document.getElementById('app-version-display');
-			if (vEl && typeof APP_VERSION !== 'undefined') vEl.textContent = 'v' + APP_VERSION;
-			// Lancer l'init principale
-			init();
-		});
+		document.addEventListener('DOMContentLoaded', init);
 	</script>
 
 </head>
@@ -319,70 +312,19 @@
                     <div class="form-group">
                         <label class="setting-label">À propos</label>
                         <div class="about-text">
-                            <p><strong>Orientation Post-Collège <span id="app-version-display"></span></strong></p>
-                            <p class="u-mt-1" style="font-size:0.85em;color:#666;">© 2026 Laurent COSTE — Licence EUPL v1.2</p>
+                            <p><strong>Orientation Post-Collège v0.52</strong></p>
                             <p class="u-mt-3"><strong>📓 Historique des versions</strong></p>
                             <div class="changelog-scroll">
-                                <p><strong>v0.60</strong> (28 février 2026) - Correction écrasement formations 5+, accents communes</p>
+                                <p><strong>v0.61</strong> (1er mars 2026) - Refactoring CSS, tri des catégories</p>
                                 <ul class="u-ml-4 u-mt-1">
-                                    <li>Corrigé : les formations scolaires niveau 5+ (CPGE, BTS scolaires) disparaissaient après extraction CARIF-OREF</li>
-                                    <li>Corrigé : purge sélective par source (carif/onisep) dans clearAprentissageData()</li>
-                                    <li>Corrigé : communes avec/sans accents dédupliquées correctement (preferAccentedCommune)</li>
-                                    <li>Corrigé : parseActionsSup collecte désormais les enrichissements_etab</li>
-                                    <li>Nouveau : création d'établissements minimaux pour les formations sup-only</li>
-                                    <li>22 tests unitaires spécifiques</li>
-                                </ul>
-                                <p><strong>v0.59</strong> (27 février 2026) - Refonte complète en 5 phases</p>
-                                <ul class="u-ml-4 u-mt-1">
-                                    <li>Phase 1 : refactoring database_service.js — stockage « bête » sans décision métier</li>
-                                    <li>Phase 2 : refonte onisep_parser.js — séparation parsing/décisions métier</li>
-                                    <li>Phase 3 : refonte onisep_extraction_controller.js — orchestration correcte</li>
-                                    <li>Phase 4 : refonte carif_oref_extraction_controller.js — alignement architecture</li>
-                                    <li>Phase 5 : nettoyage des fallbacks dans les vues et l'export</li>
-                                </ul>
-                                <p><strong>v0.58</strong> (27 février 2026) - ID internes, unicité, déduplication</p>
-                                <ul class="u-ml-4 u-mt-1">
-                                    <li>Nouveau : ID internes numériques séquentiels (etab_1, etab_2…) pour gérer les UAI partagés</li>
-                                    <li>Nouveau : unicité testée sur combinaison UAI+nom (pas UAI seul)</li>
-                                    <li>Nouveau : déduplication communes insensible aux accents</li>
-                                    <li>Corrigé : triple nom (enseigne/raison_sociale/nom) correctement fusionné</li>
-                                    <li>Corrigé : double libellé diplôme apprentissage éliminé</li>
-                                </ul>
-                                <p><strong>v0.57</strong> (26 février 2026) - CSS lisibilité, filtres carte, normalisation casse</p>
-                                <ul class="u-ml-4 u-mt-1">
-                                    <li>Corrigé : boutons popup carte et titres tour guidé illisibles (conflit CSS Leaflet/driver.js)</li>
-                                    <li>Nouveau : filtres multi-sélection sur la carte (type, statut, commune, voie)</li>
-                                    <li>Nouveau : normalisation casse des communes en Title Case (normaliserNomCommune)</li>
-                                    <li>Nouveau : normalisation des libellés de diplômes CARIF-OREF (normaliserLibelleDiplome)</li>
-                                </ul>
-                                <p><strong>v0.56</strong> (26 février 2026) - Contraste, préférences chiffrées, marqueur domicile</p>
-                                <ul class="u-ml-4 u-mt-1">
-                                    <li>Corrigé : contrastes texte/fond insuffisants (tour-hint, setting-help, mode-help…)</li>
-                                    <li>Nouveau : sauvegarde/restauration chiffrée des préférences (AES-256-GCM via Web Crypto API)</li>
-                                    <li>Nouveau : marqueur domicile sur la carte avec icône distincte</li>
-                                    <li>Nouveau : filtres dynamiques sur la carte (type établissement, statut)</li>
-                                    <li>Corrigé : sections détails établissement — niveaux de formation affichés correctement</li>
-                                </ul>
-                                <p><strong>v0.55</strong> (25 février 2026) - Corrections durées, enrichissement, autres formations</p>
-                                <ul class="u-ml-4 u-mt-1">
-                                    <li>Corrigé : durées de formation codées en dur (l'API ONISEP renvoie la durée du dernier cycle, pas du parcours complet)</li>
-                                    <li>Amélioré : informations générales présentées en liste au lieu de grille 2 colonnes</li>
-                                    <li>Nouveau : section « Autres formations » (niveau 5+) dans les fiches établissement</li>
-                                    <li>Nouveau : enrichissement des données enseignements (ens_*) pour les établissements</li>
-                                </ul>
-                                <p><strong>v0.54</strong> (25 février 2026) - Parcours de formation, durée du cycle</p>
-                                <ul class="u-ml-4 u-mt-1">
-                                    <li>Nouveau : section « Parcours de formation » dans les fiches diplômes scolaires</li>
-                                    <li>Nouveau : durée du cycle affichée dans les fiches</li>
-                                    <li>Amélioré : toutes les sections repliées par défaut dans les modales de détail</li>
-                                </ul>
-                                <p><strong>v0.53.1</strong> (24 février 2026) - 5 correctifs</p>
-                                <ul class="u-ml-4 u-mt-1">
-                                    <li>Corrigé : filtres inopérants sur téléphone (cartes mobiles non filtrées)</li>
-                                    <li>Corrigé : éléments cliquables non homogènes dans les résultats</li>
-                                    <li>Amélioré : blocs de compétences lisibles dans les fiches</li>
-                                    <li>Amélioré : parcours bac pro harmonisé</li>
-                                    <li>Corrigé : favori recherche jamais sauvegardé</li>
+                                    <li>Supprimé : main.css intégré dans design-system.css</li>
+                                    <li>Renommé : diplomes-categorie → detail-categorie (classes génériques)</li>
+                                    <li>Renommé : favori-card--etab → favori-card (utilisé pour tous les favoris)</li>
+                                    <li>Fusionné : _htmlFavoriEtab et _htmlFavoriDivers → _htmlFavoriCard commune</li>
+                                    <li>Supprimé : classes CSS inutilisées (onisep-section, domaines-section, custom-style-*, settings-section-header/content, etc.)</li>
+                                    <li>Nouveau : tri canonique des catégories de formations (niveau 3 → 8, seconde/première, bacs ordonnés)</li>
+                                    <li>Harmonisé : boutons « Fiche Onisep/France Compétences » même largeur partout</li>
+                                    <li>21 tests unitaires (tri des catégories)</li>
                                 </ul>
                                 <p><strong>v0.52</strong> (23 février 2026) - Corrections de bugs</p>
                                 <ul class="u-ml-4 u-mt-1">

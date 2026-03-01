@@ -1,4 +1,3 @@
-// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /**
  * @file gestion_params.js
  * @description Panneau de paramètres — navigation menu/section avec slide (v0.45).
@@ -720,23 +719,47 @@ async function reextraireFavori(id) {
  * @returns {void}
  */
 /**
- * Génère une carte favori établissement.
+ * Génère une carte favori (établissement, diplôme, dispositif, option).
+ * Fonction unifiée pour tous les types de favoris dans le panneau paramètres.
+ *
+ * @param {Object} f - Objet favori (structure variable selon le type)
+ * @param {Object} config - Configuration d'affichage
+ * @param {string}   config.icon     - Emoji d'icône (ex: '🏫', '📄')
+ * @param {string}   config.nom      - Texte à afficher comme nom
+ * @param {string}   config.meta     - Texte secondaire (type, commune, date…)
+ * @param {string}  [config.voirBtn] - HTML complet du bouton « Voir » (optionnel)
+ * @param {string}   config.delBtn   - HTML complet du bouton « Supprimer »
+ * @returns {string} HTML de la carte favori
+ */
+function _htmlFavoriCard(f, config) {
+    return `
+    <div class="favori-card">
+        <div class="favori-card__nom">${config.icon} ${config.nom}</div>
+        <div class="favori-card__meta">${config.meta}</div>
+        <div class="favori-card__actions">
+            ${config.voirBtn || ''}
+            ${config.delBtn}
+        </div>
+    </div>`;
+}
+
+/**
+ * Construit la config et génère une carte favori établissement.
  * @param {Object} f - {id, nom, commune, type, date}
  * @returns {string} HTML
  */
 function _htmlFavoriEtab(f) {
     const date = new Date(f.date).toLocaleDateString('fr-FR');
-    return `
-    <div class="favori-card--etab">
-        <div class="favori-card--etab__nom">🏫 ${f.nom || '—'}</div>
-        <div class="favori-card--etab__meta">${f.type || ''} · ${f.commune || ''} · ${date}</div>
-        <div class="favori-card--etab__actions">
-            <button class="setting-button favori-card--etab__btn-voir"
+    return _htmlFavoriCard(f, {
+        icon: '🏫',
+        nom:  f.nom || '—',
+        meta: `${f.type || ''} · ${f.commune || ''} · ${date}`,
+        voirBtn: `<button class="setting-button favori-card__btn-voir"
                 data-etab-id="${f.id}"
                 onclick="toggleSettings();setTimeout(()=>showEtablissementDetails(this.dataset.etabId),200)">
                 👁️ Voir la fiche
-            </button>
-            <button class="setting-button secondary favori-card--etab__btn-del"
+            </button>`,
+        delBtn: `<button class="setting-button secondary favori-card__btn-del"
                 data-favori-id="${f.id}"
                 data-favori-nom="${(f.nom||'').replace(/"/g,'&quot;')}"
                 data-favori-commune="${(f.commune||'').replace(/"/g,'&quot;')}"
@@ -745,41 +768,38 @@ function _htmlFavoriEtab(f) {
                 title="Retirer des favoris"
                 aria-label="Retirer des favoris">
                 🗑️
-            </button>
-        </div>
-    </div>`;
+            </button>`
+    });
 }
 
 /**
- * Génère une carte favori divers (diplôme, dispositif, option).
+ * Construit la config et génère une carte favori divers (diplôme, dispositif, option).
  * @param {Object} f - {id, titre, typeObjet, date}
  * @returns {string} HTML
  */
 function _htmlFavoriDivers(f) {
     const date = new Date(f.date).toLocaleDateString('fr-FR');
-    // Déduire la fonction d'affichage et l'icône depuis typeObjet
-    const config = {
-        diplome:               { icon: '📄', showFn: 'showDiplomeDetails',               arg: f.titre },
-        diplome_apprentissage: { icon: '🎓', showFn: 'showDiplomeApprentissageDetails',   arg: f.id.replace(/^appr__/, '') },
-        dispositif:            { icon: '🎯', showFn: 'showDispositifDetails',             arg: f.titre },
-        option2ndeGT:          { icon: '📚', showFn: 'showOption2ndeGTDetails',           arg: f.titre },
+    const typeConfig = {
+        diplome:               { icon: '📄', showFn: 'showDiplomeDetails',             arg: f.titre },
+        diplome_apprentissage: { icon: '🎓', showFn: 'showDiplomeApprentissageDetails', arg: f.id.replace(/^appr__/, '') },
+        dispositif:            { icon: '🎯', showFn: 'showDispositifDetails',           arg: f.titre },
+        option2ndeGT:          { icon: '📚', showFn: 'showOption2ndeGTDetails',         arg: f.titre },
     }[f.typeObjet] || { icon: '⭐', showFn: null, arg: null };
 
-    const voirBtn = config.showFn
-        ? `<button class="setting-button favori-card--etab__btn-voir"
-                data-arg="${(config.arg||'').replace(/"/g,'&quot;')}"
-                onclick="toggleSettings();setTimeout(()=>${config.showFn}(this.dataset.arg),200)">
+    const voirBtn = typeConfig.showFn
+        ? `<button class="setting-button favori-card__btn-voir"
+                data-arg="${(typeConfig.arg||'').replace(/"/g,'&quot;')}"
+                onclick="toggleSettings();setTimeout(()=>${typeConfig.showFn}(this.dataset.arg),200)">
                 👁️ Voir la fiche
            </button>`
         : '';
 
-    return `
-    <div class="favori-card--etab">
-        <div class="favori-card--etab__nom">${config.icon} ${f.titre || '—'}</div>
-        <div class="favori-card--etab__meta">${date}</div>
-        <div class="favori-card--etab__actions">
-            ${voirBtn}
-            <button class="setting-button secondary favori-card--etab__btn-del"
+    return _htmlFavoriCard(f, {
+        icon:    typeConfig.icon,
+        nom:     f.titre || '—',
+        meta:    date,
+        voirBtn: voirBtn,
+        delBtn:  `<button class="setting-button secondary favori-card__btn-del"
                 data-favori-id="${f.id}"
                 data-favori-nom="${(f.titre||'').replace(/"/g,'&quot;')}"
                 data-favori-type-objet="${f.typeObjet||''}"
@@ -787,9 +807,8 @@ function _htmlFavoriDivers(f) {
                 title="Retirer des favoris"
                 aria-label="Retirer des favoris">
                 🗑️
-            </button>
-        </div>
-    </div>`;
+            </button>`
+    });
 }
 
 /**
@@ -918,13 +937,13 @@ function afficherListeFavoris() {
             const type = f.type === 'geo' ? 'Géographique' : 'Par diplômes';
             html += `
             <div class="favori-card--recherche">
-                <div class="favori-card--etab__nom">${icon} ${f.nom}</div>
-                <div class="favori-card--etab__meta">${type} · ${date.toLocaleDateString('fr-FR')} ${date.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>
-                <div class="favori-card--etab__actions">
-                    <button class="setting-button favori-card--etab__btn-voir"
+                <div class="favori-card__nom">${icon} ${f.nom}</div>
+                <div class="favori-card__meta">${type} · ${date.toLocaleDateString('fr-FR')} ${date.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>
+                <div class="favori-card__actions">
+                    <button class="setting-button favori-card__btn-voir"
                         data-favori-id="${f.id}"
                         onclick="reextraireFavori(this.dataset.favoriId)">🔄 Re-extraire</button>
-                    <button class="setting-button secondary favori-card--etab__btn-del"
+                    <button class="setting-button secondary favori-card__btn-del"
                         data-favori-id="${f.id}"
                         onclick="supprimerFavori(this.dataset.favoriId)"
                         title="Supprimer" aria-label="Supprimer">🗑️</button>

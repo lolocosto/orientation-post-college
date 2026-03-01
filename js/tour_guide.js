@@ -1,4 +1,3 @@
-// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /**
  * @file tour_guide.js
  * @description Tour guidé de première utilisation — driver.js (v0.44).

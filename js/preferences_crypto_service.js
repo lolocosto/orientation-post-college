@@ -1,4 +1,3 @@
-// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /**
  * @file preferences_crypto_service.js
  * @description Service de sauvegarde / restauration des préférences utilisateur
@@ -16,6 +15,7 @@
  *   - Domicile utilisateur (adresse, coordonnées)
  *   - Favoris établissements et favoris divers
  *
+ * @version 0.56
  */
 
 'use strict';

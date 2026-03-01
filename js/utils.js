@@ -1,4 +1,3 @@
-// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /**
  * @file utils.js
  * @description Initialisation de l'application et fonctions utilitaires pures.
@@ -9,19 +8,17 @@
  *
  * @module utils
  * @author Laurent COSTE / Claude
- * @version 0.60
+ * @version 0.61
  */
 
 'use strict';
 
 /**
- * Version de l'application — source unique de vérité.
- * Affiché dans les logs, dans le panneau « À propos » et utilisé
- * pour le cache-busting des scripts.
+ * Version de l'application — affiché dans les logs d'initialisation.
  * À incrémenter à chaque livraison.
  * @constant {string}
  */
-const APP_VERSION = '0.60';
+const APP_VERSION = '0.61';
 
 // ══════════════════════════════════════════════════════════
 // INITIALISATION DE L'APPLICATION

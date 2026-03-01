@@ -1,4 +1,3 @@
-// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 // =====================================
 // SYSTÈME DE FILTRES v0.52 — MULTI-SÉLECTION
 // =====================================

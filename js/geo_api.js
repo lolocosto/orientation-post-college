@@ -1,9 +1,9 @@
-// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /************************************************
  * Fichier : geo_api.js
  * Description : Classe pour interagir avec l'API Géo (geo.api.gouv.fr)
  * Auteur : Laurent COSTE
  * Date : 2026-02-03
+ * Version : 1.1 - Utilise HttpClient
  ************************************************/
 
 /**

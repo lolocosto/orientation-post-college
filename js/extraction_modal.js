@@ -1,9 +1,9 @@
-// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /************************************************
  * Fichier : extraction_modal.js
  * Description : Classe pour gérer les modales d'extraction avec progression
  * Auteur : Laurent COSTE
  * Date : 2026-02-15
+ * Version : 1.0
  ************************************************/
 
 /**

@@ -1,9 +1,9 @@
-// Copyright (c) 2026 Laurent COSTE — Licensed under EUPL v1.2 — See LICENSE
 /************************************************
  * Fichier : data_education_extraction_controller.js
  * Description : Contrôleur d'extraction pour l'API Data.Education
  * Auteur : Laurent COSTE
  * Date : 2026-02-03
+ * Version : 1.0
  ************************************************/
 
 /**
