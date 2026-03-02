@@ -73,9 +73,10 @@ let _currentSection = null;
 /** @type {Object.<string, string>} Titres affichés dans l'en-tête selon la section */
 const SECTION_TITLES = {
     connexion:   '🔐 Connexion Onisep',
+    datasets:    '☁️ Paramètres de sauvegarde distante',
     preferences: '🏫 Mon établissement & domicile',
     favoris:     '⭐ Favoris',
-    donnees:     '💾 Import / Export',
+    donnees:     '💾 Données distantes sauvegardées',
     aide:        '❓ Aide & À propos',
 };
 
@@ -135,6 +136,12 @@ function settingsOpenSection(sectionId) {
             window.afficherListeFavorisEtablissements();
         }
     }
+    if (sectionId === 'datasets') {
+        loadGitHubConfig();
+    }
+    if (sectionId === 'donnees') {
+        refreshGitHubDatasets();
+    }
 }
 
 /**
@@ -173,14 +180,17 @@ function _updateMenuStatuses() {
         statusConnexion.className     = `settings-nav__status ${isAuth ? 'settings-nav__status--connected' : ''}`;
     }
 
-    // Nb favoris (recherche + établissements)
+    // Nb favoris (tous types : recherche + établissements + divers)
     const statusFavoris = document.getElementById('nav-status-favoris');
     if (statusFavoris) {
         const nbRecherche = loadFavoris().length;
         const nbEtab      = typeof window.loadFavorisEtablissements === 'function'
             ? window.loadFavorisEtablissements().length
             : 0;
-        const total = nbRecherche + nbEtab;
+        const nbDivers     = typeof window.loadFavorisDivers === 'function'
+            ? window.loadFavorisDivers().length
+            : 0;
+        const total = nbRecherche + nbEtab + nbDivers;
         statusFavoris.textContent = total > 0 ? `${total}` : '';
     }
 
@@ -191,6 +201,20 @@ function _updateMenuStatuses() {
         const hasDom  = !!_prefLire('pref_user_domicile');
         statusPrefs.textContent = (hasEtab || hasDom) ? '✅' : '';
     }
+
+    // Nb jeux de données distants (v0.64)
+    const statusDatasets = document.getElementById('nav-status-datasets');
+    if (statusDatasets) {
+        // Le compteur est mis à jour de manière asynchrone par refreshGitHubDatasets
+        // On ne fait rien ici pour éviter un appel API à chaque _updateMenuStatuses
+    }
+
+    // Coche verte sauvegarde distante si token validé (v0.64b)
+    const statusSauvegarde = document.getElementById('nav-status-sauvegarde');
+    if (statusSauvegarde) {
+        const hasToken = (typeof GitHubStorage !== 'undefined') && GitHubStorage.hasWriteToken();
+        statusSauvegarde.textContent = hasToken ? '✅' : '';
+    }
 }
 
 // ══════════════════════════════════════════════════════════
@@ -198,7 +222,7 @@ function _updateMenuStatuses() {
 // ══════════════════════════════════════════════════════════
 
 /**
- * Charge et affiche les paramètres actuels (email, password, appId, auto-connect).
+ * Charge et affiche les paramètres actuels (email, password, appId).
  * @returns {void}
  */
 function loadSettings() {
@@ -206,7 +230,6 @@ function loadSettings() {
         document.getElementById('settings-email').value       = _prefLire('settings_email')    || '';
         document.getElementById('settings-password').value    = _prefLire('settings_password') || '';
         document.getElementById('settings-app-id').value      = _prefLire('settings_app_id')   || '';
-        document.getElementById('settings-auto-connect').checked = _prefLire('settings_auto_connect') === 'true';
 
         updateConnectionStatus();
         updateLastExtractionDate();
@@ -303,6 +326,12 @@ async function connectFromSettings() {
         _prefSauver('onisep_token', token);
         _prefSauver('onisep_email', email);
         _prefSauver('onisep_app_id', appId);
+
+        // Sauvegarder les identifiants automatiquement après connexion réussie (v0.64)
+        _prefSauver('settings_email', email);
+        _prefSauver('settings_password', password);
+        _prefSauver('settings_app_id', appId);
+
         updateConnectionStatus();
         showAlert('✅ Connexion réussie !', 'success');
     } catch (error) {
@@ -607,6 +636,11 @@ function confirmResetDatabase() {
 function executeResetDatabase() {
     try {
         localStorage.removeItem('parcours_avenir');
+
+        // Effacer les favoris liés aux données (établissements + divers), garder les favoris de recherche
+        localStorage.removeItem('favoris_etablissements');
+        localStorage.removeItem('favoris_divers');
+
         closeResetConfirmModal();
         showAlert('✅ Base de données vidée ! La page va se recharger...', 'success');
         setTimeout(() => location.reload(), 1000);
@@ -992,6 +1026,361 @@ function closeHelpModal() {
 }
 
 // ══════════════════════════════════════════════════════════
+// JEUX DE DONNÉES (v0.62)
+// ══════════════════════════════════════════════════════════
+
+/**
+ * Échappe les caractères HTML dangereux dans une chaîne.
+ * @private
+ * @param {string} str
+ * @returns {string}
+ */
+function _escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+/**
+ * Affiche la liste des jeux de données indexés dans le pane Paramètres.
+ * @returns {void}
+ */
+function afficherListeDatasets() {
+    const container = document.getElementById('datasets-list');
+    if (!container) return;
+
+    if (typeof DatasetService === 'undefined') {
+        container.innerHTML = '<div class="setting-help">Service de jeux de données non disponible.</div>';
+        return;
+    }
+
+    const index = DatasetService.getIndex();
+
+    if (index.length === 0) {
+        container.innerHTML = '<div class="setting-help">Aucun jeu de données enregistré.</div>';
+        return;
+    }
+
+    container.innerHTML = index.map(entry => {
+        const typeLabel = DatasetService.getTypeRechercheLabel(entry.typeRecherche);
+        const statsDesc = DatasetService.formatStatsDescription(entry.stats);
+        const dateStr = entry.dateExtraction
+            ? new Date(entry.dateExtraction).toLocaleDateString('fr-FR', {
+                day: 'numeric', month: 'long', year: 'numeric'
+              })
+            : 'Date inconnue';
+
+        return `
+            <div class="favori-card">
+                <div class="favori-card__header">
+                    <span class="favori-card__icon">📄</span>
+                    <span class="favori-card__nom">${_escapeHtml(entry.nom)}</span>
+                </div>
+                <div class="favori-card__meta">
+                    ${_escapeHtml(typeLabel)} — ${_escapeHtml(dateStr)}
+                </div>
+                <div class="favori-card__meta">${_escapeHtml(statsDesc)}</div>
+                <div class="favori-card__actions">
+                    <button class="btn btn--sm btn--danger"
+                            onclick="supprimerDatasetIndex('${_escapeHtml(entry.id)}')"
+                            title="Supprimer de l'index">🗑️ Supprimer</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    // Mettre à jour le checkbox « réafficher modale »
+    const checkbox = document.getElementById('settings-mode-choice-reset');
+    if (checkbox) {
+        checkbox.checked = localStorage.getItem('mode_choice_skip') !== 'true';
+    }
+}
+
+/**
+ * Supprime un jeu de données de l'index après confirmation.
+ * @param {string} id - Identifiant du jeu à supprimer
+ * @returns {void}
+ */
+function supprimerDatasetIndex(id) {
+    if (typeof DatasetService === 'undefined') return;
+
+    const index = DatasetService.getIndex();
+    const entry = index.find(e => e.id === id);
+    if (!entry) return;
+
+    if (!confirm(`⚠️ Supprimer le jeu de données « ${entry.nom} » de l'index ?`)) return;
+
+    DatasetService.removeFromIndex(id);
+    showAlert(`✅ Jeu « ${entry.nom} » supprimé de l'index`, 'success');
+    afficherListeDatasets();
+    _updateMenuStatuses();
+}
+
+/**
+ * Ouvre le sélecteur de fichier pour importer un jeu de données depuis les Paramètres.
+ * @returns {void}
+ */
+function importerDataset() {
+    const fileInput = document.getElementById('settings-dataset-file-input');
+    if (!fileInput) return;
+
+    // Réinitialiser pour autoriser la re-sélection du même fichier
+    fileInput.value = '';
+
+    fileInput.onchange = async function() {
+        const file = this.files?.[0];
+        if (!file) return;
+
+        if (typeof DatasetService === 'undefined') {
+            showAlert('❌ Service de jeux de données non disponible', 'error');
+            return;
+        }
+
+        try {
+            const text = await file.text();
+            const json = JSON.parse(text);
+
+            const validation = DatasetService.validateDataset(json);
+            if (!validation.valid) {
+                showAlert(`❌ Fichier invalide : ${validation.errors[0]}`, 'error');
+                return;
+            }
+
+            if (!confirm(`📦 Importer « ${json.metadata.nom} » ?\n\n⚠️ Ceci remplacera les données éducatives actuelles.`)) {
+                return;
+            }
+
+            const result = await DatasetService.importDataset(json);
+            if (result.success) {
+                DatasetService.addToIndex(json.metadata);
+                const statsDesc = DatasetService.formatStatsDescription(result.stats);
+                showAlert(`✅ Import réussi ! ${statsDesc}`, 'success');
+
+                // Rafraîchir les vues
+                if (typeof window.initResultsTab === 'function') window.initResultsTab();
+                if (typeof window.loadMarkers === 'function') window.loadMarkers();
+
+                afficherListeDatasets();
+                _updateMenuStatuses();
+            } else {
+                showAlert(`❌ Erreur d'import : ${result.errors[0]}`, 'error');
+            }
+        } catch (error) {
+            showAlert(`❌ Erreur : ${error.message}`, 'error');
+        }
+    };
+
+    fileInput.click();
+}
+
+// ══════════════════════════════════════════════════════════
+// GITHUB STORAGE (v0.63)
+// ══════════════════════════════════════════════════════════
+
+/**
+ * Charge la configuration GitHub : le token depuis localStorage.
+ * Owner et repo sont hardcodés (champs readonly).
+ * @returns {void}
+ */
+function loadGitHubConfig() {
+    if (typeof GitHubStorage === 'undefined') return;
+    const config = GitHubStorage.getConfig();
+    const tokenInput = document.getElementById('github-token');
+    if (tokenInput) tokenInput.value = config.token || '';
+}
+
+/**
+ * Teste l'écriture avec le token saisi, et le sauvegarde si OK.
+ * Sinon, modale d'alerte et pas de sauvegarde.
+ * @returns {Promise<void>}
+ */
+async function saveAndTestGitHubToken() {
+    if (typeof GitHubStorage === 'undefined') return;
+
+    const token = document.getElementById('github-token')?.value?.trim() || '';
+    if (!token) {
+        // Supprimer le token
+        GitHubStorage.saveConfig({ token: null });
+        showAlert('🗑️ Clé d\'écriture supprimée', 'info');
+        return;
+    }
+
+    const statusEl = document.getElementById('github-connection-status');
+    if (statusEl) {
+        statusEl.style.display = 'block';
+        statusEl.textContent = '⏳ Vérification de la clé…';
+        statusEl.style.color = '';
+    }
+
+    // Sauvegarder temporairement pour que testWriteAccess l'utilise
+    GitHubStorage.saveConfig({ token });
+
+    const result = await GitHubStorage.testWriteAccess();
+
+    if (result.ok) {
+        // Token valide, il est déjà sauvegardé
+        if (statusEl) {
+            statusEl.textContent = '✅ Clé validée et sauvegardée';
+            statusEl.style.color = 'var(--color-success, #16a34a)';
+        }
+        showAlert('✅ Clé d\'écriture validée et sauvegardée', 'success');
+    } else {
+        // Token invalide, on le retire
+        GitHubStorage.saveConfig({ token: null });
+        document.getElementById('github-token').value = '';
+        if (statusEl) {
+            statusEl.textContent = '❌ Clé invalide, non sauvegardée';
+            statusEl.style.color = 'var(--color-danger, #dc2626)';
+        }
+        if (typeof showModalAlert === 'function') {
+            showModalAlert('Impossible d\'écrire une sauvegarde distante. Vérifiez la clé.');
+        } else {
+            alert('Impossible d\'écrire une sauvegarde distante. Vérifiez la clé.');
+        }
+    }
+}
+
+/**
+ * Actualise la liste des datasets depuis GitHub et l'affiche.
+ * @returns {Promise<void>}
+ */
+async function refreshGitHubDatasets() {
+    if (typeof GitHubStorage === 'undefined') {
+        showAlert('❌ Service GitHub Storage non disponible', 'error');
+        return;
+    }
+
+    const container = document.getElementById('github-datasets-list');
+    if (!container) return;
+
+    container.innerHTML = '<div class="setting-help">⏳ Chargement depuis GitHub…</div>';
+
+    try {
+        const datasets = await GitHubStorage.listDatasets();
+
+        // Mettre à jour le badge compteur (v0.64)
+        const statusBadge = document.getElementById('nav-status-datasets');
+        if (statusBadge) {
+            statusBadge.textContent = datasets.length > 0 ? `${datasets.length}` : '';
+        }
+
+        if (datasets.length === 0) {
+            container.innerHTML = '<div class="setting-help">Aucune donnée sauvegardée.</div>';
+            return;
+        }
+
+        container.innerHTML = datasets.map(entry => {
+            const typeLabel = (typeof DatasetService !== 'undefined')
+                ? DatasetService.getTypeRechercheLabel(entry.typeRecherche)
+                : (entry.typeRecherche || 'inconnu');
+            const statsDesc = (typeof DatasetService !== 'undefined')
+                ? DatasetService.formatStatsDescription(entry.stats)
+                : '';
+            const dateStr = entry.dateExtraction
+                ? new Date(entry.dateExtraction).toLocaleDateString('fr-FR', {
+                    day: 'numeric', month: 'long', year: 'numeric'
+                  })
+                : 'Date inconnue';
+
+            const hasToken = GitHubStorage.hasWriteToken();
+            const deleteBtn = hasToken
+                ? `<button class="btn btn--sm btn--danger"
+                          onclick="deleteGitHubDataset('${_escapeHtml(entry.filename)}')"
+                          title="Supprimer de GitHub">🗑️</button>`
+                : '';
+
+            return `
+                <div class="favori-card">
+                    <div class="favori-card__header">
+                        <span class="favori-card__icon">☁️</span>
+                        <span class="favori-card__nom">${_escapeHtml(entry.nom)}</span>
+                    </div>
+                    <div class="favori-card__meta">
+                        ${_escapeHtml(typeLabel)} — ${_escapeHtml(dateStr)}
+                    </div>
+                    <div class="favori-card__meta">${_escapeHtml(statsDesc)}</div>
+                    <div class="favori-card__actions">
+                        <button class="btn btn--sm btn--primary"
+                                onclick="chargerGitHubDataset('${_escapeHtml(entry.filename)}')"
+                                title="Charger ce jeu de données">📥 Charger</button>
+                        ${deleteBtn}
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+    } catch (error) {
+        console.error('[Params] Erreur GitHub:', error);
+        container.innerHTML = `<div class="setting-help">❌ Erreur : ${_escapeHtml(error.message)}</div>`;
+    }
+}
+
+/**
+ * Charge un dataset depuis GitHub et l'importe dans la base.
+ * @param {string} filename - Nom du fichier sur GitHub
+ * @returns {Promise<void>}
+ */
+async function chargerGitHubDataset(filename) {
+    if (typeof GitHubStorage === 'undefined' || typeof DatasetService === 'undefined') return;
+
+    if (!confirm(`📥 Charger le jeu de données « ${filename} » depuis GitHub ?\n\n⚠️ Ceci remplacera les données éducatives actuelles.`)) {
+        return;
+    }
+
+    try {
+        showAlert('⏳ Téléchargement depuis GitHub…', 'info');
+
+        const dataset = await GitHubStorage.loadDataset(filename);
+        const result  = await DatasetService.importDataset(dataset);
+
+        if (result.success) {
+            DatasetService.addToIndex(dataset.metadata);
+            const statsDesc = DatasetService.formatStatsDescription(result.stats);
+            showAlert(`✅ Import réussi ! ${statsDesc}`, 'success');
+
+            // Rafraîchir les vues
+            if (typeof window.initResultsTab === 'function') window.initResultsTab();
+            if (typeof window.loadMarkers === 'function') window.loadMarkers();
+
+            afficherListeDatasets();
+            _updateMenuStatuses();
+        } else {
+            showAlert(`❌ Erreur d'import : ${result.errors[0]}`, 'error');
+        }
+    } catch (error) {
+        console.error('[Params] Erreur chargement GitHub:', error);
+        showAlert(`❌ Erreur : ${error.message}`, 'error');
+    }
+}
+
+/**
+ * Supprime un dataset du dépôt GitHub après confirmation.
+ * @param {string} filename - Nom du fichier à supprimer
+ * @returns {Promise<void>}
+ */
+async function deleteGitHubDataset(filename) {
+    if (typeof GitHubStorage === 'undefined') return;
+
+    if (!confirm(`⚠️ Supprimer « ${filename} » du dépôt GitHub ?\n\nCette action est irréversible.`)) {
+        return;
+    }
+
+    try {
+        showAlert('⏳ Suppression en cours…', 'info');
+        await GitHubStorage.deleteDataset(filename);
+        showAlert(`✅ Dataset « ${filename} » supprimé de GitHub`, 'success');
+        refreshGitHubDatasets();
+    } catch (error) {
+        console.error('[Params] Erreur suppression GitHub:', error);
+        showAlert(`❌ Erreur : ${error.message}`, 'error');
+    }
+}
+
+// ══════════════════════════════════════════════════════════
 // EXPOSITION GLOBALE
 // ══════════════════════════════════════════════════════════
 if (typeof window !== 'undefined') {
@@ -1028,4 +1417,14 @@ if (typeof window !== 'undefined') {
     window.closeLoginModal         = closeLoginModal;
     window.openHelpModal           = openHelpModal;
     window.closeHelpModal          = closeHelpModal;
+    // Jeux de données (v0.62)
+    window.afficherListeDatasets   = afficherListeDatasets;
+    window.supprimerDatasetIndex   = supprimerDatasetIndex;
+    window.importerDataset         = importerDataset;
+    // GitHub Storage (v0.64)
+    window.loadGitHubConfig        = loadGitHubConfig;
+    window.saveAndTestGitHubToken  = saveAndTestGitHubToken;
+    window.refreshGitHubDatasets   = refreshGitHubDatasets;
+    window.chargerGitHubDataset    = chargerGitHubDataset;
+    window.deleteGitHubDataset     = deleteGitHubDataset;
 }

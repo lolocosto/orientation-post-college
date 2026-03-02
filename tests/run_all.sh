@@ -9,7 +9,7 @@ set -e
 cd "$(dirname "$0")/.."
 
 echo "════════════════════════════════════════════════"
-echo "  Parcours Avenir — Suite de tests v0.60"
+echo "  Parcours Avenir — Suite de tests v0.63"
 echo "════════════════════════════════════════════════"
 
 VERBOSE=""

@@ -31,48 +31,53 @@
 	<script src="data/academies_data.js"></script>
 
 	<!-- 2. Classes database, API et parser -->
-    <script src="js/http_client.js?v=1772600100"></script>
-    <script src="js/database_service.js?v=1772600100"></script>
-    <script src="js/systeme_filtres.js?v=1772600100"></script>
-    <script src="js/geo_api.js?v=1772600100"></script>
-    <script src="js/geo_parser.js?v=1772600100"></script>
-    <script src="js/data_education_api.js?v=1772600100"></script>
-    <script src="js/data_education_parser.js?v=1772600100"></script>
-    <script src="js/onisep_api.js?v=1772600100"></script>
-    <script src="js/onisep_parser.js?v=1772600100"></script>
-    <script src="js/carif_oref_api.js?v=1772600100"></script>
-    <script src="js/carif_oref_parser.js?v=1772600100"></script>
+    <script src="js/http_client.js?v=1772800200"></script>
+    <script src="js/database_service.js?v=1772800200"></script>
+    <script src="js/systeme_filtres.js?v=1772800200"></script>
+    <script src="js/geo_api.js?v=1772800200"></script>
+    <script src="js/geo_parser.js?v=1772800200"></script>
+    <script src="js/data_education_api.js?v=1772800200"></script>
+    <script src="js/data_education_parser.js?v=1772800200"></script>
+    <script src="js/onisep_api.js?v=1772800200"></script>
+    <script src="js/onisep_parser.js?v=1772800200"></script>
+    <script src="js/carif_oref_api.js?v=1772800200"></script>
+    <script src="js/carif_oref_parser.js?v=1772800200"></script>
 
 	<!-- 3. Classes contrôleur d'extraction -->
-    <script src="js/geo_extraction_controller.js?v=1772600100"></script>
-    <script src="js/data_education_extraction_controller.js?v=1772600100"></script>
-    <script src="js/onisep_extraction_controller.js?v=1772600100"></script>
-    <script src="js/carif_oref_extraction_controller.js?v=1772600100"></script>
+    <script src="js/geo_extraction_controller.js?v=1772800200"></script>
+    <script src="js/data_education_extraction_controller.js?v=1772800200"></script>
+    <script src="js/onisep_extraction_controller.js?v=1772800200"></script>
+    <script src="js/carif_oref_extraction_controller.js?v=1772800200"></script>
 
 	<!-- Modale de progrès (NOUVEAU) -->
-    <script src="js/modal.js?v=1772600100"></script>
-    <script src="js/progress_modal.js?v=1772600100"></script>
-    <!-- <script src="js/extraction_modal.js?v=1772600100"></script> → Supprimé v0.27.2 - Utiliser ProgressModal -->
-    <script src="js/details_modal.js?v=1772600100"></script>
+    <script src="js/modal.js?v=1772800200"></script>
+    <script src="js/progress_modal.js?v=1772800200"></script>
+    <!-- <script src="js/extraction_modal.js?v=1772800200"></script> → Supprimé v0.27.2 - Utiliser ProgressModal -->
+    <script src="js/details_modal.js?v=1772800200"></script>
+
+    <!-- 3b. Services de données et modale de choix de mode (v0.62) -->
+    <script src="js/dataset_service.js?v=1772800200"></script>
+    <script src="js/github_storage.js?v=1772800200"></script>
+    <script src="js/mode_choice_modal.js?v=1772800200"></script>
 
     <!-- 4. Modules UI -->
-	<script src="js/gestion_params.js?v=1772600100"></script>
-	<script src="js/tour_guide.js?v=1772600100"></script>
-	<script src="js/itineraire_modal.js?v=1772600100"></script>
-	<script src="js/gestion_onglets.js?v=1772600100"></script>
-	<script src="js/gestion_onglet_recherche.js?v=1772600100"></script>
-	<script src="js/gestion_onglet_resultats.js?v=1772600100"></script>
-	<script src="js/gestion_onglet_carte.js?v=1772600100"></script>
+	<script src="js/gestion_params.js?v=1772800200"></script>
+	<script src="js/tour_guide.js?v=1772800200"></script>
+	<script src="js/itineraire_modal.js?v=1772800200"></script>
+	<script src="js/gestion_onglets.js?v=1772800200"></script>
+	<script src="js/gestion_onglet_recherche.js?v=1772800200"></script>
+	<script src="js/gestion_onglet_resultats.js?v=1772800200"></script>
+	<script src="js/gestion_onglet_carte.js?v=1772800200"></script>
 
 	<!-- 5. Export (PDF via CDN) -->
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-	<script src="js/export_service.js?v=1772600100"></script>
+	<script src="js/export_service.js?v=1772800200"></script>
 
 	<!-- 6. Utilitaires -->
-	<script src="js/utils.js?v=1772600100"></script>
+	<script src="js/utils.js?v=1772800200"></script>
 
 	<!-- 7. Service de préférences chiffrées (AES-GCM) -->
-	<script src="js/preferences_crypto_service.js?v=1772600100"></script>
+	<script src="js/preferences_crypto_service.js?v=1772800200"></script>
 	
 	<!-- 7. Initialisation -->
 	<script>
@@ -129,6 +134,12 @@
                         <span class="settings-nav__status" id="nav-status-connexion"></span>
                         <span class="settings-nav__arrow">›</span>
                     </button>
+                    <button class="settings-nav__item" onclick="settingsOpenSection('datasets')">
+                        <span class="settings-nav__icon">☁️</span>
+                        <span class="settings-nav__label">Paramètres de sauvegarde distante</span>
+                        <span class="settings-nav__status" id="nav-status-sauvegarde"></span>
+                        <span class="settings-nav__arrow">›</span>
+                    </button>
                     <button class="settings-nav__item" onclick="settingsOpenSection('preferences')">
                         <span class="settings-nav__icon">🏫</span>
                         <span class="settings-nav__label">Mon établissement &amp; domicile</span>
@@ -143,7 +154,8 @@
                     </button>
                     <button class="settings-nav__item" onclick="settingsOpenSection('donnees')">
                         <span class="settings-nav__icon">💾</span>
-                        <span class="settings-nav__label">Données</span>
+                        <span class="settings-nav__label">Données distantes sauvegardées</span>
+                        <span class="settings-nav__status" id="nav-status-datasets"></span>
                         <span class="settings-nav__arrow">›</span>
                     </button>
                     <button class="settings-nav__item" onclick="settingsOpenSection('aide')">
@@ -174,6 +186,10 @@
                 <!-- Section : Connexion Onisep -->
                 <div class="settings-section-pane u-hidden" id="settings-pane-connexion">
                     <div class="settings-content">
+                        <div class="setting-help u-mb-3">
+                            💡 Entrez vos identifiants Onisep puis connectez-vous. 
+                            Ils seront sauvegardés automatiquement après une connexion réussie.
+                        </div>
                         <div class="form-group">
                             <label class="setting-label">Email</label>
                             <input type="email" class="setting-input" id="settings-email" placeholder="votre.email@example.com">
@@ -187,15 +203,6 @@
                             <label class="setting-label">Application ID</label>
                             <input type="text" class="setting-input" id="settings-app-id" placeholder="Votre Application ID Onisep">
                             <div class="setting-help">💡 L'Application ID est fourni par Onisep avec vos identifiants API.</div>
-                        </div>
-                        <div class="form-group">
-                            <div class="setting-checkbox-group">
-                                <input type="checkbox" id="settings-auto-connect">
-                                <label for="settings-auto-connect">Connexion automatique au démarrage</label>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <button class="setting-button" onclick="saveOnisepCredentials()">💾 Enregistrer les identifiants</button>
                         </div>
                         <div class="form-group">
                             <button class="setting-button" id="btn-connect-settings" onclick="connectFromSettings()">🔐 Se connecter</button>
@@ -263,24 +270,62 @@
                 <!-- Section : Import / Export -->
                 <div class="settings-section-pane u-hidden" id="settings-pane-donnees">
                     <div class="settings-content">
-                        <div class="setting-help u-mb-4">💡 Sauvegardez vos données ou importez une base existante.</div>
+                        <!-- Données sauvegardées (GitHub) -->
                         <div class="form-group">
-                            <h4 class="u-mb-2">📤 Export</h4>
-                            <button class="setting-button" onclick="exporterDonnees()">💾 Exporter les données</button>
-                            <div class="setting-help u-mt-3">Le fichier sera téléchargé au format JSON.</div>
+                            <h4 class="u-mb-2">📦 Données sauvegardées</h4>
+                            <button class="setting-button u-mb-2" onclick="refreshGitHubDatasets()">🔄 Actualiser la liste</button>
+                            <div id="github-datasets-list">
+                                <div class="setting-help">Cliquez sur « Actualiser » pour charger la liste.</div>
+                            </div>
                         </div>
+
                         <div class="settings-separator"></div>
-                        <div class="form-group">
-                            <h4 class="u-mb-2">📥 Import</h4>
-                            <button class="setting-button" onclick="importerFichier()">📂 Importer un fichier</button>
-                            <div class="setting-help u-mt-3">⚠️ L'import écrasera toutes les données actuelles</div>
-                        </div>
-                        <div class="settings-separator"></div>
+
                         <div class="settings-danger-zone">
                             <button class="setting-button setting-button--danger" onclick="confirmResetDatabase()">
                                 🗑️ Vider la base locale
                             </button>
                             <div class="setting-help u-mt-3">⚠️ Supprime toutes les données stockées localement</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section : Sauvegarde distante (v0.64) -->
+                <div class="settings-section-pane u-hidden" id="settings-pane-datasets">
+                    <div class="settings-content">
+                        <div class="setting-help u-mb-3">
+                            💡 Les données extraites sont sauvegardées sur un espace distant partagé.
+                            Une clé d'écriture est nécessaire pour publier vos extractions.
+                        </div>
+
+                        <!-- Dépôt (lecture seule) -->
+                        <div class="form-group">
+                            <h4 class="u-mb-2">🔗 Espace de sauvegarde</h4>
+                            <div class="u-flex u-gap-2 u-mb-2">
+                                <div class="u-flex-1">
+                                    <label class="setting-label">Propriétaire</label>
+                                    <input type="text" id="github-owner" class="setting-input" 
+                                           value="lolocosto" readonly disabled>
+                                </div>
+                                <div class="u-flex-1">
+                                    <label class="setting-label">Dépôt</label>
+                                    <input type="text" id="github-repo" class="setting-input" 
+                                           value="parcours-avenir-datasets" readonly disabled>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-separator"></div>
+
+                        <!-- Clé d'écriture -->
+                        <div class="form-group">
+                            <h4 class="u-mb-2">🔑 Clé d'écriture pour la sauvegarde distante</h4>
+                            <input type="password" id="github-token" class="setting-input"
+                                   placeholder="Collez ici votre clé d'écriture…" autocomplete="off">
+                            <div class="u-mt-2">
+                                <button class="setting-button" onclick="saveAndTestGitHubToken()">💾 Sauvegarder</button>
+                            </div>
+                            <div id="github-connection-status" class="setting-help u-mt-2" style="display:none;"></div>
                         </div>
                     </div>
                 </div>
@@ -627,38 +672,8 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Sauvegarder comme favori -->
-                    <div class="setting-item setting-favorite-box">
-                        <div class="setting-checkbox-group">
-                            <input type="checkbox" id="save-as-favorite-geo">
-                            <label for="save-as-favorite-geo" class="u-font-medium">💾 Sauvegarder comme favori</label>
-                        </div>
-                        <div id="favorite-name-container-geo" class="u-mt-2 u-hidden">
-                            <input type="text" 
-                                   id="favorite-name-geo" 
-                                   class="setting-input" 
-                                   placeholder="Nom du favori (ex: Lycées Rennes)"
-                                   maxlength="50">
-                            <div class="setting-help u-mt-1">
-                                💡 Limite : 10 favoris maximum
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <script>
-                        document.getElementById('save-as-favorite-geo').addEventListener('change', function() {
-                            const container = document.getElementById('favorite-name-container-geo');
-                            if (this.checked) {
-                                container.classList.remove('u-hidden');
-                                document.getElementById('favorite-name-geo').focus();
-                            } else {
-                                container.classList.add('u-hidden');
-                            }
-                        });
-                    </script>
 
-                    <!-- Sélection voie(s) de formation -->
+                    <!-- Sélection voie(s) de formation (remonté avant favori/dataset - v0.64b) -->
                     <div class="form-group voie-selector" id="tab-geo-voie-selector">
                         <label class="setting-label">📚 Voie(s) de formation à extraire</label>
                         <div class="voie-checkboxes">
@@ -672,6 +687,37 @@
                             </label>
                         </div>
                     </div>
+                    
+                    <!-- Sauvegarder les critères de recherche -->
+                    <div class="setting-item setting-favorite-box">
+                        <div class="setting-checkbox-group">
+                            <input type="checkbox" id="save-as-favorite-geo">
+                            <label for="save-as-favorite-geo" class="u-font-medium">💾 Sauvegarder les critères de recherche</label>
+                        </div>
+                    </div>
+
+                    <!-- Sauvegarder les données extraites (v0.64) -->
+                    <div class="setting-item setting-favorite-box">
+                        <div class="setting-checkbox-group">
+                            <input type="checkbox" id="save-as-dataset-geo">
+                            <label for="save-as-dataset-geo" class="u-font-medium">📦 Sauvegarder les données extraites</label>
+                        </div>
+                    </div>
+                    <script>
+                        document.getElementById('save-as-dataset-geo').addEventListener('change', async function() {
+                            if (this.checked && typeof GitHubStorage !== 'undefined') {
+                                const result = await GitHubStorage.testConnection();
+                                if (!result.ok) {
+                                    this.checked = false;
+                                    if (typeof showModalAlert === 'function') {
+                                        showModalAlert('Accès à l\'espace de sauvegarde impossible. Veuillez vérifier les paramètres avant d\'essayer à nouveau.');
+                                    } else {
+                                        alert('Accès à l\'espace de sauvegarde impossible. Veuillez vérifier les paramètres avant d\'essayer à nouveau.');
+                                    }
+                                }
+                            }
+                        });
+                    </script>
 
                     <!-- Boutons d'action -->
                     <div class="u-flex u-gap-2">
@@ -768,32 +814,33 @@
                             ✅ <span id="tab-selection-count-diplomes">0</span> diplôme(s) sélectionné(s)
                         </div>
                             
-                        <!-- Sauvegarder comme favori -->
+                        <!-- Sauvegarder les critères de recherche -->
                         <div class="setting-item setting-favorite-box">
                             <div class="setting-checkbox-group">
                                 <input type="checkbox" id="save-as-favorite-diplomes">
-                                <label for="save-as-favorite-diplomes" class="u-font-medium">💾 Sauvegarder comme favori</label>
-                            </div>
-                            <div id="favorite-name-container-diplomes" class="u-mt-2 u-hidden">
-                                <input type="text" 
-                                       id="favorite-name-diplomes" 
-                                       class="setting-input" 
-                                       placeholder="Nom du favori (ex: CAP Cuisine Normandie)"
-                                       maxlength="50">
-                                <div class="setting-help u-mt-1">
-                                    💡 Limite : 10 favoris maximum
-                                </div>
+                                <label for="save-as-favorite-diplomes" class="u-font-medium">💾 Sauvegarder les critères de recherche</label>
                             </div>
                         </div>
-                            
+
+                        <!-- Sauvegarder les données extraites (v0.64) -->
+                        <div class="setting-item setting-favorite-box">
+                            <div class="setting-checkbox-group">
+                                <input type="checkbox" id="save-as-dataset-diplomes">
+                                <label for="save-as-dataset-diplomes" class="u-font-medium">📦 Sauvegarder les données extraites</label>
+                            </div>
+                        </div>
                         <script>
-                            document.getElementById('save-as-favorite-diplomes').addEventListener('change', function() {
-                                const container = document.getElementById('favorite-name-container-diplomes');
-                                if (this.checked) {
-                                    container.classList.remove('u-hidden');
-                                    document.getElementById('favorite-name-diplomes').focus();
-                                } else {
-                                    container.classList.add('u-hidden');
+                            document.getElementById('save-as-dataset-diplomes').addEventListener('change', async function() {
+                                if (this.checked && typeof GitHubStorage !== 'undefined') {
+                                    const result = await GitHubStorage.testConnection();
+                                    if (!result.ok) {
+                                        this.checked = false;
+                                        if (typeof showModalAlert === 'function') {
+                                            showModalAlert('Accès à l\'espace de sauvegarde impossible. Veuillez vérifier les paramètres avant d\'essayer à nouveau.');
+                                        } else {
+                                            alert('Accès à l\'espace de sauvegarde impossible. Veuillez vérifier les paramètres avant d\'essayer à nouveau.');
+                                        }
+                                    }
                                 }
                             });
                         </script>

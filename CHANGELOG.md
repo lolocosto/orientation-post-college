@@ -5,6 +5,89 @@
 
 ---
 
+## [0.64] — 2026-03-02
+
+### Simplifié (UX non-techniciens)
+- **Favori** : plus de champ nom — le nom est auto-généré depuis les critères de recherche. Libellé « Sauvegarder les critères de recherche »
+- **Dataset** : plus de champ nom — auto-généré. Libellé « Sauvegarder les données extraites ». Vérification d'accès GitHub à la coche (modale d'alerte si KO + décochage)
+- **Plus d'export JSON local** : les données sont sauvegardées uniquement sur GitHub
+- **Connexion Onisep automatique** : si login/mdp/appId présents, connexion tentée au démarrage (plus de case « Connexion automatique »). Identifiants sauvegardés uniquement après connexion réussie (plus de bouton « Enregistrer les identifiants »)
+- **Modale de choix** : affichée uniquement si la connexion Onisep n'est pas active au démarrage. Plus de case « Ne plus afficher »
+- **Périmètre de recherche géo** : encadré bleu pâle, boutons taille ajustée au libellé
+- **Voies de formation** : bloc remonté juste après le périmètre, avant favori/dataset
+- **Réorganisation Paramètres** :
+  - « Paramètres de sauvegarde distante » : juste sous « Connexion Onisep », coche verte ✅ si clé validée, owner/repo en lecture seule, bouton unique « Sauvegarder » (teste + persiste ou modale d'alerte)
+  - « Données distantes sauvegardées » : liste GitHub avec badge compteur, plus d'export/import local
+- **Modale d'alerte** : nouvelle fonction `showModalAlert()` pour les messages importants avec acquittement
+
+### Corrigé
+- Bug `loadSettings` : crash `settings-auto-connect` supprimé du HTML mais encore référencé en JS
+- Badge favoris : comptabilise maintenant tous les types (recherche + établissements + divers)
+- Vidage base : efface aussi les favoris établissements et divers (garde les favoris de recherche)
+
+### Modifié
+- `index.html` — formulaires géo + diplômes simplifiés, sections Paramètres refondues, section Connexion simplifiée
+- `js/gestion_params.js` — `saveAndTestGitHubToken()`, `refreshGitHubDatasets()` avec badge compteur, `connectFromSettings()` sauvegarde auto des identifiants
+- `js/gestion_onglet_recherche.js` — `_trySaveFavorite()` et `_trySaveDataset()` avec noms auto-générés, upload GitHub uniquement
+- `js/mode_choice_modal.js` — suppression skip checkbox et logique associée
+- `js/utils.js` — auto-connect synchrone, modale conditionnelle, `showModalAlert()`, version 0.64
+
+---
+
+## [0.63] — 2026-03-02
+
+### Ajouté
+- **Stockage GitHub des jeux de données** (`GitHubStorage`) : service complet pour lister, charger, publier et supprimer des datasets hébergés sur un dépôt GitHub dédié (par défaut : `lolocosto/parcours-avenir-datasets`)
+- **Configuration GitHub dans Paramètres** : champs propriétaire/dépôt/token, boutons de test de connexion et d'écriture
+- **Liste des datasets GitHub** dans le pane Paramètres (actualisation à la demande) et dans l'écran 3 de la modale de choix (chargement automatique)
+- **Publication automatique sur GitHub** lors de l'export post-extraction si un token est configuré (avec fallback gracieux si l'upload échoue)
+- Encodage/décodage base64 UTF-8 robuste pour les caractères accentués (noms de lieux français)
+- Gestion de l'index distant (`index.json` dans le dépôt) avec tri chronologique et mise à jour atomique
+- Tests de connexion (lecture) et d'écriture (création + suppression fichier temporaire)
+
+### Nouveaux fichiers
+- `js/github_storage.js` — Service de stockage GitHub
+- `docs/v0_63_github_storage.md` — Documentation technique
+
+### Modifié
+- `index.html` — Script `github_storage.js`, section GitHub dans le pane datasets, cache-busters v0.63
+- `js/gestion_params.js` — 7 nouvelles fonctions GitHub (config, test, liste, chargement, suppression), chargement config à l'ouverture de la section
+- `js/mode_choice_modal.js` — Écran 3 enrichi avec la liste GitHub (chargement asynchrone), méthodes `#loadGitHubList()` et `#onGitHubDatasetSelected()`
+- `js/gestion_onglet_recherche.js` — `_trySaveDataset()` publie aussi sur GitHub si un token est configuré
+- `js/utils.js` — Version 0.63
+
+---
+
+## [0.62] — 2026-03-02
+
+### Ajouté
+- **Modale de choix de mode** : à l'ouverture (après le tour guidé), l'utilisateur choisit entre mode connecté (compte Onisep) et mode déconnecté (exploration de données pré-extraites)
+- **Système de jeux de données** (`DatasetService`) : export/import de snapshots complets de la base au format JSON, incluant données éducatives + métadonnées de recherche (type, paramètres, date, statistiques)
+- **Export post-extraction** : checkbox « Sauvegarder comme jeu de données » dans les formulaires de recherche géographique et par diplôme
+- **Section « Jeux de données » dans Paramètres** : liste des jeux indexés, import de fichiers JSON, option pour réafficher la modale de choix au démarrage
+- **Métadonnées d'extraction** (`setLastExtractionMetadata`/`getLastExtractionMetadata`) : la dernière recherche est tracée pour informer l'utilisateur en mode déconnecté
+- **Extensions de `DatabaseService`** : `getStorageSnapshot()`, `loadStorageSnapshot()`, `hasEducationalData()`, `getEducationalTableNames()`
+- Événement `tour:completed` émis par le tour guidé pour chaîner avec la modale de choix
+- 23+ tests unitaires et fonctionnels spécifiques (fichier 19)
+
+### Nouveaux fichiers
+- `js/dataset_service.js` — Service de gestion des jeux de données
+- `js/mode_choice_modal.js` — Modale de choix du mode connecté/déconnecté
+- `docs/v0_62_phase1_dataset_service.md` — Documentation technique Phase 1
+- `docs/v0_62_phase2_mode_choice_modal.md` — Documentation technique Phase 2
+- `docs/v0_62_phases3a6_export_params_finalisation.md` — Documentation technique Phases 3-6
+
+### Modifié
+- `js/database_service.js` — 5 nouvelles méthodes pour le snapshot et les métadonnées
+- `js/utils.js` — Étape 10 dans init() pour la modale de choix, version 0.62
+- `js/tour_guide.js` — Événement `tour:completed` dans `onDestroyStarted`
+- `js/gestion_onglet_recherche.js` — Capture des métadonnées d'extraction, export de jeux de données
+- `js/gestion_params.js` — Section « Jeux de données », badge compteur, fonctions CRUD
+- `css/design-system.css` — Styles de la modale de choix (responsive complet)
+- `index.html` — Scripts, UI dataset export, pane Paramètres datasets
+
+---
+
 ## [0.60] — 2026-02-28
 
 ### Corrigé

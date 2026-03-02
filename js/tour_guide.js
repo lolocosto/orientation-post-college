@@ -77,6 +77,8 @@ class TourGuide {
             onDestroyStarted: () => {
                 localStorage.setItem(TourGuide.#STORAGE_KEY, 'true');
                 this.#driver.destroy();
+                // Émettre un événement pour que init() puisse enchaîner (modale de choix de mode)
+                document.dispatchEvent(new CustomEvent('tour:completed'));
             },
         });
 

@@ -8,7 +8,7 @@
  *
  * @module utils
  * @author Laurent COSTE / Claude
- * @version 0.61
+ * @version 0.62
  */
 
 'use strict';
@@ -18,7 +18,7 @@
  * À incrémenter à chaque livraison.
  * @constant {string}
  */
-const APP_VERSION = '0.61';
+const APP_VERSION = '0.64';
 
 // ══════════════════════════════════════════════════════════
 // INITIALISATION DE L'APPLICATION
@@ -72,21 +72,24 @@ async function init() {
         // 3. Credentials sauvegardés
         if (typeof loadSavedCredentials === 'function') loadSavedCredentials();
 
-        // 4. Auto-connexion Onisep (lit via db_service.lirePreferences, fallback localStorage)
+        // 4. Auto-connexion Onisep (v0.64 : automatique si identifiants présents, pas de case à cocher)
         const prefs = (typeof window.databaseService?.lirePreferences === 'function')
             ? (await window.databaseService.lirePreferences() || {})
             : {};
-        const autoConnect = prefs.settings_auto_connect === true
-            || localStorage.getItem('settings_auto_connect') === 'true';
 
-        if (autoConnect) {
-            const email    = prefs.settings_email    || localStorage.getItem('settings_email');
-            const password = prefs.settings_password || localStorage.getItem('settings_password');
-            const appId    = prefs.settings_app_id   || localStorage.getItem('settings_app_id');
-            if (email && password && appId) {
-                setTimeout(() => {
-                    if (typeof autoConnectOnisep === 'function') autoConnectOnisep(email, password, appId);
-                }, 1000);
+        const email    = prefs.settings_email    || localStorage.getItem('settings_email');
+        const password = prefs.settings_password || localStorage.getItem('settings_password');
+        const appId    = prefs.settings_app_id   || localStorage.getItem('settings_app_id');
+        let onisepConnected = false;
+
+        if (email && password && appId) {
+            try {
+                if (typeof autoConnectOnisep === 'function') {
+                    await autoConnectOnisep(email, password, appId);
+                    onisepConnected = window.onisepExtractionController?.isAuthenticated?.() ?? false;
+                }
+            } catch (e) {
+                console.warn('[INIT] Auto-connect Onisep échoué:', e.message);
             }
         }
 
@@ -118,11 +121,25 @@ async function init() {
         if (typeof afficherListeFavoris === 'function') afficherListeFavoris();
 
         // 9. Tour guidé (première visite)
-        if (typeof TourGuide !== 'undefined' && TourGuide.isPremiereLancement()) {
+        const tourLaunched = typeof TourGuide !== 'undefined' && TourGuide.isPremiereLancement();
+        if (tourLaunched) {
             setTimeout(() => {
                 const tour = new TourGuide();
                 tour.start().catch(err => console.warn('[TourGuide]', err.message));
             }, 800);
+        }
+
+        // 10. Modale de choix de mode (v0.64 : affichée seulement si pas connecté Onisep)
+        if (typeof ModeChoiceModal !== 'undefined' && !onisepConnected) {
+            if (tourLaunched) {
+                // Tour lancé → attendre sa fin avant d'afficher la modale
+                document.addEventListener('tour:completed', () => {
+                    setTimeout(() => ModeChoiceModal.show(), 500);
+                }, { once: true });
+            } else {
+                // Pas de tour → afficher la modale directement
+                setTimeout(() => ModeChoiceModal.show(), 300);
+            }
         }
 
         _lap('Total init');
@@ -219,8 +236,50 @@ function _dismissToast(toast) {
     setTimeout(() => toast.remove(), 300);
 }
 
+/**
+ * Affiche une modale d'alerte bloquante avec un seul bouton « OK ».
+ * Utilisée pour les messages importants qui nécessitent un acquittement.
+ * @param {string} message - Message à afficher
+ * @param {string} [title='⚠️ Attention'] - Titre de la modale
+ */
+function showModalAlert(message, title = '⚠️ Attention') {
+    // Supprimer une éventuelle modale précédente
+    const existing = document.getElementById('_alert-modal-overlay');
+    if (existing) existing.remove();
 
-// ══════════════════════════════════════════════════════════
+    const overlay = document.createElement('div');
+    overlay.id = '_alert-modal-overlay';
+    overlay.style.cssText = `
+        position: fixed; inset: 0; z-index: 10000;
+        background: rgba(0,0,0,0.5);
+        display: flex; align-items: center; justify-content: center;
+    `;
+
+    overlay.innerHTML = `
+        <div style="
+            background: white; border-radius: 12px; padding: 24px;
+            max-width: min(420px, 90vw); width: 100%;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+            text-align: center;
+        ">
+            <div style="font-size: 18px; font-weight: 600; margin-bottom: 12px;">${title}</div>
+            <div style="font-size: 15px; color: #374151; margin-bottom: 20px; line-height: 1.5;">${message}</div>
+            <button id="_alert-modal-ok-btn" style="
+                background: #3b82f6; color: white; border: none; border-radius: 8px;
+                padding: 10px 32px; font-size: 15px; font-weight: 600; cursor: pointer;
+            ">OK</button>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const okBtn = document.getElementById('_alert-modal-ok-btn');
+    okBtn.addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) overlay.remove();
+    });
+    okBtn.focus();
+}
 // ESPACE DE NOMS Utils — fonctions pures
 // ══════════════════════════════════════════════════════════
 
@@ -648,6 +707,7 @@ function preferAccentedCommune(a, b) {
 if (typeof window !== 'undefined') {
     window.init      = init;
     window.showAlert = showAlert;
+    window.showModalAlert = showModalAlert;
     window.Utils     = Utils;
     window.normaliserNomCommune         = normaliserNomCommune;
     window._communeDeduplicationKey     = _communeDeduplicationKey;

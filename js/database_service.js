@@ -1917,6 +1917,122 @@ async clearGeoData() {
         };
     }
 
+    // =====================================
+    // SNAPSHOT (export / import de jeux de données)
+    // =====================================
+
+    /**
+     * Liste des tables éducatives exportables dans un snapshot.
+     * Exclut les référentiels géographiques (communes, départements, régions, epci)
+     * et les préférences utilisateur.
+     * @private
+     * @type {string[]}
+     */
+    static #EDUCATIONAL_TABLES = [
+        'etablissements',
+        'diplomes',
+        'diplomes_par_etablissement',
+        'dispositifs',
+        'dispositifs_par_etablissement',
+        'options_2nde_gt',
+        'options_2nde_gt_par_etablissement',
+        'specialites_1ereG',
+        'specialites_1ereG_par_etablissement',
+        'diplomes_apprentissage',
+        'diplomes_apprentissage_par_etablissement',
+        'autres_formations_par_etablissement',
+        'langues'
+    ];
+
+    /**
+     * Retourne une copie profonde des tables éducatives uniquement.
+     * Les référentiels géographiques et les préférences sont exclus.
+     * Utilisé par DatasetService pour l'export de jeux de données.
+     * @returns {Promise<Object>} Copie profonde des tables éducatives
+     */
+    async getStorageSnapshot() {
+        const snapshot = {};
+        for (const table of DatabaseService.#EDUCATIONAL_TABLES) {
+            snapshot[table] = JSON.parse(JSON.stringify(this.#storage[table] || {}));
+        }
+        return snapshot;
+    }
+
+    /**
+     * Remplace les tables éducatives par celles d'un snapshot importé.
+     * Préserve les référentiels géographiques (communes, départements, régions, epci)
+     * et les préférences utilisateur.
+     * Reconstruit l'index d'unicité des établissements après chargement.
+     * @param {Object} data - Objet contenant les tables éducatives à charger
+     * @returns {Promise<void>}
+     */
+    async loadStorageSnapshot(data) {
+        if (!data || typeof data !== 'object') {
+            throw new Error('[DatabaseService] loadStorageSnapshot: données invalides');
+        }
+        console.log('[DatabaseService] 📥 Chargement d\'un snapshot de données…');
+        for (const table of DatabaseService.#EDUCATIONAL_TABLES) {
+            this.#storage[table] = data[table] || {};
+        }
+        this.#rebuildEtabIndex();
+        this.#saveToLocalStorage();
+        console.log('[DatabaseService] ✅ Snapshot chargé avec succès');
+    }
+
+    /**
+     * Indique si la base contient au moins un établissement.
+     * Permet de déterminer rapidement si des données éducatives existent.
+     * @returns {boolean}
+     */
+    hasEducationalData() {
+        return Object.keys(this.#storage.etablissements || {}).length > 0;
+    }
+
+    /**
+     * Sauvegarde les métadonnées de la dernière extraction effectuée.
+     * Stockées dans localStorage sous clé dédiée (hors #storage) pour ne
+     * pas polluer les snapshots de données.
+     * @param {Object} metadata - Métadonnées de la recherche
+     * @param {string} metadata.typeRecherche - 'geo'|'diplomes'|'options'
+     * @param {Object} metadata.params - Paramètres de la recherche (format favoris)
+     * @param {string} metadata.date - Date ISO de l'extraction
+     * @param {Object} [metadata.stats] - Statistiques post-extraction
+     */
+    setLastExtractionMetadata(metadata) {
+        try {
+            localStorage.setItem('last_extraction_metadata', JSON.stringify(metadata));
+            console.log('[DatabaseService] 📝 Métadonnées d\'extraction sauvegardées');
+        } catch (error) {
+            console.warn('[DatabaseService] ⚠️ Impossible de sauver les métadonnées:', error);
+        }
+    }
+
+    /**
+     * Récupère les métadonnées de la dernière extraction effectuée.
+     * @returns {Object|null} Métadonnées ou null si aucune extraction enregistrée
+     */
+    getLastExtractionMetadata() {
+        try {
+            const raw = localStorage.getItem('last_extraction_metadata');
+            return raw ? JSON.parse(raw) : null;
+        } catch (error) {
+            console.warn('[DatabaseService] ⚠️ Impossible de lire les métadonnées:', error);
+            return null;
+        }
+    }
+
+    /**
+     * Retourne la liste des noms de tables éducatives (utile pour la validation externe).
+     * @returns {string[]}
+     */
+    static getEducationalTableNames() {
+        return [...DatabaseService.#EDUCATIONAL_TABLES];
+    }
+
+    // =====================================
+    // PURGE
+    // =====================================
+
     /**
      * Efface toutes les données de la base (établissements, formations, etc.)
      * SANS toucher aux préférences utilisateur.

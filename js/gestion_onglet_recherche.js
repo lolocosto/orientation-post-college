@@ -314,15 +314,17 @@ function displaySelection(commune, epciInfo = null) {
             <button onclick="clearSelection()" class="btn-clear">✕</button>
         </div>
         ${epciHTML}
-        <div class="selection-actions">
-            <p>Choisissez le périmètre de recherche :</p>
-            <div class="scope-buttons">
-                <button class="scope-btn" onclick="chooseExtractionScope('commune')">
+        <div class="selection-actions" style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 16px; margin-top: 8px;">
+            <p style="margin: 0 0 8px 0; font-weight: 600; color: #1e40af;">Périmètre de recherche :</p>
+            <div class="scope-buttons" style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="scope-btn" onclick="chooseExtractionScope('commune')"
+                        style="flex: 0 1 auto; white-space: nowrap;">
                     📍 Commune seule
                 </button>
                 <button class="scope-btn ${!epciInfo ? 'disabled' : ''}" 
                         onclick="chooseExtractionScope('intercommunalite')"
-                        ${!epciInfo ? 'disabled title="Pas d\'intercommunalité trouvée"' : ''}>
+                        ${!epciInfo ? 'disabled title="Pas d\'intercommunalité trouvée"' : ''}
+                        style="flex: 0 1 auto; white-space: nowrap;">
                     🏘️ Intercommunalité
                 </button>
             </div>
@@ -492,8 +494,24 @@ async function lancerExtractionGeo() {
             'success'
         );
 
+        // ── Métadonnées d'extraction (v0.62 — mode déconnecté) ───────────
+        _saveExtractionMetadata('geo', {
+            scope: geoType,
+            commune: selectedCommune,
+            epci: selectedScope === 'intercommunalite' ? { code: selectedCommune.codeEpci, nom: geoDisplay } : null,
+            voies
+        }, statsGlobales);
+
         // ── Sauvegarde favori si demandé ──────────────────────────────────
         _trySaveFavorite('geo', {
+            scope: geoType,
+            commune: selectedCommune,
+            epci: selectedScope === 'intercommunalite' ? { code: selectedCommune.codeEpci, nom: geoDisplay } : null,
+            voies
+        });
+
+        // ── Sauvegarde jeu de données si demandé (v0.62) ─────────────────
+        _trySaveDataset('geo', {
             scope: geoType,
             commune: selectedCommune,
             epci: selectedScope === 'intercommunalite' ? { code: selectedCommune.codeEpci, nom: geoDisplay } : null,
@@ -765,8 +783,24 @@ async function lancerExtractionItems(type) {
         // Message succès
         showAlert(`✅ ${data.etablissements.length} établissements et ${data.diplomes_par_etablissement.length} diplômes (dont ${data.diplomes.length} uniques) !`, 'success');
 
+        // ── Métadonnées d'extraction (v0.62 — mode déconnecté) ───────────
+        _saveExtractionMetadata(type, {
+            geoType: itemsGeoType,
+            geoValue: itemsGeoValue,
+            items: selectedItems,
+            itemType: type
+        }, result.stats);
+
         // ── Sauvegarde favori si demandé ──────────────────────────────────
         _trySaveFavorite('diplomes', {
+            geoType: itemsGeoType,
+            geoValue: itemsGeoValue,
+            items: selectedItems,
+            itemType: type
+        });
+
+        // ── Sauvegarde jeu de données si demandé (v0.62) ─────────────────
+        _trySaveDataset('diplomes', {
             geoType: itemsGeoType,
             geoValue: itemsGeoValue,
             items: selectedItems,
@@ -1138,6 +1172,84 @@ function getVoiesDiplomesSelectionnes(libelles) {
 }
 
 // =====================================
+// MÉTADONNÉES D'EXTRACTION (v0.62)
+// =====================================
+
+/**
+ * Sauvegarde les métadonnées de la dernière extraction dans DatabaseService.
+ * Ces métadonnées sont utilisées par la modale de choix de mode (écran 2)
+ * pour décrire les données en base à un utilisateur en mode déconnecté.
+ *
+ * @param {string} typeRecherche - 'geo'|'diplomes'|'options'
+ * @param {Object} params - Paramètres de la recherche (même format que les favoris)
+ * @param {Object} [stats] - Statistiques brutes de l'extraction
+ * @private
+ */
+function _saveExtractionMetadata(typeRecherche, params, stats) {
+    if (!window.databaseService || typeof window.databaseService.setLastExtractionMetadata !== 'function') {
+        return;
+    }
+    try {
+        window.databaseService.setLastExtractionMetadata({
+            typeRecherche,
+            params,
+            date: new Date().toISOString(),
+            stats: stats || null
+        });
+    } catch (error) {
+        console.warn('[Recherche] ⚠️ Impossible de sauver les métadonnées d\'extraction:', error);
+    }
+}
+
+/**
+ * Vérifie si la checkbox « jeu de données » est cochée et exporte le dataset.
+ * Appelée après une extraction réussie (géo ou items).
+ * @param {'geo'|'diplomes'} type - Type de recherche
+ * @param {Object} params - Paramètres de la recherche
+ * @returns {Promise<void>}
+ */
+async function _trySaveDataset(type, params) {
+    const checkbox = document.getElementById(`save-as-dataset-${type}`);
+    if (!checkbox || !checkbox.checked) return;
+    if (typeof DatasetService === 'undefined') return;
+
+    // Nom auto-généré depuis les paramètres (v0.64)
+    const nom = DatasetService.formatParamsDescription(type, params);
+
+    try {
+        const dataset = await DatasetService.exportDataset({
+            nom,
+            typeRecherche: type,
+            params,
+            dateExtraction: new Date().toISOString()
+        });
+
+        // Upload GitHub uniquement (v0.64 — plus de téléchargement local)
+        if (typeof GitHubStorage !== 'undefined' && GitHubStorage.hasWriteToken()) {
+            try {
+                const result = await GitHubStorage.uploadDataset(dataset);
+                if (result.success) {
+                    console.log(`[Recherche] 📤 Dataset publié sur GitHub : ${result.filename}`);
+                    DatasetService.addToIndex(dataset.metadata);
+                    showAlert(`✅ Données sauvegardées !`, 'success');
+                }
+            } catch (ghError) {
+                console.error('[Recherche] ❌ Upload GitHub échoué:', ghError.message);
+                showAlert(`❌ Sauvegarde échouée : ${ghError.message}`, 'error');
+            }
+        } else {
+            showAlert('⚠️ Aucune clé d\'écriture configurée. Sauvegarde impossible.', 'warning');
+        }
+
+        checkbox.checked = false;
+
+    } catch (error) {
+        console.error('[Recherche] Erreur export dataset:', error);
+        showAlert(`❌ Erreur lors de la sauvegarde : ${error.message}`, 'error');
+    }
+}
+
+// =====================================
 // SAUVEGARDE FAVORI APRÈS EXTRACTION
 // =====================================
 
@@ -1151,23 +1263,16 @@ function _trySaveFavorite(type, params) {
     const checkbox = document.getElementById(`save-as-favorite-${type}`);
     if (!checkbox || !checkbox.checked) return;
 
-    const nameInput = document.getElementById(`favorite-name-${type}`);
-    const nom = (nameInput?.value || '').trim();
-    if (!nom) {
-        showAlert('⚠️ Veuillez saisir un nom pour le favori', 'warning');
-        nameInput?.focus();
-        return;
-    }
+    // Nom auto-généré depuis les paramètres (v0.64)
+    const nom = (typeof DatasetService !== 'undefined')
+        ? DatasetService.formatParamsDescription(type, params)
+        : `Recherche ${type}`;
 
     // ajouterFavori est dans gestion_params.js
     if (typeof ajouterFavori === 'function') {
         const ok = ajouterFavori(nom, type, params);
         if (ok) {
-            // Réinitialiser la checkbox et le champ
             checkbox.checked = false;
-            if (nameInput) nameInput.value = '';
-            const container = document.getElementById(`favorite-name-container-${type}`);
-            if (container) container.classList.add('u-hidden');
         }
     }
 }
