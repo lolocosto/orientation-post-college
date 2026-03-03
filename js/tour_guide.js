@@ -160,7 +160,22 @@ class TourGuide {
                 }
             },
 
-            // ── 5. Bouton extraction ────────────────────────────────────────
+            // ── 5. Sauvegarde ────────────────────────────────────────
+            {
+                element: '#tab-geo-save',
+                popover: {
+                    title: '📚 Sauvegardes',
+                    description:
+                        '<ul>' +
+                        '<li>Mettez les <strong>critères de recherches</strong> en favori, afin d\'extraire les données à nouveau plus tard</li>' +
+                        '<li>Sauvegardez les <strong>données extraites</strong>, afin de les mettre à disposition des élèves et des familles</li>' +
+                        '</ul>' +
+                        '<p class="tour-hint">Vous devez avoir saisi la clé de sauvegarde dans les paramètres pour sauvegarder les données.</p>',
+                    side: 'top',
+                }
+            },
+
+            // ── 6. Bouton extraction ────────────────────────────────────────
             {
                 element: '#tab-btn-extract-geo',
                 popover: {
@@ -172,7 +187,7 @@ class TourGuide {
                 }
             },
 
-            // ── 6. Onglet Résultats ─────────────────────────────────────────
+            // ── 7. Onglet Résultats ─────────────────────────────────────────
             {
                 element: '[data-tab="resultats"]',
                 popover: {
@@ -194,7 +209,7 @@ class TourGuide {
                 }
             },
 
-            // ── 7. Filtres ──────────────────────────────────────────────────
+            // ── 8. Filtres ──────────────────────────────────────────────────
             {
                 element: '#filters-container',
                 popover: {
@@ -212,7 +227,7 @@ class TourGuide {
                 }
             },
 
-            // ── 8. Carte et itinéraire ──────────────────────────────────────
+            // ── 9. Carte et itinéraire ──────────────────────────────────────
             {
                 element: '[data-tab="carte"]',
                 popover: {
@@ -234,7 +249,7 @@ class TourGuide {
                 }
             },
 
-            // ── 9. Panneau paramètres ───────────────────────────────────────
+            // ── 10. Panneau paramètres ───────────────────────────────────────
             {
                 element: '#hamburger-btn',
                 popover: {
@@ -243,9 +258,10 @@ class TourGuide {
                         '<p>Ce bouton donne accès aux paramètres :</p>' +
                         '<ul>' +
                         '<li>🔐 <strong>Connexion Onisep</strong> — saisissez les identifiants nécessaires pour extraire les données depuis la base Onisep</li>' +
+                        '<li>☁️ <strong>Paramètres de sauvegarde distante</strong> — renseignez la clé de sauvegarde distante pour les données que vous extrayez</li>' +
                         '<li>🏫 <strong>Mon établissement \& domicile</strong> — pour positionner des marqueurs spécifiques sur la carte et définir les points de départ des itinéraires</li>' +
                         '<li>⭐ <strong>Favoris</strong> — établissements, diplômes, dispositifs pédagogiques, options de 2nde GT et recherches mis en favoris s\'affichent ici pour un accès rapide</li>' +
-                        '<li>💾 <strong>Données</strong> — sauvegardez et restaurez des données extraites pour un accès hors-ligne en mode déconnecté</li>' +
+                        '<li>💾 <strong>Données distantes sauvegardées</strong> — importez depuis ici les données sauvegardées en mode déconnecté</li>' +
                         '<li>❓ <strong>Aide \& À propos</strong> — apprenez comment créer votre compte Onisep, et découvrez l\'historique des changements</li>' +
                         '<li>🚀 <strong>Tour guidé</strong> — rejouez ce tour guidé à tout moment&nbsp!</li>' +
                         '</ul>',

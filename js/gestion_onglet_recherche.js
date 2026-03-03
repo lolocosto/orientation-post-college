@@ -311,17 +311,17 @@ function displaySelection(commune, epciInfo = null) {
     selectionDiv.innerHTML = `
         <div class="selection-info">
             <strong>${commune.nom}</strong> (${commune.codesPostaux.join(', ')})
-            <button onclick="clearSelection()" class="btn-clear">✕</button>
+            <button onclick="clearSelection()" class="btn-close btn-close--bordered">✕</button>
         </div>
         ${epciHTML}
         <div class="selection-actions" style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px 16px; margin-top: 8px;">
             <p style="margin: 0 0 8px 0; font-weight: 600; color: #1e40af;">Périmètre de recherche :</p>
             <div class="scope-buttons" style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <button class="scope-btn" onclick="chooseExtractionScope('commune')"
+                <button class="scope-toggle" onclick="chooseExtractionScope('commune')"
                         style="flex: 0 1 auto; white-space: nowrap;">
                     📍 Commune seule
                 </button>
-                <button class="scope-btn ${!epciInfo ? 'disabled' : ''}" 
+                <button class="scope-toggle ${!epciInfo ? 'disabled' : ''}" 
                         onclick="chooseExtractionScope('intercommunalite')"
                         ${!epciInfo ? 'disabled title="Pas d\'intercommunalité trouvée"' : ''}
                         style="flex: 0 1 auto; white-space: nowrap;">
@@ -346,7 +346,7 @@ async function chooseExtractionScope(scope) {
     selectedScope = scope;
     
     // Mettre à jour l'affichage (activer le bouton, afficher les infos)
-    document.querySelectorAll('.scope-btn').forEach(btn => {
+    document.querySelectorAll('.scope-toggle').forEach(btn => {
         btn.classList.remove('active');
     });
     event.target.classList.add('active');

@@ -4,17 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Parcours Avenir</title>
-    <link rel="stylesheet" href="css/design-system.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
+    <!-- CSS modulaire v0.67 (15 fichiers, generique -> specifique) -->
+    <link rel="stylesheet" href="css/modules/01-fondations.css">
+    <link rel="stylesheet" href="css/modules/02-layout.css">
+    <link rel="stylesheet" href="css/modules/03-composants-ui.css">
+    <link rel="stylesheet" href="css/modules/04-fiches-detail.css">
+    <link rel="stylesheet" href="css/modules/05-favoris.css">
+    <link rel="stylesheet" href="css/modules/06-recherche.css">
+    <link rel="stylesheet" href="css/modules/07-resultats.css">
+    <link rel="stylesheet" href="css/modules/08-carte.css">
+    <link rel="stylesheet" href="css/modules/09-parametres.css">
+    <link rel="stylesheet" href="css/modules/10-extraction.css">
+    <link rel="stylesheet" href="css/modules/11-tour-guide.css">
+    <link rel="stylesheet" href="css/modules/12-bannieres.css">
+    <link rel="stylesheet" href="css/modules/13-utilitaires.css">
+    <link rel="stylesheet" href="css/modules/14-responsive.css">
+    <link rel="stylesheet" href="css/modules/15-print.css">
 
-    <!-- Feuille de styles principale -->
-    
-
-    <!-- Styles complémentaires -->
-    
-    
-    
-    
     
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
@@ -172,10 +178,10 @@
                 <!-- v0.56 : Sauvegarde / Restauration chiffrée des préférences -->
                 <div class="pref-crypto-section">
                     <label class="setting-label">🔐 Sauvegarde des préférences</label>
-                    <div class="setting-help">Sauvegardez vos identifiants Onisep, votre établissement, votre domicile et vos favoris dans un fichier chiffré (AES-256). Restaurez-les d'un clic lors d'une nouvelle version.</div>
+                    <div class="help-text">Sauvegardez vos identifiants Onisep, votre établissement, votre domicile et vos favoris dans un fichier chiffré (AES-256). Restaurez-les d'un clic lors d'une nouvelle version.</div>
                     <div class="pref-crypto-btns">
-                        <button class="setting-button" onclick="sauvegarderPreferencesChiffrees()">💾 Sauvegarder</button>
-                        <button class="setting-button secondary" onclick="restaurerPreferencesChiffrees()">📂 Restaurer</button>
+                        <button class="btn btn--primary" onclick="sauvegarderPreferencesChiffrees()">💾 Sauvegarder</button>
+                        <button class="btn btn--secondary" onclick="restaurerPreferencesChiffrees()">📂 Restaurer</button>
                     </div>
                 </div>
             </div>
@@ -186,7 +192,7 @@
                 <!-- Section : Connexion Onisep -->
                 <div class="settings-section-pane u-hidden" id="settings-pane-connexion">
                     <div class="settings-content">
-                        <div class="setting-help u-mb-3">
+                        <div class="help-text u-mb-3">
                             💡 Entrez vos identifiants Onisep puis connectez-vous. 
                             Ils seront sauvegardés automatiquement après une connexion réussie.
                         </div>
@@ -197,18 +203,18 @@
                         <div class="form-group">
                             <label class="setting-label">Mot de passe</label>
                             <input type="password" class="setting-input" id="settings-password" placeholder="••••••••">
-                            <div class="setting-help">⚠️ Le mot de passe est stocké en clair dans le localStorage. N'utilisez pas de mot de passe sensible.</div>
+                            <div class="help-text">⚠️ Le mot de passe est stocké en clair dans le localStorage. N'utilisez pas de mot de passe sensible.</div>
                         </div>
                         <div class="form-group">
                             <label class="setting-label">Application ID</label>
                             <input type="text" class="setting-input" id="settings-app-id" placeholder="Votre Application ID Onisep">
-                            <div class="setting-help">💡 L'Application ID est fourni par Onisep avec vos identifiants API.</div>
+                            <div class="help-text">💡 L'Application ID est fourni par Onisep avec vos identifiants API.</div>
                         </div>
                         <div class="form-group">
-                            <button class="setting-button" id="btn-connect-settings" onclick="connectFromSettings()">🔐 Se connecter</button>
+                            <button class="btn btn--primary btn--block u-mb-2" id="btn-connect-settings" onclick="connectFromSettings()">🔐 Se connecter</button>
                         </div>
                         <div class="form-group">
-                            <button class="setting-button secondary u-hidden" id="btn-disconnect-settings" onclick="logoutOnisep()">🚪 Se déconnecter</button>
+                            <button class="btn btn--secondary btn--block u-mb-2 u-hidden" id="btn-disconnect-settings" onclick="logoutOnisep()">🚪 Se déconnecter</button>
                         </div>
                         <div class="form-group">
                             <div class="connection-status disconnected" id="connection-status">
@@ -227,7 +233,7 @@
                             <div class="search-input-group">
                                 <label class="u-text-sm u-mt-3 u-block">UAI</label>
                                 <input type="text" id="pref-user-uai" class="setting-input" placeholder="0350056C" maxlength="8" value="">
-                                <button class="setting-button setting-button--nowrap" onclick="fetchOnisepEstablishment()">🔍 Rechercher</button>
+                                <button class="btn btn--primary" onclick="fetchOnisepEstablishment()">🔍 Rechercher</button>
                             </div>
                             <label class="u-text-sm u-mt-3 u-block">Nom de l'établissement</label>
                             <input type="text" id="pref-user-nom" class="setting-input" placeholder="Renseigné automatiquement" value="" readonly>
@@ -235,8 +241,8 @@
                             <input type="number" id="pref-user-lat" class="setting-input" placeholder="Renseignée automatiquement" step="0.000001" value="" readonly>
                             <label class="u-text-sm u-mt-3 u-block">Longitude (GPS)</label>
                             <input type="number" id="pref-user-lon" class="setting-input" placeholder="Renseignée automatiquement" step="0.000001" value="" readonly>
-                            <div class="setting-help u-mt-3">💡 Saisissez l'UAI puis cliquez sur "🔍 Rechercher".<br>📒 Votre établissement sera affiché avec un marqueur orange pulsant sur la carte.</div>
-                            <button class="setting-button u-mt-3" onclick="saveUserEstablishment()">💾 Sauvegarder</button>
+                            <div class="help-text u-mt-3">💡 Saisissez l'UAI puis cliquez sur "🔍 Rechercher".<br>📒 Votre établissement sera affiché avec un marqueur orange pulsant sur la carte.</div>
+                            <button class="btn btn--primary btn--block u-mt-3 u-mb-2" onclick="saveUserEstablishment()">💾 Sauvegarder</button>
                         </div>
                         <div class="settings-separator"></div>
                         <div class="form-group">
@@ -244,16 +250,16 @@
                             <label class="u-text-sm u-mt-3 u-block">Adresse</label>
                             <div class="search-input-group">
                                 <input type="text" id="pref-domicile-adresse" class="setting-input" placeholder="12 rue de la Paix, Rennes">
-                                <button class="setting-button setting-button--nowrap" id="btn-geocoder-domicile" onclick="geocoderDomicile()">📍 Géolocaliser</button>
+                                <button class="btn btn--primary" id="btn-geocoder-domicile" onclick="geocoderDomicile()">📍 Géolocaliser</button>
                             </div>
                             <label class="u-text-sm u-mt-3 u-block">Latitude (GPS)</label>
                             <input type="number" id="pref-domicile-lat" class="setting-input" placeholder="Renseignée automatiquement" step="0.000001" readonly>
                             <label class="u-text-sm u-mt-3 u-block">Longitude (GPS)</label>
                             <input type="number" id="pref-domicile-lon" class="setting-input" placeholder="Renseignée automatiquement" step="0.000001" readonly>
-                            <div class="setting-help u-mt-3">💡 Saisissez votre adresse puis cliquez sur "📍 Géolocaliser" — coordonnées GPS calculées via OpenStreetMap.</div>
+                            <div class="help-text u-mt-3">💡 Saisissez votre adresse puis cliquez sur "📍 Géolocaliser" — coordonnées GPS calculées via OpenStreetMap.</div>
                             <div class="u-flex u-gap-md u-mt-3">
                                 <button class="btn btn--secondary u-flex-1" onclick="clearUserDomicile()">🗑️ Effacer</button>
-                                <button class="setting-button u-flex-1" onclick="saveUserDomicile()">💾 Sauvegarder</button>
+                                <button class="btn btn--primary u-flex-1 u-mb-2" onclick="saveUserDomicile()">💾 Sauvegarder</button>
                             </div>
                         </div>
                     </div>
@@ -262,7 +268,7 @@
                 <!-- Section : Favoris -->
                 <div class="settings-section-pane u-hidden" id="settings-pane-favoris">
                     <div class="settings-content">
-                        <div class="setting-help u-mb-3">💡 Les favoris permettent de sauvegarder vos recherches pour les relancer rapidement.</div>
+                        <div class="help-text u-mb-3">💡 Les favoris permettent de sauvegarder vos recherches pour les relancer rapidement.</div>
                         <div id="favoris-list"></div>
                     </div>
                 </div>
@@ -273,19 +279,19 @@
                         <!-- Données sauvegardées (GitHub) -->
                         <div class="form-group">
                             <h4 class="u-mb-2">📦 Données sauvegardées</h4>
-                            <button class="setting-button u-mb-2" onclick="refreshGitHubDatasets()">🔄 Actualiser la liste</button>
+                            <button class="btn btn--primary btn--block u-mb-2" onclick="refreshGitHubDatasets()">🔄 Actualiser la liste</button>
                             <div id="github-datasets-list">
-                                <div class="setting-help">Cliquez sur « Actualiser » pour charger la liste.</div>
+                                <div class="help-text">Cliquez sur « Actualiser » pour charger la liste.</div>
                             </div>
                         </div>
 
                         <div class="settings-separator"></div>
 
                         <div class="settings-danger-zone">
-                            <button class="setting-button setting-button--danger" onclick="confirmResetDatabase()">
+                            <button class="btn btn--danger btn--block u-mb-2" onclick="confirmResetDatabase()">
                                 🗑️ Vider la base locale
                             </button>
-                            <div class="setting-help u-mt-3">⚠️ Supprime toutes les données stockées localement</div>
+                            <div class="help-text u-mt-3">⚠️ Supprime toutes les données stockées localement</div>
                         </div>
                     </div>
                 </div>
@@ -293,7 +299,7 @@
                 <!-- Section : Sauvegarde distante (v0.64) -->
                 <div class="settings-section-pane u-hidden" id="settings-pane-datasets">
                     <div class="settings-content">
-                        <div class="setting-help u-mb-3">
+                        <div class="help-text u-mb-3">
                             💡 Les données extraites sont sauvegardées sur un espace distant partagé.
                             Une clé d'écriture est nécessaire pour publier vos extractions.
                         </div>
@@ -323,9 +329,9 @@
                             <input type="password" id="github-token" class="setting-input"
                                    placeholder="Collez ici votre clé d'écriture…" autocomplete="off">
                             <div class="u-mt-2">
-                                <button class="setting-button" onclick="saveAndTestGitHubToken()">💾 Sauvegarder</button>
+                                <button class="btn btn--primary btn--block u-mb-2" onclick="saveAndTestGitHubToken()">💾 Sauvegarder</button>
                             </div>
-                            <div id="github-connection-status" class="setting-help u-mt-2" style="display:none;"></div>
+                            <div id="github-connection-status" class="help-text u-mt-2" style="display:none;"></div>
                         </div>
                     </div>
                 </div>
@@ -335,7 +341,7 @@
                     <div class="settings-content">
                         <div class="form-group">
                         <label class="setting-label">Créer un compte Onisep</label>
-                        <div class="help-content">
+                        <div class="help-text">
                             <h3>📝 Comment créer un compte</h3>
                             <ol>
                                 <li>Rendez-vous sur <strong><a href="https://opendata.onisep.fr/" target="_blank">opendata.onisep.fr</a></strong></li>
@@ -356,10 +362,35 @@
                     
                     <div class="form-group">
                         <label class="setting-label">À propos</label>
-                        <div class="about-text">
-                            <p><strong>Orientation Post-Collège v0.52</strong></p>
+                        <div class="help-text">
+                            <p><strong>Orientation Post-Collège v0.67</strong></p>
                             <p class="u-mt-3"><strong>📓 Historique des versions</strong></p>
                             <div class="changelog-scroll">
+                                <p><strong>v0.67</strong> (3 mars 2026) - Refactoring CSS : nettoyage, centralisation, harmonisation</p>
+                                <ul class="u-ml-4 u-mt-1">
+                                    <li>Supprimé : .btn-primary, .btn-secondary (non-BEM, code mort) — reset minimal sur tag button</li>
+                                    <li>Centralisé : tous les @media dans 14-responsive.css, organisés par breakpoint (1024/767/480/360px) et par sections 01→15</li>
+                                    <li>Harmonisé : breakpoint incohérent 768px → 767px</li>
+                                    <li>Déplacé : styles itinéraire et .map-popup-btn--secondary de 10-extraction vers 08-carte</li>
+                                    <li>Fusionné : .setting-button (15 occurrences HTML + 8 JS) → .btn + modificateurs BEM</li>
+                                    <li>Fusionné : .btn--danger-solid → .btn--danger (identiques)</li>
+                                    <li>Fusionné : .btn-clear + .btn-clear--sm → .btn-close + .btn-close--bordered</li>
+                                    <li>Supprimé : .btn--favori (code mort) — corrigé bug toggle favori (utilisait mauvaise classe)</li>
+                                    <li>Renommé : .scope-btn → .scope-toggle (sémantique)</li>
+                                    <li>Ajouté : .btn--xs au design system (padding 4px 10px)</li>
+                                    <li>Fusionné : doublon .badge (2 définitions → 1 avec white-space: nowrap)</li>
+                                    <li>Regroupé : .voie-badge--qualite déplacé vers 08-carte avec les autres voie-badge</li>
+                                    <li>Supprimé : .table BEM + styles tags nus thead/th/td (code mort, redondants avec .resultat-table)</li>
+                                    <li>Déplacé : .resultat-table tbody tr[onclick] de 03 vers 07-resultats</li>
+                                    <li>Supprimé : .form-control, .form-label, .form-help et variantes (code mort, 0 usage)</li>
+                                    <li>Supprimé : .card--clickable, --highlighted, --large, --compact (code mort)</li>
+                                    <li>Supprimé : .diplomes-list label doublon (couvert par .diplome-item)</li>
+                                    <li>Fusionné : .setting-help + .help-content + .about-text → .help-text</li>
+                                    <li>Harmonisé : checkboxes voie 16px → 18px + accent-color: primary</li>
+                                    <li>Ajouté : focus shadow sur .filter-text-input</li>
+                                    <li>Nettoyé : commentaire orphelin main.css v0.34</li>
+                                    <li>Bilan : design-system.css 2402 → 2181 lignes (−9%)</li>
+                                </ul>
                                 <p><strong>v0.61</strong> (1er mars 2026) - Refactoring CSS, tri des catégories</p>
                                 <ul class="u-ml-4 u-mt-1">
                                     <li>Supprimé : main.css intégré dans design-system.css</li>
@@ -563,7 +594,7 @@
                                 </ul>
 
                         </div><!-- Fin changelog-scroll -->
-                        </div><!-- Fin about-text -->
+                        </div><!-- Fin help-text -->
                         </div><!-- Fin form-group À propos -->
                     </div><!-- Fin settings-content -->
                 </div><!-- Fin settings-pane-aide -->
@@ -642,7 +673,7 @@
                                oninput="handleSmartSearch()"
                                autocomplete="off"
                                class="search-commune-input">
-                        <div class="setting-help u-mt-2" id="tab-smart-search-help">
+                        <div class="help-text u-mt-2" id="tab-smart-search-help">
                             💡 Entrez au moins 3 caractères pour rechercher
                         </div>
                     </div>
@@ -666,7 +697,7 @@
                                     </div>
                                     <div class="selection-card__details" id="tab-selection-details"></div>
                                 </div>
-                                <button onclick="clearSelection()" class="btn-clear--sm">
+                                <button onclick="clearSelection()" class="btn-close btn-close--bordered">
                                     ✕
                                 </button>
                             </div>
@@ -687,20 +718,17 @@
                             </label>
                         </div>
                     </div>
-                    
-                    <!-- Sauvegarder les critères de recherche -->
-                    <div class="setting-item setting-favorite-box">
-                        <div class="setting-checkbox-group">
-                            <input type="checkbox" id="save-as-favorite-geo">
-                            <label for="save-as-favorite-geo" class="u-font-medium">💾 Sauvegarder les critères de recherche</label>
-                        </div>
-                    </div>
-
-                    <!-- Sauvegarder les données extraites (v0.64) -->
-                    <div class="setting-item setting-favorite-box">
-                        <div class="setting-checkbox-group">
-                            <input type="checkbox" id="save-as-dataset-geo">
-                            <label for="save-as-dataset-geo" class="u-font-medium">📦 Sauvegarder les données extraites</label>
+                    <!-- Mettre les critères de recherche en favori et sauvegarder les données extraites -->
+                    <div id="tab-geo-save">
+                        <div class="setting-item setting-favorite-box">
+                            <div class="setting-checkbox-group">
+                                <input type="checkbox" id="save-as-favorite-geo">
+                                <label for="save-as-favorite-geo" class="u-font-medium">💾 Mettre les critères de recherche en favori</label>
+                            </div>
+                            <div class="setting-checkbox-group">
+                                <input type="checkbox" id="save-as-dataset-geo">
+                                <label for="save-as-dataset-geo" class="u-font-medium">📦 Sauvegarder les données extraites</label>
+                            </div>
                         </div>
                     </div>
                     <script>
@@ -772,7 +800,7 @@
                         </div>
                             
                         <div class="form-group">
-                            <button class="setting-button" id="tab-btn-charger-diplomes" onclick="chargerItemsDisponibles('diplomes')">
+                            <button class="btn btn--primary btn--block u-mb-2" id="tab-btn-charger-diplomes" onclick="chargerItemsDisponibles('diplomes')">
                                 ➡️ Charger les diplômes disponibles
                             </button>
                         </div>
@@ -814,19 +842,17 @@
                             ✅ <span id="tab-selection-count-diplomes">0</span> diplôme(s) sélectionné(s)
                         </div>
                             
-                        <!-- Sauvegarder les critères de recherche -->
-                        <div class="setting-item setting-favorite-box">
-                            <div class="setting-checkbox-group">
-                                <input type="checkbox" id="save-as-favorite-diplomes">
-                                <label for="save-as-favorite-diplomes" class="u-font-medium">💾 Sauvegarder les critères de recherche</label>
-                            </div>
-                        </div>
-
-                        <!-- Sauvegarder les données extraites (v0.64) -->
-                        <div class="setting-item setting-favorite-box">
-                            <div class="setting-checkbox-group">
-                                <input type="checkbox" id="save-as-dataset-diplomes">
-                                <label for="save-as-dataset-diplomes" class="u-font-medium">📦 Sauvegarder les données extraites</label>
+                        <!-- Mettre les critères de recherche en favori et sauvegarder les données extraites -->
+                        <div id="tab-diplomes-save">
+                            <div class="setting-item setting-favorite-box">
+                                <div class="setting-checkbox-group">
+                                    <input type="checkbox" id="save-as-favorite-diplomes">
+                                    <label for="save-as-favorite-diplomes" class="u-font-medium">💾 Mettre les critères de recherche en favori</label>
+                                </div>
+                                <div class="setting-checkbox-group">
+                                    <input type="checkbox" id="save-as-dataset-diplomes">
+                                    <label for="save-as-dataset-diplomes" class="u-font-medium">📦 Sauvegarder les données extraites</label>
+                                </div>
                             </div>
                         </div>
                         <script>
@@ -850,7 +876,7 @@
                             <button class="btn btn--secondary u-flex-1" onclick="resetItemsSearch('diplomes')">
                                 🗑️ Effacer les critères
                             </button>
-                            <button class="btn btn--primary setting-button u-flex-1" onclick="lancerExtractionItems('diplomes')">
+                            <button class="btn btn--primary u-flex-1" onclick="lancerExtractionItems('diplomes')">
                                 🌐 Extraire les établissements
                             </button>
                         </div>
@@ -894,7 +920,7 @@
                             </div>
 
                             <div class="form-group">
-                                <button class="setting-button" id="tab-btn-charger-options" onclick="chargerItemsDisponibles('options')">
+                                <button class="btn btn--primary btn--block u-mb-2" id="tab-btn-charger-options" onclick="chargerItemsDisponibles('options')">
                                     ➡️ Charger les options disponibles
                                 </button>
                             </div>
@@ -938,19 +964,17 @@
 
                             <!-- Options 2nde GT : voie scolaire uniquement, pas de sélecteur de voie -->
 
-                            <!-- Sauvegarder les critères de recherche (options) -->
-                            <div class="setting-item setting-favorite-box">
-                                <div class="setting-checkbox-group">
-                                    <input type="checkbox" id="save-as-favorite-options">
-                                    <label for="save-as-favorite-options" class="u-font-medium">💾 Sauvegarder les critères de recherche</label>
-                                </div>
-                            </div>
-
-                            <!-- Sauvegarder les données extraites (options) -->
-                            <div class="setting-item setting-favorite-box">
-                                <div class="setting-checkbox-group">
-                                    <input type="checkbox" id="save-as-dataset-options">
-                                    <label for="save-as-dataset-options" class="u-font-medium">📦 Sauvegarder les données extraites</label>
+                            <!-- Mettre les critères de recherche en favori et sauvegarder les données extraites -->
+                            <div id="tab-options-save">
+                                <div class="setting-item setting-favorite-box">
+                                    <div class="setting-checkbox-group">
+                                        <input type="checkbox" id="save-as-favorite-options">
+                                        <label for="save-as-favorite-options" class="u-font-medium">💾 Mettre les critères de recherche en favori</label>
+                                    </div>
+                                    <div class="setting-checkbox-group">
+                                        <input type="checkbox" id="save-as-dataset-options">
+                                        <label for="save-as-dataset-options" class="u-font-medium">📦 Sauvegarder les données extraites</label>
+                                    </div>
                                 </div>
                             </div>
                             <script>
@@ -974,7 +998,7 @@
                                 <button class="btn btn--secondary u-flex-1" onclick="resetItemsSearch('options')">
                                     🗑️ Effacer les critères
                                 </button>
-                                <button class="btn btn--primary setting-button u-flex-1" onclick="lancerExtractionItems('options')">
+                                <button class="btn btn--primary u-flex-1" onclick="lancerExtractionItems('options')">
                                     🌐 Extraire les établissements
                                 </button>
                             </div>
@@ -1158,7 +1182,7 @@
             </div>
             <div class="modal__footer">
                 <button class="btn btn--secondary" onclick="closeResetConfirmModal()">Annuler</button>
-                <button class="btn btn--danger-solid" onclick="executeResetDatabase()">🗑️ Confirmer la suppression</button>
+                <button class="btn btn--danger" onclick="executeResetDatabase()">🗑️ Confirmer la suppression</button>
             </div>
         </div>
     </div>

@@ -788,12 +788,12 @@ function _htmlFavoriEtab(f) {
         icon: '🏫',
         nom:  f.nom || '—',
         meta: `${f.type || ''} · ${f.commune || ''} · ${date}`,
-        voirBtn: `<button class="setting-button favori-card__btn-voir"
+        voirBtn: `<button class="btn btn--primary favori-card__btn-voir"
                 data-etab-id="${f.id}"
                 onclick="toggleSettings();setTimeout(()=>showEtablissementDetails(this.dataset.etabId),200)">
                 👁️ Voir la fiche
             </button>`,
-        delBtn: `<button class="setting-button secondary favori-card__btn-del"
+        delBtn: `<button class="btn btn--secondary favori-card__btn-del"
                 data-favori-id="${f.id}"
                 data-favori-nom="${(f.nom||'').replace(/"/g,'&quot;')}"
                 data-favori-commune="${(f.commune||'').replace(/"/g,'&quot;')}"
@@ -821,7 +821,7 @@ function _htmlFavoriDivers(f) {
     }[f.typeObjet] || { icon: '⭐', showFn: null, arg: null };
 
     const voirBtn = typeConfig.showFn
-        ? `<button class="setting-button favori-card__btn-voir"
+        ? `<button class="btn btn--primary favori-card__btn-voir"
                 data-arg="${(typeConfig.arg||'').replace(/"/g,'&quot;')}"
                 onclick="toggleSettings();setTimeout(()=>${typeConfig.showFn}(this.dataset.arg),200)">
                 👁️ Voir la fiche
@@ -833,7 +833,7 @@ function _htmlFavoriDivers(f) {
         nom:     f.titre || '—',
         meta:    date,
         voirBtn: voirBtn,
-        delBtn:  `<button class="setting-button secondary favori-card__btn-del"
+        delBtn:  `<button class="btn btn--secondary favori-card__btn-del"
                 data-favori-id="${f.id}"
                 data-favori-nom="${(f.titre||'').replace(/"/g,'&quot;')}"
                 data-favori-type-objet="${f.typeObjet||''}"
@@ -974,10 +974,10 @@ function afficherListeFavoris() {
                 <div class="favori-card__nom">${icon} ${f.nom}</div>
                 <div class="favori-card__meta">${type} · ${date.toLocaleDateString('fr-FR')} ${date.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}</div>
                 <div class="favori-card__actions">
-                    <button class="setting-button favori-card__btn-voir"
+                    <button class="btn btn--primary favori-card__btn-voir"
                         data-favori-id="${f.id}"
                         onclick="reextraireFavori(this.dataset.favoriId)">🔄 Re-extraire</button>
-                    <button class="setting-button secondary favori-card__btn-del"
+                    <button class="btn btn--secondary favori-card__btn-del"
                         data-favori-id="${f.id}"
                         onclick="supprimerFavori(this.dataset.favoriId)"
                         title="Supprimer" aria-label="Supprimer">🗑️</button>

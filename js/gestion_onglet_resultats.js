@@ -2297,7 +2297,7 @@ function toggleEtablissementFavori(id, nom, commune, type) {
 function _updateBtnFavoriEtab(id, isFav) {
     const btn = document.getElementById(`btn-favori-${id}`);
     if (!btn) return;
-    btn.classList.toggle('btn--favori--active', isFav);
+    btn.classList.toggle('detail-header-action--star-active', isFav);
     btn.textContent = isFav ? '⭐' : '☆';
     btn.title       = isFav ? 'Retirer des favoris' : 'Ajouter aux favoris';
     btn.setAttribute('aria-label', isFav ? 'Retirer des favoris' : 'Ajouter aux favoris');
@@ -2328,12 +2328,12 @@ function afficherListeFavorisEtablissements() {
             <div class="favori-card__nom">🏫 ${f.nom}</div>
             <div class="favori-card__meta">${f.type || ''} · ${f.commune || ''} · ajouté le ${date}</div>
             <div class="favori-card__actions">
-                <button class="setting-button" style="flex:1;padding:8px;font-size:13px"
+                <button class="btn btn--primary" style="flex:1;padding:8px;font-size:13px"
                     data-etab-id="${f.id}"
                     onclick="toggleSettings();setTimeout(()=>showEtablissementDetails(this.dataset.etabId),200)">
                     👁️ Voir la fiche
                 </button>
-                <button class="setting-button secondary" style="flex:1;padding:8px;font-size:13px"
+                <button class="btn btn--secondary" style="flex:1;padding:8px;font-size:13px"
                     data-favori-id="${f.id}"
                     data-favori-nom="${(f.nom||'').replace(/"/g,'&quot;')}"
                     data-favori-commune="${(f.commune||'').replace(/"/g,'&quot;')}"

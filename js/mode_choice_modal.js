@@ -383,7 +383,7 @@ class ModeChoiceModal extends Modal {
         const hasGitHub = typeof GitHubStorage !== 'undefined' && GitHubStorage.getConfig().configured;
         const githubHtml = hasGitHub ? `
             <div class="mode-choice__dataset-section">
-                <h3 class="mode-choice__section-title">☁️ Jeux de données GitHub</h3>
+                <h3 class="mode-choice__section-title">☁️ Jeux de données distants</h3>
                 <div id="mode-choice-github-list" class="mode-choice__dataset-list">
                     <div class="mode-choice__github-loading">⏳ Chargement depuis GitHub…</div>
                 </div>

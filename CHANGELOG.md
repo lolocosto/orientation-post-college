@@ -5,6 +5,26 @@
 
 ---
 
+## [0.66] — 2026-03-03
+
+### Modifié — Réorganisation CSS (non-régression validée)
+- **Commentaires CSS corrigés** : 9 fichiers modules avaient des `*/` orphelins (sans `/*` ouvrant), provoquant des erreurs de parsing — tous corrigés
+- **Doublons fusionnés** : les corrections de contraste v0.56 (`.setting-help`, `.mode-help`, `.about-text`, `.selection-epci`, `.fiche-modal__titre`, `.settings-header h2`) sont intégrées directement dans les modules sources au lieu d'être des redéfinitions en fin de fichier
+- **`.detail-header-action--star-active`** : doublon supprimé dans `03-composants-ui.css`, valeur corrigée (`#f59e0b`) conservée dans `04-fiches-detail.css`
+- **`.driver-popover...progress-text`** : correction contraste (`#64748b`) intégrée dans `11-tour-guide.css`
+- **Bloc v0.56 corrections** retiré de `05-favoris.css` (devenu inutile après intégration dans les modules sources)
+- **`main.css` supprimé** : son contenu (`.link-icon`, `.resultat-table tbody tr[onclick]`) était déjà intégré dans `03-composants-ui.css`
+- **`design-system.css` régénéré** par concaténation des 15 modules dans l'ordre 01→15
+- **`index.html`** : chargement CSS modulaire (15 `<link>` vers `css/modules/*.css` au lieu d'un seul `design-system.css`)
+
+### Tests de non-régression
+- Script Python `tests/fc.py` : parseur CSS complet avec normalisation des propriétés
+- 783 règles dans la référence, 782 dans les modules (1 sélecteur groupé v0.56 remplacé par des définitions individuelles)
+- 775 règles strictement identiques, 7 améliorées (fusion correcte des doublons)
+- 0 règle manquante fonctionnellement
+
+---
+
 ## [0.64] — 2026-03-02
 
 ### Simplifié (UX non-techniciens)
