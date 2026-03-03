@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Parcours Avenir</title>
-    <!-- CSS Design System (les modules sont dans css/modules/ comme référence) -->
     <link rel="stylesheet" href="css/design-system.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js"></script>
 
@@ -938,6 +937,37 @@
                             </div>
 
                             <!-- Options 2nde GT : voie scolaire uniquement, pas de sélecteur de voie -->
+
+                            <!-- Sauvegarder les critères de recherche (options) -->
+                            <div class="setting-item setting-favorite-box">
+                                <div class="setting-checkbox-group">
+                                    <input type="checkbox" id="save-as-favorite-options">
+                                    <label for="save-as-favorite-options" class="u-font-medium">💾 Sauvegarder les critères de recherche</label>
+                                </div>
+                            </div>
+
+                            <!-- Sauvegarder les données extraites (options) -->
+                            <div class="setting-item setting-favorite-box">
+                                <div class="setting-checkbox-group">
+                                    <input type="checkbox" id="save-as-dataset-options">
+                                    <label for="save-as-dataset-options" class="u-font-medium">📦 Sauvegarder les données extraites</label>
+                                </div>
+                            </div>
+                            <script>
+                                document.getElementById('save-as-dataset-options').addEventListener('change', async function() {
+                                    if (this.checked && typeof GitHubStorage !== 'undefined') {
+                                        const result = await GitHubStorage.testConnection();
+                                        if (!result.ok) {
+                                            this.checked = false;
+                                            if (typeof showModalAlert === 'function') {
+                                                showModalAlert('Accès à l\'espace de sauvegarde impossible. Veuillez vérifier les paramètres avant d\'essayer à nouveau.');
+                                            } else {
+                                                alert('Accès à l\'espace de sauvegarde impossible. Veuillez vérifier les paramètres avant d\'essayer à nouveau.');
+                                            }
+                                        }
+                                    }
+                                });
+                            </script>
 
                             <!-- Boutons d'action -->
                             <div class="etape-navigation u-flex u-gap-md">
