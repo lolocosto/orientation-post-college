@@ -462,9 +462,9 @@ async function lancerExtractionGeo() {
                 showAlert(result.message || '⚠️ Extraction scolaire interrompue', 'warning');
                 return;
             }
-            statsGlobales.etablissements += result.stats.etablissements || 0;
-            statsGlobales.diplomes      += result.stats.diplomes       || 0;
-            statsGlobales.relations     += result.stats.relations       || 0;
+            statsGlobales.etablissements += result.stats?.stored?.etablissements || result.stats?.etablissements || 0;
+            statsGlobales.diplomes      += result.stats?.stored?.diplomes       || result.stats?.diplomes       || 0;
+            statsGlobales.relations     += result.stats?.stored?.relationsDiplomesEtablissements || result.stats?.relations || 0;
         }
 
         // ── VOIE APPRENTISSAGE (CARIF-OREF) ───────────────────────────────
@@ -478,9 +478,9 @@ async function lancerExtractionGeo() {
                 showAlert(result.message || '⚠️ Extraction apprentissage interrompue', 'warning');
                 return;
             }
-            statsGlobales.etablissements += result.stats.etablissements || 0;
-            statsGlobales.diplomes       += result.stats.diplomes       || 0;
-            statsGlobales.relations      += result.stats.relations      || 0;
+            statsGlobales.etablissements += result.stats?.stored?.etablissements || result.stats?.etablissements || 0;
+            statsGlobales.diplomes       += result.stats?.stored?.diplomes       || result.stats?.diplomes       || 0;
+            statsGlobales.relations      += result.stats?.stored?.relationsDiplomesEtablissements || result.stats?.relations || 0;
         }
 
         // ── Succès ────────────────────────────────────────────────────────
@@ -657,6 +657,12 @@ async function lancerExtractionItems(type) {
     // Masquer le résumé d'extraction précédent
     const summary = document.getElementById('extraction-summary');
     if (summary) summary.classList.add('u-hidden');
+
+    // Vérification connexion Onisep (v0.65)
+    if (!window.onisepExtractionController || !window.onisepExtractionController.isAuthenticated()) {
+        showAlert('⚠️ Veuillez vous connecter à Onisep d\'abord (Paramètres → Connexion)', 'warning');
+        return;
+    }
     
     // Le filtre géographique a été validé à l'étape 1 : on le reprend tel quel
     console.log(`[lancerExtractionItems] Zone géographique : ${itemsGeoType} = ${itemsGeoValue}`);
@@ -767,11 +773,11 @@ async function lancerExtractionItems(type) {
         }
 
         // Succès - le contrôleur a géré la modale
-        const data = {
-            etablissements: { length: result.stats.etablissements },
-            diplomes: { length: result.stats.diplomes },
-            diplomes_par_etablissement: { length: result.stats.relations }
-        };
+        const stored = result.stats?.stored || result.stats || {};
+        const statsEtab = stored.etablissements || 0;
+        const statsDipl = stored.diplomes || 0;
+        const statsRel  = stored.relationsDiplomesEtablissements || 0;
+        const statsOpt  = stored.options2ndeGT || stored.relationsOptions2ndeGTEtablissements || 0;
 
         // Sauvegarder la date
         _prefSauverRecherche('last_extraction_date', new Date().toISOString());
@@ -780,29 +786,36 @@ async function lancerExtractionItems(type) {
         if (typeof loadStats === 'function') loadStats();
         if (typeof loadView === 'function') loadView();
         
-        // Message succès
-        showAlert(`✅ ${data.etablissements.length} établissements et ${data.diplomes_par_etablissement.length} diplômes (dont ${data.diplomes.length} uniques) !`, 'success');
+        // Message succès adapté au type
+        if (type === 'options') {
+            showAlert(`✅ ${statsEtab} établissement(s) et ${statsOpt} option(s) !`, 'success');
+        } else {
+            showAlert(`✅ ${statsEtab} établissement(s) et ${statsRel} diplôme(s) (dont ${statsDipl} unique(s)) !`, 'success');
+        }
 
         // ── Métadonnées d'extraction (v0.62 — mode déconnecté) ───────────
         _saveExtractionMetadata(type, {
             geoType: itemsGeoType,
             geoValue: itemsGeoValue,
+            geoDisplayName: itemsGeoDisplay,
             items: selectedItems,
             itemType: type
         }, result.stats);
 
         // ── Sauvegarde favori si demandé ──────────────────────────────────
-        _trySaveFavorite('diplomes', {
+        _trySaveFavorite(type, {
             geoType: itemsGeoType,
             geoValue: itemsGeoValue,
+            geoDisplayName: itemsGeoDisplay,
             items: selectedItems,
             itemType: type
         });
 
-        // ── Sauvegarde jeu de données si demandé (v0.62) ─────────────────
-        _trySaveDataset('diplomes', {
+        // ── Sauvegarde jeu de données si demandé ─────────────────────────
+        _trySaveDataset(type, {
             geoType: itemsGeoType,
             geoValue: itemsGeoValue,
+            geoDisplayName: itemsGeoDisplay,
             items: selectedItems,
             itemType: type
         });

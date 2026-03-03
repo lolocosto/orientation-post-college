@@ -129,8 +129,11 @@ async function init() {
             }, 800);
         }
 
-        // 10. Modale de choix de mode (v0.64 : affichée seulement si pas connecté Onisep)
-        if (typeof ModeChoiceModal !== 'undefined' && !onisepConnected) {
+        // 10. Modale de choix de mode (v0.65)
+        // Affichée si pas de connexion Onisep ET pas encore de choix dans cette session
+        const choiceDoneThisSession = sessionStorage.getItem('mode_choice_done');
+
+        if (typeof ModeChoiceModal !== 'undefined' && !onisepConnected && !choiceDoneThisSession) {
             if (tourLaunched) {
                 // Tour lancé → attendre sa fin avant d'afficher la modale
                 document.addEventListener('tour:completed', () => {

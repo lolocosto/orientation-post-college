@@ -426,14 +426,18 @@ class DatasetService {
             case 'diplomes': {
                 const items = params.items || [];
                 const count = items.length;
-                const geo   = params.geoValue || 'France entière';
-                return `${count} diplôme${count > 1 ? 's' : ''} — ${geo}`;
+                const geoPrefix = params.geoType === 'academie' ? 'acad' : 'dépt';
+                const geoName = params.geoDisplayName || params.geoValue || 'France entière';
+                const itemsDesc = count === 1 ? items[0] : `${count} diplômes`;
+                return `${geoPrefix} : ${geoName} — ${itemsDesc}`;
             }
             case 'options': {
                 const items = params.items || [];
                 const count = items.length;
-                const geo   = params.geoValue || 'France entière';
-                return `${count} option${count > 1 ? 's' : ''} — ${geo}`;
+                const geoPrefix = params.geoType === 'academie' ? 'acad' : 'dépt';
+                const geoName = params.geoDisplayName || params.geoValue || 'France entière';
+                const itemsDesc = count === 1 ? items[0] : `${count} options`;
+                return `${geoPrefix} : ${geoName} — ${itemsDesc}`;
             }
             default:
                 return JSON.stringify(params).slice(0, 80);

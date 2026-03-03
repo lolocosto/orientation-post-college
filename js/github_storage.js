@@ -508,51 +508,62 @@ class GitHubStorage {
      */
     static async #updateIndex(action, entry) {
         const indexPath = `${GITHUB_DATASETS_PATH}/${GITHUB_INDEX_FILENAME}`;
+        const maxRetries = 3;
 
-        // Récupérer l'index actuel et son SHA
-        let currentIndex = { version: GITHUB_INDEX_VERSION, datasets: [] };
-        let indexSha = null;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            // Récupérer l'index actuel et son SHA
+            let currentIndex = { version: GITHUB_INDEX_VERSION, datasets: [] };
+            let indexSha = null;
 
-        try {
-            const result = await GitHubStorage.#apiRequest('GET', `/repos/{owner}/{repo}/contents/${indexPath}`);
-            indexSha = result.sha;
-            const content = GitHubStorage.#base64ToUtf8(result.content);
-            currentIndex = JSON.parse(content);
-        } catch (e) {
-            // Index inexistant, on part d'un index vide
-            console.warn('[GitHubStorage] Index absent, création…');
+            try {
+                const result = await GitHubStorage.#apiRequest('GET', `/repos/{owner}/{repo}/contents/${indexPath}`);
+                indexSha = result.sha;
+                const content = GitHubStorage.#base64ToUtf8(result.content);
+                currentIndex = JSON.parse(content);
+            } catch (e) {
+                console.warn('[GitHubStorage] Index absent, création…');
+            }
+
+            // Modifier l'index
+            if (action === 'add') {
+                currentIndex.datasets = currentIndex.datasets.filter(d => d.filename !== entry.filename);
+                currentIndex.datasets.push(entry);
+            } else if (action === 'remove') {
+                currentIndex.datasets = currentIndex.datasets.filter(d => d.filename !== entry.filename);
+            }
+
+            // Tri par date d'upload décroissante
+            currentIndex.datasets.sort((a, b) => {
+                const da = a.dateUpload || a.dateExtraction || '';
+                const db = b.dateUpload || b.dateExtraction || '';
+                return db.localeCompare(da);
+            });
+
+            currentIndex.lastModified = new Date().toISOString();
+
+            // Écrire l'index mis à jour
+            const indexContent = GitHubStorage.#utf8ToBase64(JSON.stringify(currentIndex, null, 2));
+            const putBody = {
+                message: `📋 Mise à jour index (${action} : ${entry.filename})`,
+                content: indexContent
+            };
+            if (indexSha) {
+                putBody.sha = indexSha;
+            }
+
+            try {
+                await GitHubStorage.#apiRequest('PUT', `/repos/{owner}/{repo}/contents/${indexPath}`, putBody);
+                console.log(`[GitHubStorage] 📋 Index mis à jour (${action})`);
+                return; // Succès
+            } catch (error) {
+                if (error.message?.includes('Conflit') && attempt < maxRetries) {
+                    console.warn(`[GitHubStorage] ⚠️ Conflit index, retry ${attempt}/${maxRetries}…`);
+                    await new Promise(r => setTimeout(r, 500 * attempt));
+                    continue;
+                }
+                throw error;
+            }
         }
-
-        // Modifier l'index
-        if (action === 'add') {
-            // Supprimer l'ancienne entrée si elle existe (même filename)
-            currentIndex.datasets = currentIndex.datasets.filter(d => d.filename !== entry.filename);
-            currentIndex.datasets.push(entry);
-        } else if (action === 'remove') {
-            currentIndex.datasets = currentIndex.datasets.filter(d => d.filename !== entry.filename);
-        }
-
-        // Tri par date d'upload décroissante
-        currentIndex.datasets.sort((a, b) => {
-            const da = a.dateUpload || a.dateExtraction || '';
-            const db = b.dateUpload || b.dateExtraction || '';
-            return db.localeCompare(da);
-        });
-
-        currentIndex.lastModified = new Date().toISOString();
-
-        // Écrire l'index mis à jour
-        const indexContent = GitHubStorage.#utf8ToBase64(JSON.stringify(currentIndex, null, 2));
-        const putBody = {
-            message: `📋 Mise à jour index (${action} : ${entry.filename})`,
-            content: indexContent
-        };
-        if (indexSha) {
-            putBody.sha = indexSha;
-        }
-
-        await GitHubStorage.#apiRequest('PUT', `/repos/{owner}/{repo}/contents/${indexPath}`, putBody);
-        console.log(`[GitHubStorage] 📋 Index mis à jour (${action})`);
     }
 
     // =====================================

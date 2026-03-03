@@ -196,8 +196,8 @@ class ModeChoiceModal extends Modal {
     #onModeValidated() {
         if (!this.#selectedMode) return;
 
-        // Sauvegarder le choix
-        localStorage.setItem(MODE_CHOICE_KEY, this.#selectedMode);
+        // Sauvegarder le choix pour cette session uniquement
+        sessionStorage.setItem(MODE_CHOICE_KEY, this.#selectedMode);
 
         console.log(`[ModeChoiceModal] Mode choisi : ${this.#selectedMode}`);
 
