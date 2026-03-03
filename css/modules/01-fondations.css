@@ -1,16 +1,19 @@
 /**
- * DESIGN SYSTEM — Parcours Avenir
- * Version : 0.61  —  Date : 2026-03-01
+ * DESIGN SYSTEM - Parcours Avenir
+ * Version : 0.67  -  Date : 2026-03-03
  *
- * v0.61 : renommages (detail-categorie, favori-card), suppression classes
- *         inutilisées, intégration main.css, harmonisation commentaires.
- *         Réorganisation thématique prévue pour une version ultérieure.
+ * v0.66 : Reorganisation CSS thematique.
+ *         - Commentaires orphelins corriges (9 fichiers)
+ *         - Doublons fusionnes (badge, star-active, contraste v0.56)
+ *         - main.css supprime (integre dans 03-composants-ui)
+ *         - design-system.css = concatenation 15 modules 01->15
  *
- * Organisation actuelle :
- *   1. Variables CSS     5. Composants spécifiques     6. Utilitaires
- *   2. Reset & Base         - Recherche, Résultats     7. Print
- *   3. Layout app           - Détails, Carte, Params   + Sections versionnées
- *   4. Composants UI        - Extraction, Diplômes       (v0.42→v0.56)
+ * Organisation en 15 modules :
+ *   01. Fondations       06. Recherche       11. Tour guide
+ *   02. Layout           07. Resultats       12. Bannieres
+ *   03. Composants UI    08. Carte           13. Utilitaires
+ *   04. Fiches detail    09. Parametres      14. Responsive
+ *   05. Favoris          10. Extraction      15. Print
  */
 
 /* ============================================================================

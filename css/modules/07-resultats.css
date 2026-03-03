@@ -17,8 +17,9 @@
 
 #content-container { max-height: calc(100vh - 420px); min-height: 300px; overflow-y: auto; border-radius: var(--border-radius-sm); }
 #content-container .resultat-table thead th { position: sticky; top: 0; z-index: 2; background: var(--primary); box-shadow: 0 2px 0 var(--primary-dark); }
+.resultat-table tbody tr[onclick] { cursor: pointer; }
 
-   COMPOSANT : result-card (cartes mobile pour les listes)
+/* COMPOSANT : result-card (cartes mobile pour les listes)
    ══════════════════════════════════════════════════════════ */
 /* Par défaut (tablette+ordinateur) : cartes masquées */
 .results-cards { display: none; }

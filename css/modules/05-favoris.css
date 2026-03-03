@@ -1,36 +1,4 @@
 /* --- FAVORIS --- */
-/* Bouton favori (⭐) dans les fiches détail */
-.btn--favori {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    border: 2px solid var(--warning, #f59e0b);
-    border-radius: var(--border-radius);
-    background: transparent;
-    color: var(--warning, #f59e0b);
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all var(--transition-base);
-    flex-shrink: 0;
-}
-.btn--favori:hover                { background: #fef3c7; }
-.btn--favori.btn--favori--active  { background: var(--warning, #f59e0b); color: white; }
-.btn--favori.btn--favori--active:hover { background: #d97706; border-color: #d97706; }
-
-/* Variante étoile seule (en-tête de modale de détail) */
-.btn--favori--star {
-    padding: 4px 8px;
-    font-size: 22px;
-    line-height: 1;
-    border-radius: 50%;
-    border-width: 0;
-    background: transparent;
-    flex-shrink: 0;
-}
-.btn--favori--star:hover { background: #fef3c7; }
-.btn--favori--star.btn--favori--active { background: transparent; color: var(--warning, #f59e0b); }
 
 /* En-tête de la fiche de détail (nom + étoile) */
 .detail-modal-header {
@@ -81,7 +49,7 @@
 .info-value a:hover { text-decoration: underline; }
 
 
-   FAVORIS — LAYOUT CARTES
+/* FAVORIS — LAYOUT CARTES
    Bouton "Voir la fiche" occupe tout l'espace disponible,
    bouton suppression ajusté à son icône uniquement.
    ══════════════════════════════════════════════════════════════ */
@@ -92,13 +60,13 @@
     gap: 6px;
     margin-top: 8px;
 }
-/* Ciblage avec spécificité (0,2,0) pour overrider .setting-button (0,1,0) */
-.favori-card__actions .setting-button {
-    margin-bottom: 0;            /* annule margin-bottom: 8px de .setting-button */
+/* Ciblage avec spécificité (0,2,0) pour overrider .btn (0,1,0) */
+.favori-card__actions .btn {
+    margin-bottom: 0;            /* annule u-mb-2 éventuel */
 }
 .favori-card__actions .favori-card__btn-voir {
     flex: 1 1 auto;              /* croît pour remplir tout l'espace disponible */
-    width: auto;                 /* annule le width:100% de .setting-button */
+    width: auto;                 /* annule le width:100% de .btn--block */
     min-width: 0;
     padding: 8px 10px;
     font-size: 13px;
@@ -148,42 +116,3 @@
     border-radius: 8px;
     margin-bottom: 8px;
 }
-
-/* ══════════════════════════════════════════════════════════
-   v0.56 — CORRECTIONS DE CONTRASTE (police ↔ fond)
-   Règle : fond clair → police noire/très foncée
-           fond foncé → police blanche/très claire
-   ══════════════════════════════════════════════════════════ */
-
-/* setting-help sur fond blanc : texte-light #7f8c8d → #475569 */
-.setting-help {
-    color: #475569;
-}
-
-/* mode-help (fond blanc, bordure accent) : idem */
-.mode-help {
-    color: #475569;
-}
-
-/* selection-epci (fond bg-light #f0f4fa) : #7f8c8d → #475569 */
-.selection-epci {
-    color: #475569;
-}
-
-/* progress-text dans le tour : garantir lisibilité */
-.driver-popover.tour-popover .driver-popover-progress-text {
-    color: #64748b;
-}
-
-/* Titres fiche-modal__titre et settings-header h2 sur gradient foncé → blanc */
-.fiche-modal__titre,
-.settings-header h2 {
-    color: white;
-}
-
-/* about-text (fond blanc/surface) → foncé */
-.about-text {
-    color: #475569;
-}
-
-/* ══════════════════════════════════════════════════════════

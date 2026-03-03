@@ -40,15 +40,16 @@
 .voie-checkboxes { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; }
 .voie-checkbox-label { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 6px 10px; border-radius: var(--border-radius-sm); border: 1px solid var(--border); background: white; transition: border-color var(--transition-base), background var(--transition-base); }
 .voie-checkbox-label:hover { border-color: var(--primary); background: var(--primary-bg); }
-.voie-checkbox-label input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+.voie-checkbox-label input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); }
 .voie-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); }
 .voie-badge--scolaire     { background: var(--primary-bg); color: var(--primary); }
 .voie-badge--apprentissage { background: #fef3e2; color: #e67e22; }
+.voie-badge--qualite { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; font-size: 11px; font-weight: 700; padding: 1px 6px; margin-left: 4px; }
 
 
 @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
 
-   v0.56 — MARQUEUR DOMICILE SUR LA CARTE
+/* v0.56 — MARQUEUR DOMICILE SUR LA CARTE
    ══════════════════════════════════════════════════════════ */
 
 .marker-icon-home {
@@ -134,16 +135,113 @@
     margin-left: auto;
 }
 
-/* Mobile : filtres carte en colonne */
-@media (max-width: 767px) {
-    .map-filters {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    .map-filters__input,
-    .map-filters__select {
-        max-width: 100%;
-    }
+/* --- BOUTON SECONDAIRE POPUP CARTE (v0.57 — !important contre Leaflet) --- */
+.map-popup-btn--secondary {
+    background: var(--secondary, #6c757d) !important;
+    color: white !important;
+    margin-left: 8px;
+}
+.map-popup-btn--secondary:hover { background: #565e64 !important; }
+
+/* =====================================
+   ITINÉRAIRE MODAL (v0.43)
+   ===================================== */
+
+/* Bouton itinéraire dans la fiche détail */
+.detail-itineraire-bar {
+    margin-bottom: var(--spacing-md);
+}
+.detail-btn-itineraire {
+    width: 100%;
+    justify-content: center;
+}
+
+/* Contenu de la modale itinéraire */
+.itineraire-modal-content { display: flex; flex-direction: column; gap: var(--spacing-lg); }
+
+.itineraire-section {}
+.itineraire-section-title {
+    font-weight: var(--font-weight-semibold);
+    color: var(--text-light);
+    font-size: var(--font-size-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: var(--spacing-sm);
+}
+
+.itineraire-destination {
+    font-weight: var(--font-weight-semibold);
+    font-size: var(--font-size-md);
+    color: var(--primary);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--bg-light);
+    border-radius: var(--border-radius-sm);
+    border-left: 3px solid var(--primary);
+}
+
+/* Options de départ */
+.itineraire-options { display: flex; flex-direction: column; gap: var(--spacing-sm); }
+.itineraire-option {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    transition: border-color var(--transition-base), background var(--transition-base);
+}
+.itineraire-option:has(input:checked) {
+    border-color: var(--primary);
+    background: #f0f4ff;
+}
+.itineraire-option input[type="radio"] { margin-top: 2px; flex-shrink: 0; }
+.itineraire-option-label { display: flex; flex-direction: column; gap: 2px; }
+.itineraire-option-detail { font-size: var(--font-size-xs); color: var(--text-light); }
+.itineraire-option--disabled {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius-sm);
+    color: var(--text-light);
+    font-size: var(--font-size-sm);
+    background: #fafafa;
+    opacity: 0.7;
+}
+
+/* Modes de transport */
+.itineraire-modes {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: var(--spacing-sm);
+}
+.itineraire-mode {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: var(--spacing-sm);
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    text-align: center;
+    transition: border-color var(--transition-base), background var(--transition-base);
+}
+.itineraire-mode:has(input:checked) {
+    border-color: var(--primary);
+    background: #f0f4ff;
+}
+.itineraire-mode input[type="radio"] { display: none; }
+.itineraire-mode-icon { font-size: 1.5rem; }
+.itineraire-mode-label { font-size: var(--font-size-xs); font-weight: var(--font-weight-medium); }
+
+/* Actions */
+.itineraire-actions { }
+.itineraire-btn-calculer { width: 100%; justify-content: center; }
+
+.itineraire-info {
+    font-size: var(--font-size-xs);
+    text-align: center;
+    margin-top: calc(-1 * var(--spacing-sm));
 }
 
 /* ══════════════════════════════════════════════════════════

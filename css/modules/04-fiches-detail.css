@@ -129,16 +129,6 @@
 }
 
 /* ── Responsive : hauteur réduite sur tablette et mobile ── */
-@media (max-width: 1024px) {
-    .detail-section--scrollable .detail-section__body {
-        max-height: 420px;       /* ~8 items tablette */
-    }
-}
-@media (max-width: 767px) {
-    .detail-section--scrollable .detail-section__body {
-        max-height: 350px;       /* ~7 items mobile */
-    }
-}
 /* Sous-sections par catégorie dans les fiches de détail */
 .detail-categorie { margin-bottom: var(--spacing-md); }
 .detail-categorie__title {
@@ -153,7 +143,7 @@
     border-radius: var(--border-radius-sm);
 }
 
-   FICHE MODALE v0.45 — structure <dialog>
+/* FICHE MODALE v0.45 — structure <dialog>
    ══════════════════════════════════════════════════════════ */
 .fiche-modal {
     position: fixed;
@@ -189,6 +179,7 @@
     margin: 0;
     font-size: var(--font-size-md);
     font-weight: 600;
+    color: white; /* contraste v0.56 */
 }
 .fiche-modal__close {
     background: rgba(255,255,255,.2);
@@ -449,7 +440,7 @@
 
 /* Étoile active */
 .detail-header-action--star-active {
-    color: #fbbf24;   /* ambre */
+    color: #f59e0b;   /* ambre */
 }
 
 /* Croix de fermeture */
@@ -475,36 +466,6 @@
     padding: 16px 8px 0;
     line-height: 1.3;
     word-break: break-word;
-}
-
-/* Responsive tablette */
-@media (max-width: 768px) {
-    .detail-modal-title {
-        font-size: 1.15rem;
-        padding-top: 12px;
-        margin-bottom: 14px;
-    }
-    .detail-nav-btn {
-        font-size: 12px;
-        padding: 3px 7px;
-    }
-    .detail-nav-counter {
-        font-size: 12px;
-    }
-}
-
-/* Responsive mobile */
-@media (max-width: 480px) {
-    .detail-header-bar {
-        gap: 4px;
-    }
-    .detail-nav-btn {
-        padding: 3px 5px;
-        font-size: 11px;
-    }
-    .detail-modal-title {
-        font-size: 1rem;
-    }
 }
 
 /* ══════════════════════════════════════════════════════════════
