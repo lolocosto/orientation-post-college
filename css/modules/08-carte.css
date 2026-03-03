@@ -1,0 +1,149 @@
+/* --- CARTE LEAFLET --- */
+#map-container { width: 100%; height: calc(100vh - 200px); min-height: 500px; border-radius: var(--border-radius-md); overflow: hidden; box-shadow: var(--shadow-md); }
+#map { width: 100%; height: 100%; z-index: 1; }
+
+.leaflet-popup-content { margin: 0; padding: 0; }
+.map-popup         { min-width: 250px; }
+.map-popup-header  { background: var(--primary); color: var(--text-on-primary); padding: 12px 15px; font-weight: var(--font-weight-semibold); font-size: var(--font-size-md); border-radius: var(--border-radius-sm) var(--border-radius-sm) 0 0; }
+.map-popup-body    { padding: var(--spacing-md); }
+.map-popup-row     { margin: 8px 0; font-size: var(--font-size-sm); line-height: var(--line-height-normal); color: var(--text); }
+.map-popup-label   { color: var(--text-light); font-weight: var(--font-weight-medium); margin-right: 5px; }
+.map-popup-actions { margin-top: var(--spacing-md); padding-top: var(--spacing-md); border-top: 1px solid var(--border); display: flex; gap: 8px; flex-wrap: wrap; }
+/* v0.57 — !important pour écraser .leaflet-container a { color: #0078A8 } de Leaflet */
+.map-popup-btn     { display: inline-block; padding: 8px 15px; background: var(--primary) !important; color: white !important; text-decoration: none !important; border-radius: var(--border-radius-sm); font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); cursor: pointer; transition: background var(--transition-base); }
+.map-popup-btn:hover { background: var(--primary-dark) !important; color: white !important; }
+
+.map-stats      { margin-bottom: var(--spacing-md); padding: var(--spacing-md); background: var(--bg-light); border-radius: var(--border-radius-md); display: flex; justify-content: space-around; gap: 20px; }
+.map-stat-item  { text-align: center; }
+.map-stat-value { font-size: var(--font-size-2xl); font-weight: var(--font-weight-semibold); color: var(--primary); }
+.map-stat-label { font-size: var(--font-size-xs); color: var(--text-light); margin-top: 5px; }
+
+.marker-icon      { background: white; border: 3px solid var(--primary); border-radius: 50%; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; font-size: var(--font-size-lg); box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+.marker-icon-user { background: #ff9800; border-color: #f57c00; width: 35px; height: 35px; animation: pulse 2s infinite; }
+
+/* Marqueurs par voie */
+.marker-icon--scolaire     { border-color: var(--primary); }
+.marker-icon--apprentissage { border-color: #e67e22; }
+.marker-icon--mixte        { border-color: #27ae60; }
+
+/* Légende carte */
+.map-legend { position: absolute; bottom: 30px; right: 10px; z-index: 1000; background: white; border: 1px solid var(--border); border-radius: var(--border-radius-md); padding: 10px 14px; box-shadow: var(--shadow-md); font-size: var(--font-size-sm); min-width: 160px; }
+.map-legend-title { font-weight: var(--font-weight-semibold); color: var(--text); margin-bottom: 8px; font-size: var(--font-size-sm); }
+.map-legend-item  { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; color: var(--text); }
+.map-legend-marker { display: inline-block; width: 16px; height: 16px; border-radius: 50%; border: 3px solid; flex-shrink: 0; }
+.map-legend-marker--scolaire     { border-color: var(--primary); background: white; }
+.map-legend-marker--apprentissage { border-color: #e67e22; background: white; }
+.map-legend-marker--mixte        { border-color: #27ae60; background: white; }
+
+/* Sélecteur de voies (checkboxes dans les panels de recherche) */
+.voie-selector { padding: 12px; background: var(--bg-light); border-radius: var(--border-radius-md); border: 1px solid var(--border); }
+.voie-checkboxes { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 8px; }
+.voie-checkbox-label { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 6px 10px; border-radius: var(--border-radius-sm); border: 1px solid var(--border); background: white; transition: border-color var(--transition-base), background var(--transition-base); }
+.voie-checkbox-label:hover { border-color: var(--primary); background: var(--primary-bg); }
+.voie-checkbox-label input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
+.voie-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: var(--font-size-sm); font-weight: var(--font-weight-medium); }
+.voie-badge--scolaire     { background: var(--primary-bg); color: var(--primary); }
+.voie-badge--apprentissage { background: #fef3e2; color: #e67e22; }
+
+
+@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+
+   v0.56 — MARQUEUR DOMICILE SUR LA CARTE
+   ══════════════════════════════════════════════════════════ */
+
+.marker-icon-home {
+    background: #2196F3;
+    border-color: #1565C0;
+    width: 35px;
+    height: 35px;
+    animation: pulse 2s infinite;
+}
+
+/* Légende : marqueurs spéciaux */
+.map-legend-marker--user {
+    border-color: #ff9800;
+    background: #ff9800;
+}
+.map-legend-marker--home {
+    border-color: #2196F3;
+    background: #2196F3;
+}
+
+/* ══════════════════════════════════════════════════════════
+   v0.56 — FILTRES CARTE (panneau au-dessus de la carte)
+   ══════════════════════════════════════════════════════════ */
+
+.map-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius-md);
+    align-items: center;
+}
+
+.map-filters__label {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+}
+
+.map-filters__input {
+    flex: 1;
+    min-width: 150px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius-sm);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family);
+}
+.map-filters__input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+/* v0.57 — select[multiple] pour filtres carte (identique à vue établissements) */
+.map-filters__select {
+    padding: 4px;
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius-sm);
+    font-size: var(--font-size-sm);
+    font-family: var(--font-family);
+    max-width: 200px;
+    min-height: 70px;
+    max-height: 100px;
+    overflow-y: auto;
+}
+.map-filters__select option {
+    padding: 2px 6px;
+    font-size: var(--font-size-xs);
+}
+.map-filters__select option:checked {
+    background: var(--primary);
+    color: white;
+}
+
+.map-filters__count {
+    font-size: var(--font-size-sm);
+    color: var(--text-light);
+    white-space: nowrap;
+    margin-left: auto;
+}
+
+/* Mobile : filtres carte en colonne */
+@media (max-width: 767px) {
+    .map-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .map-filters__input,
+    .map-filters__select {
+        max-width: 100%;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════

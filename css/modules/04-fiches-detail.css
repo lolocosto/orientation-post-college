@@ -1,0 +1,510 @@
+/* --- DETAILS (modales toutes vues) --- */
+.detail-section       { margin-bottom: var(--spacing-xl); padding: var(--spacing-lg); background: var(--surface); border-radius: var(--border-radius); border: 1px solid var(--border); }
+.detail-section-title { font-size: var(--font-size-lg); font-weight: 600; color: var(--primary); margin: 0 0 var(--spacing-md) 0; padding: var(--spacing-sm) var(--spacing-md); background: var(--primary-bg); border-bottom: 2px solid var(--primary); border-radius: var(--border-radius-sm); }
+.detail-info-grid     { display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-xs); }
+.detail-list          { list-style: none; margin: var(--spacing-sm) 0; padding: 0; }
+.detail-item          { padding: 12px 15px; margin-bottom: var(--spacing-xs); background: var(--bg-light); border-radius: var(--border-radius-sm); border-left: 3px solid var(--border); transition: all var(--transition-base); cursor: pointer; display: flex; align-items: center; gap: var(--spacing-sm); flex-wrap: wrap; }
+.detail-item:hover    { background: var(--surface-light); border-left-color: var(--primary); border-left-width: 4px; transform: translateX(2px); }
+.detail-item strong   { color: var(--text); flex: 1; min-width: 200px; }
+
+/* Élément cliquable dans une liste de détail (ouvre une autre modale) */
+.detail-item--link { cursor: pointer; }
+.detail-item--link a {
+    color: var(--text);
+    text-decoration: none;
+    display: block;
+    width: 100%;
+}
+.detail-item--link a:hover { color: var(--primary); }
+.detail-item--link:hover {
+    background: var(--surface-light);
+    border-left-color: var(--primary);
+    border-left-width: 4px;
+    transform: translateX(2px);
+}
+
+/* Élément non cliquable (information pure, ex: spécialités 1ère G) */
+.detail-item--info {
+    cursor: default;
+    border-left-color: var(--border-light);
+}
+.detail-item--info:hover {
+    background: var(--bg-light);
+    border-left-color: var(--border);
+    border-left-width: 3px;
+    transform: none;
+}
+.detail-badge         { display: inline-block; padding: 4px 10px; background: var(--primary-bg); color: var(--primary-dark); border-radius: var(--border-radius-sm); font-size: var(--font-size-xs); font-weight: 500; }
+
+/* --- ACCORDÉON (sections repliables dans les fiches détail) --- */
+/* Le titre d'une section repliable devient un bouton toggle */
+.detail-section-title--accordion {
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0;               /* pas d'espace si replié */
+    border-radius: var(--border-radius-sm);
+    transition: background var(--transition-base);
+}
+.detail-section-title--accordion:hover { background: var(--primary-bg-dark, #dbeafe); }
+/* Indicateur ▶/▼ positionné à droite */
+.detail-section-title--accordion::after {
+    content: '▼';
+    font-size: 0.75em;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+    margin-left: var(--spacing-sm);
+}
+.detail-section--collapsed .detail-section-title--accordion::after { transform: rotate(-90deg); }
+/* Le contenu repliable */
+.detail-section__body {
+    overflow: hidden;
+    transition: max-height 0.25s ease, opacity 0.2s ease;
+    max-height: 2000px;   /* valeur haute pour permettre l'animation */
+    opacity: 1;
+    margin-top: var(--spacing-sm);   /* réduit de moitié (était --spacing-md) */
+    padding: 0 var(--spacing-sm);    /* espace latéral réduit dans la section */
+}
+.detail-section--collapsed .detail-section__body {
+    max-height: 0;
+    opacity: 0;
+    margin-top: 0;
+}
+
+/* ── Ascenseur générique pour sections longues (> SCROLL_THRESHOLD items) ── */
+/* Conteneur : position relative pour le dégradé indicateur */
+.detail-section--scrollable {
+    position: relative;
+}
+/* Corps scrollable quand la section est dépliée */
+.detail-section--scrollable .detail-section__body {
+    max-height: 500px;           /* ~10 items desktop */
+    overflow-y: auto;
+    scroll-behavior: smooth;
+    /* Barre de défilement fine sur navigateurs WebKit */
+    scrollbar-width: thin;       /* Firefox */
+    scrollbar-color: var(--primary-light) var(--bg-light);
+}
+/* Quand scrollable ET collapsed → collapsed doit gagner */
+.detail-section--scrollable.detail-section--collapsed .detail-section__body {
+    max-height: 0;
+    overflow: hidden;
+    opacity: 0;
+    margin-top: 0;
+}
+.detail-section--scrollable .detail-section__body::-webkit-scrollbar {
+    width: 6px;
+}
+.detail-section--scrollable .detail-section__body::-webkit-scrollbar-track {
+    background: var(--bg-light);
+    border-radius: 3px;
+}
+.detail-section--scrollable .detail-section__body::-webkit-scrollbar-thumb {
+    background: var(--primary-light);
+    border-radius: 3px;
+}
+.detail-section--scrollable .detail-section__body::-webkit-scrollbar-thumb:hover {
+    background: var(--primary);
+}
+/* Dégradé en bas pour indiquer du contenu caché — visible uniquement si scrollable */
+.detail-section--scrollable::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    background: linear-gradient(transparent, var(--surface));
+    border-radius: 0 0 var(--border-radius) var(--border-radius);
+    pointer-events: none;
+    z-index: 1;
+    transition: opacity 0.2s ease;
+}
+/* Masquer le dégradé si la section est repliée ou si on a scrollé jusqu'en bas */
+.detail-section--scrollable.detail-section--collapsed::after,
+.detail-section--scrollable.detail-section--scroll-end::after {
+    opacity: 0;
+}
+
+/* ── Responsive : hauteur réduite sur tablette et mobile ── */
+@media (max-width: 1024px) {
+    .detail-section--scrollable .detail-section__body {
+        max-height: 420px;       /* ~8 items tablette */
+    }
+}
+@media (max-width: 767px) {
+    .detail-section--scrollable .detail-section__body {
+        max-height: 350px;       /* ~7 items mobile */
+    }
+}
+/* Sous-sections par catégorie dans les fiches de détail */
+.detail-categorie { margin-bottom: var(--spacing-md); }
+.detail-categorie__title {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin: 0 0 var(--spacing-xs) 0;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    background: var(--bg-light);
+    border-radius: var(--border-radius-sm);
+}
+
+   FICHE MODALE v0.45 — structure <dialog>
+   ══════════════════════════════════════════════════════════ */
+.fiche-modal {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    max-width: 640px;
+    max-height: 90vh;
+    width: 90%;
+    background: var(--surface);
+    border: none;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: var(--z-modal);
+    padding: 0;
+}
+.fiche-modal::backdrop {
+    background: rgba(0,0,0,.5);
+}
+.fiche-modal__header {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: white;
+    flex-shrink: 0;
+}
+.fiche-modal__titre {
+    flex: 1;
+    margin: 0;
+    font-size: var(--font-size-md);
+    font-weight: 600;
+}
+.fiche-modal__close {
+    background: rgba(255,255,255,.2);
+    border: none;
+    color: white;
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .15s;
+    flex-shrink: 0;
+}
+.fiche-modal__close:hover { background: rgba(255,255,255,.4); }
+
+.fiche-modal__nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--spacing-xs) var(--spacing-md);
+    background: var(--surface-light);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    font-size: var(--font-size-sm);
+    color: var(--text-light);
+}
+.fiche-modal__nav-prev,
+.fiche-modal__nav-next {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius-sm);
+    padding: 4px 12px;
+    cursor: pointer;
+    font-size: var(--font-size-sm);
+    color: var(--primary);
+    min-height: 32px;
+    transition: all .15s;
+}
+.fiche-modal__nav-prev:hover,
+.fiche-modal__nav-next:hover { background: var(--surface-light); }
+.fiche-modal__nav-prev:disabled,
+.fiche-modal__nav-next:disabled { opacity: .35; cursor: not-allowed; }
+
+.fiche-modal__corps {
+    flex: 1;
+    overflow-y: auto;
+    padding: var(--spacing-lg);
+}
+.fiche-modal__footer {
+    display: flex;
+    gap: var(--spacing-sm);
+    justify-content: flex-end;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-top: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+/* Sections de la fiche */
+.fiche-section {
+    margin-bottom: var(--spacing-lg);
+}
+.fiche-section__titre {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--text-light);
+    margin-bottom: var(--spacing-sm);
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+}
+
+/* Badges hébergement, statuts */
+.badge--internat     { background: var(--primary);   color: white; }
+.badge--externat     { background: var(--text-light); color: white; }
+.badge--demi-pension { background: var(--primary-light); color: white; }
+.badge--qualiopi     { background: var(--success);   color: white; }
+.badge--rep          { background: var(--danger);    color: white; }
+.badge--pmr          { background: #3498db;           color: white; }
+.badge--scolaire     { background: var(--primary);   color: white; }
+.badge--apprentissage{ background: var(--accent);    color: white; }
+
+
+/* ══════════════════════════════════════════════════════════
+   FICHES DÉTAIL — NOUVELLES CLASSES v0.50
+   Partagées par tous les builders (établissements, diplômes, etc.)
+   ══════════════════════════════════════════════════════════════ */
+
+/* Description diplôme apprentissage */
+.detail-description {
+    background: var(--bg-light, #f8f9fa);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    border-left: 4px solid var(--primary, #3b82f6);
+    line-height: 1.65;
+    color: var(--text, #333);
+}
+
+/* Badges voie croisée */
+.detail-badge-croise {
+    margin-bottom: 12px;
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 0.92em;
+    font-weight: 500;
+    border-left-width: 4px;
+    border-left-style: solid;
+}
+.detail-badge-croise--scolaire      { background: #f0fdf4; border-color: #22c55e; color: #15803d; }
+.detail-badge-croise--apprentissage { background: #e8f4fd; border-color: #3b82f6; color: #1e40af; }
+
+/* Blocs de compétences (diplômes apprentissage) */
+.detail-bloc-competence {
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: 6px;
+    overflow: hidden;
+}
+.detail-bloc-competence__titre {
+    background: var(--bg-light, #f8f9fa);
+    padding: 8px 12px;
+    font-weight: 600;
+    font-size: 0.92em;
+}
+.detail-bloc-competence__code {
+    color: #888;
+    font-weight: 400;
+    margin-right: 6px;
+}
+.detail-bloc-competence__liste {
+    margin: 0;
+    padding: 8px 12px 8px 26px;
+    line-height: 1.7;
+    font-size: 0.9em;
+}
+
+/* Note sous un élément de liste (ex: éléments d'enseignement) */
+.detail-item-note {
+    display: block;
+    margin-top: 4px;
+    color: #666;
+    font-size: 0.88em;
+}
+
+/* Lien ONISEP en bas de fiche */
+.detail-external-links {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border, #e2e8f0);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+
+/* Ancien sélecteur conservé pour rétrocompatibilité */
+.detail-onisep-link {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border, #e2e8f0);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   MODALE DE DÉTAIL — NOUVELLE STRUCTURE UNIFIÉE v0.50
+   ══════════════════════════════════════════════════════════════
+
+   Structure :
+     .modal__header  →  remplacé par .detail-header-bar
+     .modal__body    →  .detail-modal-title + sections accordéon
+
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Barre de navigation (dans modal__header) ─────────────────
+   Flex : [nav ←→ compteur]  ............... [⭐ ✕]
+*/
+.detail-header-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    width: 100%;
+    min-height: 44px;
+}
+
+/* Zone navigation : ‹ Préc  N/Total  Suiv › */
+.detail-header-bar__nav {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+/* Spacer quand pas de navigation (accès depuis carte) */
+.detail-nav-spacer {
+    flex: 1;
+}
+
+/* Boutons précédent / suivant */
+.detail-nav-btn {
+    background: var(--surface, #fff);
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: 6px;
+    color: var(--primary, #2563eb);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 10px;
+    transition: background 0.15s, opacity 0.15s;
+    white-space: nowrap;
+}
+.detail-nav-btn:hover:not(:disabled) {
+    background: var(--primary-bg, #eff6ff);
+}
+.detail-nav-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* Compteur  N / Total */
+.detail-nav-counter {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text, #1e293b);
+    white-space: nowrap;
+    padding: 2px 8px;
+    background: var(--surface-light, #f8fafc);
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: 10px;
+    min-width: 52px;
+    text-align: center;
+}
+
+/* Zone actions : ⭐ ✕ */
+.detail-header-bar__actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+/* Boutons d'action dans le header (étoile et croix) */
+.detail-header-action {
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: inherit;
+    cursor: pointer;
+    font-size: 20px;
+    line-height: 1;
+    padding: 4px 6px;
+    transition: background 0.15s, transform 0.1s;
+}
+.detail-header-action:hover {
+    background: rgba(255,255,255,0.2);
+    transform: scale(1.1);
+}
+
+/* Étoile active */
+.detail-header-action--star-active {
+    color: #fbbf24;   /* ambre */
+}
+
+/* Croix de fermeture */
+.detail-header-action--close {
+    font-size: 18px;
+    font-weight: 700;
+    opacity: 0.85;
+}
+.detail-header-action--close:hover {
+    opacity: 1;
+    transform: scale(1.15);
+}
+
+/* ── Titre de l'objet (dans modal__body) ──────────────────────
+   Centré, gras, plus grand que les section-titles
+*/
+.detail-modal-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--text, #1e293b);
+    margin: 0 0 20px 0;
+    padding: 16px 8px 0;
+    line-height: 1.3;
+    word-break: break-word;
+}
+
+/* Responsive tablette */
+@media (max-width: 768px) {
+    .detail-modal-title {
+        font-size: 1.15rem;
+        padding-top: 12px;
+        margin-bottom: 14px;
+    }
+    .detail-nav-btn {
+        font-size: 12px;
+        padding: 3px 7px;
+    }
+    .detail-nav-counter {
+        font-size: 12px;
+    }
+}
+
+/* Responsive mobile */
+@media (max-width: 480px) {
+    .detail-header-bar {
+        gap: 4px;
+    }
+    .detail-nav-btn {
+        padding: 3px 5px;
+        font-size: 11px;
+    }
+    .detail-modal-title {
+        font-size: 1rem;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════

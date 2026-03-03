@@ -1,0 +1,126 @@
+/**
+ * DESIGN SYSTEM — Parcours Avenir
+ * Version : 0.61  —  Date : 2026-03-01
+ *
+ * v0.61 : renommages (detail-categorie, favori-card), suppression classes
+ *         inutilisées, intégration main.css, harmonisation commentaires.
+ *         Réorganisation thématique prévue pour une version ultérieure.
+ *
+ * Organisation actuelle :
+ *   1. Variables CSS     5. Composants spécifiques     6. Utilitaires
+ *   2. Reset & Base         - Recherche, Résultats     7. Print
+ *   3. Layout app           - Détails, Carte, Params   + Sections versionnées
+ *   4. Composants UI        - Extraction, Diplômes       (v0.42→v0.56)
+ */
+
+/* ============================================================================
+   1. VARIABLES CSS — PALETTE UNIQUE
+   ============================================================================ */
+:root {
+    /* Couleurs principales */
+    --primary:          #2E5090;
+    --primary-light:    #4472C4;
+    --primary-dark:     #1e3a6f;
+    --primary-bg:       #e8eef7;
+    --accent:           #5B9BD5;
+
+    /* Statuts */
+    --success:      #70AD47;
+    --success-bg:   #e8f5e9;
+    --warning:      #FFC107;
+    --warning-bg:   #fff3e0;
+    --danger:       #E74C3C;
+    --danger-bg:    #ffebee;
+    --info:         #2196F3;
+    --info-bg:      #e3f2fd;
+
+    /* Fonds */
+    --bg-main:      #f5f7fa;
+    --bg-light:     #f0f4fa;
+    --bg-card:      #ffffff;
+
+    /* Surfaces */
+    --surface:          #ffffff;
+    --surface-light:    #e8eef7;
+    --surface-medium:   #d4dce8;
+
+    /* Textes */
+    --text:             #2c3e50;
+    --text-light:       #7f8c8d;
+    --text-muted:       #95a5a6;
+    --text-on-primary:  #ffffff;
+
+    /* Bordures */
+    --border:           #e1e8ed;
+    --border-light:     #ecf0f3;
+    --border-medium:    #cbd5e0;
+
+    /* Espacements */
+    --spacing-xs:   4px;
+    --spacing-sm:   8px;
+    --spacing-md:   16px;
+    --spacing-lg:   24px;
+    --spacing-xl:   32px;
+    --spacing-xxl:  48px;
+
+    /* Typographie */
+    --font-family:      'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    --font-size-xs:     12px;
+    --font-size-sm:     13px;
+    --font-size-base:   14px;
+    --font-size-md:     15px;
+    --font-size-lg:     16px;
+    --font-size-xl:     18px;
+    --font-size-2xl:    24px;
+    --font-weight-normal:   400;
+    --font-weight-medium:   500;
+    --font-weight-semibold: 600;
+    --font-weight-bold:     700;
+    --line-height-tight:    1.25;
+    --line-height-normal:   1.5;
+    --line-height-relaxed:  1.75;
+
+    /* Bordures arrondies */
+    --border-radius-sm: 4px;
+    --border-radius:    8px;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+    --border-radius-xl: 16px;
+    --border-radius-full: 9999px;
+
+    /* Ombres */
+    --shadow-sm:  0 1px 3px rgba(0,0,0,.1);
+    --shadow:     0 1px 3px rgba(0,0,0,.1), 0 1px 2px -1px rgba(0,0,0,.1);
+    --shadow-md:  0 4px 6px rgba(0,0,0,.1);
+    --shadow-lg:  0 10px 25px rgba(0,0,0,.15);
+
+    /* Transitions */
+    --transition-fast:  150ms ease-in-out;
+    --transition-base:  200ms ease-in-out;
+    --transition-slow:  300ms ease-in-out;
+
+    /* Z-index */
+    --z-dropdown: 1000;
+    --z-modal:    1050;
+    --z-popover:  1060;
+    --z-tooltip:  1070;
+}
+
+/* ============================================================================
+   2. RESET & BASE
+   ============================================================================ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: var(--font-family);
+    background: var(--bg-main);
+    color: var(--text);
+    line-height: var(--line-height-normal);
+}
+
+/* Scrollbar globale */
+::-webkit-scrollbar       { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg-light); }
+::-webkit-scrollbar-thumb { background: var(--border-medium); border-radius: var(--border-radius-sm); }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+

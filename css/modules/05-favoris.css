@@ -1,0 +1,189 @@
+/* --- FAVORIS --- */
+/* Bouton favori (⭐) dans les fiches détail */
+.btn--favori {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border: 2px solid var(--warning, #f59e0b);
+    border-radius: var(--border-radius);
+    background: transparent;
+    color: var(--warning, #f59e0b);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-base);
+    flex-shrink: 0;
+}
+.btn--favori:hover                { background: #fef3c7; }
+.btn--favori.btn--favori--active  { background: var(--warning, #f59e0b); color: white; }
+.btn--favori.btn--favori--active:hover { background: #d97706; border-color: #d97706; }
+
+/* Variante étoile seule (en-tête de modale de détail) */
+.btn--favori--star {
+    padding: 4px 8px;
+    font-size: 22px;
+    line-height: 1;
+    border-radius: 50%;
+    border-width: 0;
+    background: transparent;
+    flex-shrink: 0;
+}
+.btn--favori--star:hover { background: #fef3c7; }
+.btn--favori--star.btn--favori--active { background: transparent; color: var(--warning, #f59e0b); }
+
+/* En-tête de la fiche de détail (nom + étoile) */
+.detail-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+}
+.detail-modal-nom {
+    font-size: var(--font-size-xl, 1.25rem);
+    font-weight: 700;
+    color: var(--text);
+    margin: 0;
+    flex: 1;
+    line-height: 1.3;
+}
+/* Barre d'actions dans le header de la fiche (itinéraire + favori côte à côte) */
+.detail-action-bar {
+    display: flex;
+    gap: var(--spacing-sm);
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+}
+/* Carte favori dans les paramètres (toutes catégories) */
+.favori-card {
+    margin-bottom: var(--spacing-sm);
+    padding: var(--spacing-md);
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: var(--border-radius);
+    border-left: 4px solid var(--warning, #f59e0b);
+}
+.favori-card__nom    { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+.favori-card__meta   { font-size: 12px; color: var(--text-muted); margin-bottom: var(--spacing-sm); }
+/* favori-card__actions → voir règles v0.51 ci-dessous */
+
+
+.bloc-information-specifique    { margin-top: var(--spacing-md); padding: var(--spacing-md); background: var(--surface-light); border-left: 4px solid var(--primary); border-radius: var(--border-radius-sm); }
+.bloc-information-specifique h5 { margin-top: 0; margin-bottom: var(--spacing-sm); color: var(--primary); font-size: var(--font-size-base); }
+.bloc-information-specifique p  { margin: var(--spacing-xs) 0; padding-left: var(--spacing-sm); border-left: 2px solid var(--accent); color: var(--text); }
+
+.info-row   { display: flex; align-items: baseline; gap: var(--spacing-sm); padding: var(--spacing-sm) 0; }
+.info-label { font-weight: 600; color: var(--text-light); min-width: 120px; flex-shrink: 0; }
+.info-value { color: var(--text); flex: 1; }
+.info-value a       { color: var(--primary); text-decoration: none; }
+.info-value a:hover { text-decoration: underline; }
+
+
+   FAVORIS — LAYOUT CARTES
+   Bouton "Voir la fiche" occupe tout l'espace disponible,
+   bouton suppression ajusté à son icône uniquement.
+   ══════════════════════════════════════════════════════════════ */
+.favori-card__actions {
+    display: flex;
+    flex-wrap: nowrap;           /* empêche le retour à la ligne */
+    align-items: stretch;        /* même hauteur pour les deux boutons */
+    gap: 6px;
+    margin-top: 8px;
+}
+/* Ciblage avec spécificité (0,2,0) pour overrider .setting-button (0,1,0) */
+.favori-card__actions .setting-button {
+    margin-bottom: 0;            /* annule margin-bottom: 8px de .setting-button */
+}
+.favori-card__actions .favori-card__btn-voir {
+    flex: 1 1 auto;              /* croît pour remplir tout l'espace disponible */
+    width: auto;                 /* annule le width:100% de .setting-button */
+    min-width: 0;
+    padding: 8px 10px;
+    font-size: 13px;
+}
+.favori-card__actions .favori-card__btn-del {
+    flex: 0 0 auto;              /* reste à sa taille intrinsèque */
+    width: auto;
+    padding: 8px 12px;
+    font-size: 15px;
+    line-height: 1;
+}
+
+/* En-têtes de sous-sections favoris */
+.favoris-section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin: 16px 0 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+}
+.favoris-section-title:first-child { margin-top: 0; }
+
+/* Séparateur entre sections */
+.favoris-separator {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 14px 0;
+}
+
+/* Texte vide d'une section */
+.favoris-empty {
+    font-size: 12px;
+    color: var(--text-muted);
+    padding: 4px 0 6px;
+    margin: 0;
+}
+
+/* Carte recherche favorite */
+.favori-card--recherche {
+    padding: 12px;
+    background: var(--surface, white);
+    border: 1px solid var(--border);
+    border-left: 4px solid var(--primary);
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   v0.56 — CORRECTIONS DE CONTRASTE (police ↔ fond)
+   Règle : fond clair → police noire/très foncée
+           fond foncé → police blanche/très claire
+   ══════════════════════════════════════════════════════════ */
+
+/* setting-help sur fond blanc : texte-light #7f8c8d → #475569 */
+.setting-help {
+    color: #475569;
+}
+
+/* mode-help (fond blanc, bordure accent) : idem */
+.mode-help {
+    color: #475569;
+}
+
+/* selection-epci (fond bg-light #f0f4fa) : #7f8c8d → #475569 */
+.selection-epci {
+    color: #475569;
+}
+
+/* progress-text dans le tour : garantir lisibilité */
+.driver-popover.tour-popover .driver-popover-progress-text {
+    color: #64748b;
+}
+
+/* Titres fiche-modal__titre et settings-header h2 sur gradient foncé → blanc */
+.fiche-modal__titre,
+.settings-header h2 {
+    color: white;
+}
+
+/* about-text (fond blanc/surface) → foncé */
+.about-text {
+    color: #475569;
+}
+
+/* ══════════════════════════════════════════════════════════

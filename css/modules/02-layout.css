@@ -1,0 +1,25 @@
+/* ============================================================================
+   3. LAYOUT APP
+   ============================================================================ */
+.app-container { width: 100vw; height: 100vh; background: var(--bg-main); display: flex; flex-direction: column; overflow: hidden; }
+
+header {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: white;
+    padding: 20px 0;
+    margin-bottom: 30px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+
+.main-content { flex: 1; overflow: hidden; position: relative; }
+
+.container { width: 100%; max-width: 1400px; margin: 0 auto; padding: 0 var(--spacing-md); }
+
+/* Compatibilite index.html */
+.cursor-pointer    { cursor: pointer; }
+.cursor-not-allowed { cursor: not-allowed; }
+.bg-light          { background-color: var(--bg-light); }
+
+table { width: 100%; border-collapse: collapse; background: white; border-radius: var(--border-radius); overflow: hidden; }
+

@@ -18,7 +18,7 @@
  * À incrémenter à chaque livraison.
  * @constant {string}
  */
-const APP_VERSION = '0.64';
+const APP_VERSION = '0.65';
 
 // ══════════════════════════════════════════════════════════
 // INITIALISATION DE L'APPLICATION

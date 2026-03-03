@@ -1,0 +1,28 @@
+/* --- TABLEAUX DE RESULTATS (toutes vues) --- */
+.resultat-table { width: 100%; border-collapse: collapse; background: white; }
+.resultat-table thead           { background: var(--primary); color: var(--text-on-primary); }
+.resultat-table th              { padding: var(--spacing-md); text-align: left; font-weight: 600; font-size: var(--font-size-xs); text-transform: uppercase; letter-spacing: .5px; cursor: pointer; user-select: none; }
+.resultat-table th:hover        { background: var(--primary-dark); }
+.resultat-table tbody tr        { cursor: pointer; transition: background-color var(--transition-base); }
+.resultat-table tbody tr:hover  { background: var(--bg-light); }
+.resultat-table td              { padding: var(--spacing-md); border-bottom: 1px solid var(--border); }
+.resultat-table td:first-child  { font-weight: 600; color: var(--text); }
+.resultat-table td:first-child strong { font-weight: 700; color: var(--text); }
+.resultat-table td:first-child small  { display: block; font-weight: 400; color: var(--text-light); font-size: var(--font-size-xs); margin-top: 2px; }
+
+.resultat-col-filterable { background: var(--info-bg); font-weight: 500; font-size: var(--font-size-sm); padding: var(--spacing-md); }
+.resultat-table tbody tr:hover .resultat-col-filterable { background: #bbdefb; }
+.resultat-col-info { font-size: var(--font-size-sm); color: var(--text-light); padding: var(--spacing-md); }
+.resultat-badge    { display: inline-block; padding: 4px 10px; background: var(--info-bg); color: var(--primary); border-radius: var(--border-radius-sm); font-size: var(--font-size-xs); font-weight: 500; }
+
+#content-container { max-height: calc(100vh - 420px); min-height: 300px; overflow-y: auto; border-radius: var(--border-radius-sm); }
+#content-container .resultat-table thead th { position: sticky; top: 0; z-index: 2; background: var(--primary); box-shadow: 0 2px 0 var(--primary-dark); }
+
+   COMPOSANT : result-card (cartes mobile pour les listes)
+   ══════════════════════════════════════════════════════════ */
+/* Par défaut (tablette+ordinateur) : cartes masquées */
+.results-cards { display: none; }
+/* Par défaut : tableau visible */
+.results-table { display: table; width: 100%; }
+
+/* ══════════════════════════════════════════════════════════

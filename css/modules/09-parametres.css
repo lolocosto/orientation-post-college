@@ -1,0 +1,343 @@
+/* --- PANNEAU PARAMETRES & HAMBURGER --- */
+.hamburger-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    transition: all 0.3s;
+}
+.hamburger-btn:hover { background: rgba(255, 255, 255, 0.3); transform: scale(1.05); }
+.hamburger-btn span  { width: 24px; height: 3px; background: white; border-radius: 2px; transition: all 0.3s; }
+.hamburger-btn.active span:nth-child(1) { transform: rotate(45deg) translate(7px, 7px); }
+.hamburger-btn.active span:nth-child(2) { opacity: 0; }
+.hamburger-btn.active span:nth-child(3) { transform: rotate(-45deg) translate(7px, -7px); }
+
+.settings-panel   { position: fixed; top: 0; right: -420px; width: 420px; height: 100vh; background: white; box-shadow: -5px 0 20px rgba(0,0,0,.15); transition: right var(--transition-slow) ease; z-index: var(--z-popover); display: flex; flex-direction: column; overflow: hidden; }
+.settings-panel.active { right: 0; }
+.settings-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,.3); opacity: 0; visibility: hidden; transition: all var(--transition-slow); z-index: calc(var(--z-popover) - 1); }
+.settings-overlay.active { opacity: 1; visibility: visible; }
+
+/* ============================================================================
+   COMPOSANTS MANQUANTS — récupérés depuis v0.33
+   ============================================================================ */
+
+/* Connexion API */
+.connection-status         { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 20px; font-size: 13px; font-weight: 500; margin-bottom: 10px; }
+.connection-status.connected    { background: var(--success-bg); color: var(--success); }
+.connection-status.disconnected { background: var(--warning-bg); color: var(--warning); }
+.connection-status .dot    { width: 8px; height: 8px; border-radius: 50%; background: currentColor; animation: pulse 2s infinite; }
+
+/* Header app (legacy) */
+.header-content { display: flex; justify-content: space-between; align-items: center; }
+.header-left { color: white; }
+.header-left h1 { font-size: 28px; font-weight: 600; margin-bottom: 5px; }
+.header-left p  { opacity: .9; font-size: 13px; }
+.header-right   { display: flex; gap: 10px; }
+
+/* Mode sélecteur extraction */
+.mode-selector      { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+.mode-option        { flex: 1; display: flex; position: relative; min-width: 200px; }
+.mode-option input[type="radio"] { position: absolute; opacity: 0; }
+.mode-option label  { cursor: pointer; margin: 0; flex: 1; padding: var(--spacing-md); border: 2px solid var(--border); border-radius: var(--border-radius); background: white; transition: all var(--transition-base); text-align: center; }
+.mode-option label:hover { border-color: var(--primary); background: var(--primary-bg); }
+.mode-option input[type="radio"]:checked + label { border-color: var(--primary); background: var(--primary-bg); box-shadow: 0 0 0 3px rgba(46,80,144,.1); }
+.mode-option-title    { font-weight: var(--font-weight-semibold); margin-bottom: 5px; font-size: var(--font-size-base); }
+.mode-option-subtitle { font-size: var(--font-size-xs); color: var(--text-light); }
+.mode-panel-header    { font-weight: 600; font-size: 14px; color: var(--primary); margin-bottom: 15px; }
+.mode-panel-header h4 { margin: 0; font-size: 14px; }
+.mode-help { font-size: 12px; color: var(--text-light); background: white; padding: 10px 15px; border-radius: var(--border-radius); border-left: 3px solid var(--accent); margin-top: 10px; line-height: 1.6; }
+
+/* Navigation étapes */
+.etape-navigation         { display: flex; justify-content: space-between; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); }
+.etape-navigation button  { padding: 10px 20px; }
+
+/* Panneau paramètres — bouton fermer (conservé, pas de doublon) */
+.settings-close { background: rgba(255,255,255,.2); border: 2px solid rgba(255,255,255,.5); color: white; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: all .2s; padding: 0; line-height: 1; }
+.settings-close:hover { background: rgba(255,255,255,.4); transform: rotate(90deg); }
+
+.settings-content { flex: 1; overflow-y: auto; padding: 20px 0; }
+.settings-section { border-bottom: 1px solid var(--border); }
+
+
+/* Éléments de formulaire paramètres */
+.setting-item          { margin-bottom: 15px; }
+.setting-item:last-child { margin-bottom: 0; }
+.setting-label         { display: block; font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.setting-help          { font-size: 12px; color: var(--text-light); margin-top: 6px; line-height: 1.5; }
+.setting-input         { width: 100%; padding: 10px 14px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 14px; transition: border-color .2s; font-family: inherit; }
+.setting-input:focus   { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(46,80,144,.1); }
+.setting-button        { width: 100%; padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: all .2s; margin-bottom: 8px; }
+.setting-button:hover  { background: var(--primary-dark); transform: translateY(-1px); }
+.setting-button.secondary       { background: var(--surface-light); color: var(--text); border: 1px solid var(--border); }
+.setting-button.secondary:hover { background: var(--surface-medium); }
+.setting-checkbox-group { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 8px; transition: background .2s; cursor: pointer; }
+.setting-checkbox-group:hover { background: var(--surface-light); }
+.setting-checkbox-group input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; accent-color: var(--primary); }
+.setting-checkbox-group label  { font-size: 13px; cursor: pointer; color: var(--text); }
+
+/* Utilitaires manquants */
+.u-font-lg   { font-size: var(--font-size-lg) !important; }
+.icon        { margin-right: 10px; font-size: 16px; }
+.loading     { text-align: center; padding: 40px; color: var(--text-light); }
+
+/* Classes sans définition originale — inférées du contexte HTML */
+
+.export-buttons     { display: flex; gap: 10px; }
+.search-panel-content { padding: var(--spacing-lg) 0; }
+.help-content       { font-size: var(--font-size-sm); color: var(--text-light); line-height: 1.6; }
+
+
+
+/* ============================================================================
+   v0.42 — CLASSES EXTRAITES DES STYLES INLINE (index.html)
+   ============================================================================ */
+
+/* Séparateur horizontal dans le panneau paramètres */
+.settings-separator { border-top: 1px solid var(--border); margin: 20px 0; }
+
+/* Zone de danger (footer du panneau paramètres) */
+.settings-danger-zone { padding: 20px 25px; border-top: 2px solid var(--border); }
+
+/* Bouton danger dans le panneau paramètres */
+.setting-button--danger { background: #ff6b6b; color: white; border: none; }
+.setting-button--danger:hover { background: #e55; }
+
+/* Bouton "Confirmer suppression" dans la modale */
+.btn--danger-solid { background: var(--danger); color: white; border: none; }
+.btn--danger-solid:hover:not(:disabled) { background: #c82333; }
+
+/* Groupe de saisie UAI (input + bouton côte-à-côte) */
+.search-input-group { display: flex; gap: 10px; align-items: center; }
+
+.setting-button--nowrap { white-space: nowrap; margin: 0; }
+
+/* Section "À propos" */
+.about-text { font-size: 13px; color: var(--text-light); line-height: 1.8; }
+.changelog-scroll { font-size: 12px; margin-top: 10px; max-height: 300px; overflow-y: auto; }
+
+/* Intro de l'onglet Recherche */
+.tab-panel-title { margin-bottom: 10px; color: var(--primary); }
+.tab-panel-subtitle { color: var(--text-light); margin-bottom: 30px; }
+
+/* Input commune (smart search) — légèrement plus padded que .setting-input standard */
+.search-commune-input { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; font-family: var(--font-family); }
+.search-commune-input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-bg); }
+
+/* Zone scrollable des résultats smart-search */
+.search-results-scroll { max-height: 300px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; background: white; }
+
+/* Carte de sélection active (commune/EPCI sélectionné) */
+.selection-card { padding: 15px; background: var(--bg-light); border-radius: 8px; border: 2px solid var(--primary); }
+.selection-card__header { display: flex; justify-content: space-between; align-items: flex-start; }
+.selection-card__name { font-weight: 600; font-size: var(--font-size-lg); color: var(--primary); margin-bottom: 5px; }
+.selection-card__details { font-size: var(--font-size-base); color: var(--text); }
+.btn-clear--sm { padding: 5px 10px; background: white; border: 1px solid var(--border); border-radius: 5px; cursor: pointer; font-size: var(--font-size-lg); }
+.btn-clear--sm:hover { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); }
+
+/* Boîte "sauvegarder comme favori" */
+.setting-favorite-box { margin-bottom: 15px; padding: 15px; background: var(--bg-light); border-radius: 8px; }
+
+/* Contrôles de vue (titre + boutons export) */
+.view-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+.view-controls__title { margin: 0; }
+.view-subtitle { margin-bottom: 15px; color: var(--text-light); font-size: var(--font-size-base); }
+
+/* Barre de filtres */
+.filters-bar { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+.filter-text-input { flex: 1; min-width: 250px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-size: var(--font-size-base); font-family: var(--font-family); }
+.filter-text-input:focus { outline: none; border-color: var(--primary); }
+
+/* Modale confirmation reset — corps et footer */
+.modal__container { background: var(--surface); border-radius: var(--border-radius-lg); box-shadow: var(--shadow-lg); max-width: 420px; width: 90%; margin: auto; }
+.modal-reset-list { margin: 0 0 16px 20px; line-height: 1.8; color: var(--text-light); }
+.modal-reset-warning { color: var(--danger); font-weight: 600; }
+
+/* Classes utilitaires état texte (pour JS classList) */
+.u-text-help  { color: var(--text-light) !important; }
+.u-text-error { color: var(--danger) !important; }
+.u-text-ok    { color: var(--success) !important; }
+.u-text-warn  { color: var(--warning) !important; }
+
+   PARAMÈTRES v0.44 — Navigation menu/section avec slide
+   ══════════════════════════════════════════════════════════ */
+
+/* Slider : conteneur qui glisse horizontalement */
+.settings-slider {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    width: 200%;          /* porte 2 vues côte à côte */
+    transition: transform .35s cubic-bezier(.4,0,.2,1);
+}
+.settings-slider.show-section {
+    transform: translateX(-50%);
+}
+
+/* Chaque vue occupe 50% du slider (= 100% du panneau) */
+.settings-view {
+    width: 50%;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+/* ── Vue menu ── */
+.settings-view--menu {
+    /* le scroll est sur cette vue */
+}
+
+/* Navigation : liste de boutons avec flèche */
+.settings-nav {
+    flex: 1;
+    padding: 8px 0;
+}
+
+.settings-nav__item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text);
+    text-align: left;
+    transition: background .15s;
+}
+.settings-nav__item:hover {
+    background: var(--surface-light);
+}
+.settings-nav__item:first-child {
+    border-top: 1px solid var(--border);
+}
+
+.settings-nav__icon  { font-size: 18px; flex-shrink: 0; }
+.settings-nav__label { flex: 1; font-weight: 500; }
+.settings-nav__arrow { color: var(--text-muted, #aaa); font-size: 20px; line-height: 1; }
+
+/* Statut (pastille connexion, compteur favoris…) */
+.settings-nav__status {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: var(--surface-light);
+    color: var(--text-muted, #888);
+    white-space: nowrap;
+}
+.settings-nav__status--connected {
+    background: #dcfce7;
+    color: #166534;
+}
+
+/* Bouton tour guidé — accent spécial */
+.settings-nav__item--tour {
+    background: linear-gradient(135deg, #f0feff 0%, #feffff 100%);
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+}
+.settings-nav__item--tour:hover { background: #e0e8ff; }
+
+.settings-nav__badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    background: var(--primary);
+    color: white;
+    border-radius: 12px;
+}
+
+/* ── Vue section ── */
+.settings-view--section {
+    position: relative;
+}
+
+/* Panes : une seule visible à la fois */
+.settings-section-pane {
+    position: absolute;
+    inset: 0;
+    overflow-y: auto;
+}
+.settings-section-pane.u-hidden {
+    display: none;
+}
+.settings-section-pane:not(.u-hidden) {
+    display: block;
+}
+
+/* Contenu d'une section */
+.settings-section-pane .settings-content {
+    padding: 20px;
+}
+
+/* Bouton retour dans l'en-tête */
+.settings-back {
+    background: rgba(255,255,255,.2);
+    border: 2px solid rgba(255,255,255,.5);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background .15s;
+    white-space: nowrap;
+}
+.settings-back:hover { background: rgba(255,255,255,.35); }
+
+/* Titre de l'en-tête : centré entre retour et ✕ */
+.settings-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 20px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    color: white;
+    flex-shrink: 0;
+}
+.settings-header h2 {
+    flex: 1;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+}
+
+/* Danger zone dans le menu : collée en bas */
+.settings-view--menu .settings-danger-zone {
+    padding: 20px;
+    border-top: 2px solid var(--border);
+    margin-top: auto;
+    flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════════════════
+   v0.56 — BOUTON PRÉFÉRENCES CHIFFRÉES
+   ══════════════════════════════════════════════════════════ */
+
+.pref-crypto-section {
+    margin-top: var(--spacing-md);
+    padding: var(--spacing-md);
+    background: var(--info-bg);
+    border-left: 4px solid var(--info);
+    border-radius: var(--border-radius-sm);
+}
+.pref-crypto-section .setting-help {
+    color: #1e3a5f;
+}
+.pref-crypto-btns {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-top: var(--spacing-sm);
+}
+.pref-crypto-btns .setting-button {
+    flex: 1;
+}
+/**

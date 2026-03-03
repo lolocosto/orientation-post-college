@@ -1,0 +1,46 @@
+/* ============================================================================
+   7. PRINT / EXPORT PDF
+   ============================================================================ */
+
+@media print {
+    .app-header, .tabs, .tabs__item, #tab-recherche, #tab-carte,
+    .modal, .settings-panel, .settings-overlay, .hamburger-btn,
+    .btn-export-pdf, #btn-stop-extraction, .search-mode-selector,
+    
+
+    body, .app-container { background: white; }
+    .main-content, .tabs__panel { overflow: visible !important; height: auto !important; }
+    @page { margin: 20mm 15mm; size: A4 portrait; }
+
+    body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #000; line-height: 1.5; }
+    h1   { font-size: 22pt; color: #2E5090; text-align: center; margin-bottom: 8pt; }
+    h2   { font-size: 16pt; color: #2E5090; border-bottom: 2pt solid #2E5090; padding-bottom: 4pt; margin-top: 20pt; margin-bottom: 10pt; page-break-after: avoid; }
+    h3   { font-size: 13pt; color: #4472C4; margin-top: 12pt; margin-bottom: 6pt; page-break-after: avoid; }
+    h4   { font-size: 11pt; color: #2E5090; font-weight: 600; margin-top: 8pt; page-break-after: avoid; }
+
+    .pdf-lycee-card { page-break-before: always; }
+    .pdf-lycee-card:first-child { page-break-before: auto; }
+    .pdf-lycee-header  { margin-bottom: 12pt; padding-bottom: 8pt; border-bottom: 2pt solid #2E5090; }
+    .pdf-lycee-name    { font-size: 18pt; font-weight: 700; color: #2E5090; margin-bottom: 2pt; }
+    .pdf-lycee-meta    { font-size: 10pt; color: #555; font-style: italic; }
+
+    .pdf-contacts-title, .pdf-formations-title { font-size: 12pt; font-weight: 600; color: #2E5090; margin-bottom: 6pt; border-bottom: 1pt solid #dee2e6; padding-bottom: 3pt; }
+    .pdf-contacts  { margin-bottom: 12pt; }
+    .pdf-contact-line  { font-size: 10pt; margin-bottom: 3pt; }
+    .pdf-contact-label { font-weight: 600; color: #444; }
+    .pdf-formations { margin-bottom: 12pt; }
+    .pdf-formation-category { font-size: 11pt; font-weight: 600; color: #4472C4; margin-top: 8pt; margin-bottom: 4pt; }
+    .pdf-formation-item     { font-size: 10pt; margin-left: 12pt; margin-bottom: 2pt; }
+    .pdf-formation-item::before { content: "\\25B8 "; color: #2E5090; }
+
+    .pdf-diplome-entry    { margin-bottom: 14pt; page-break-inside: avoid; }
+    .pdf-diplome-title    { font-size: 12pt; font-weight: 600; color: #2E5090; margin-bottom: 4pt; }
+    .pdf-diplome-metiers, .pdf-diplome-poursuites { font-size: 10pt; margin-left: 8pt; margin-bottom: 2pt; }
+
+    .pdf-toc-entry { font-size: 10pt; margin-bottom: 3pt; display: flex; justify-content: space-between; }
+    .pdf-toc-dots  { flex: 1; border-bottom: 1pt dotted #aaa; margin: 0 4pt; }
+    .pdf-toc-page  { font-weight: 600; }
+
+    .card, .detail-section, .stat-card { box-shadow: none !important; border: 1pt solid #dee2e6 !important; }
+    a { color: #2E5090 !important; text-decoration: none !important; }
+}

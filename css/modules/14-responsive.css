@@ -1,0 +1,217 @@
+   RESPONSIVE v0.45
+   Points de rupture :
+     --bp-phone  : 767px  (mobile portrait)
+     --bp-tablet : 1024px (tablette)
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Variables responsive ── */
+:root {
+    --bp-phone:  767px;
+    --bp-tablet: 1024px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   TABLETTE (768px – 1024px)
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+
+    /* Settings panel adapté */
+    .settings-panel {
+        width: 380px;
+        right: -380px;
+    }
+
+    /* Stat-cards sur 3 colonnes */
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    /* Mode selector : 2 colonnes */
+    .mode-selector {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* Table résultats : colonnes moins nombreuses */
+    .resultat-col--masquer-tablette {
+        display: none;
+    }
+
+    /* Modale : 85% de la largeur */
+    .modal__dialog {
+        max-width: 85vw;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════
+   TÉLÉPHONE (≤ 767px)
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+
+    /* ── Layout général ── */
+    .container { padding: 0 var(--spacing-sm); }
+
+    /* ── Header ── */
+    header .header-content { padding: var(--spacing-sm) var(--spacing-md); }
+    header h1 { font-size: var(--font-size-md); }
+    header p  { display: none; } /* sous-titre masqué */
+
+    /* ── Onglets : bar compacte ── */
+    .tabs {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: var(--z-dropdown);
+        border-top: 2px solid var(--border);
+        border-bottom: none;
+        background: var(--surface);
+        box-shadow: 0 -2px 8px rgba(0,0,0,.1);
+    }
+    .tabs__item {
+        flex: 1;
+        padding: var(--spacing-sm) var(--spacing-xs);
+        font-size: 11px;
+        flex-direction: column;
+        gap: 2px;
+        border-bottom: none;
+        border-top: 3px solid transparent;
+    }
+    .tabs__item--active {
+        border-top-color: var(--primary);
+        border-bottom: none;
+    }
+    /* Ajout de padding-bottom pour éviter que le contenu passe sous la tab bar */
+    .tabs-wrapper {
+        padding-bottom: 56px;
+    }
+
+    /* ── Settings panel : plein écran ── */
+    .settings-panel {
+        width: 100%;
+        right: -100%;
+    }
+
+    /* ── Stat-cards : 2 colonnes ── */
+    .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: var(--spacing-sm);
+    }
+    .stat-card {
+        padding: var(--spacing-sm);
+    }
+    .stat-value { font-size: 22px; }
+    .stat-label { font-size: 11px; }
+
+    /* ── Mode selector : 1 colonne ── */
+    .mode-selector {
+        grid-template-columns: 1fr;
+    }
+    .mode-option { min-width: unset; }
+
+    /* ── Tableau résultats → cartes ── */
+    .results-table  { display: none !important; }
+    .resultat-table { display: none !important; }
+    .results-cards  { display: flex !important; flex-direction: column; gap: var(--spacing-sm); }
+    .result-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--border-radius-md);
+        padding: var(--spacing-md);
+        cursor: pointer;
+        transition: box-shadow var(--transition-base);
+    }
+    .result-card:hover { box-shadow: var(--shadow-md); }
+    .result-card__titre  { font-weight: 600; font-size: var(--font-size-base); margin-bottom: 4px; }
+    .result-card__meta   { font-size: var(--font-size-sm); color: var(--text-light); }
+    .result-card__badges { margin-top: var(--spacing-xs); display: flex; flex-wrap: wrap; gap: 4px; }
+
+    /* Masquer les colonnes non essentielles sur mobile */
+    .resultat-col--masquer-mobile {
+        display: none;
+    }
+
+    /* ── Filtres : panneau déroulant (drawer) ── */
+    .filters-bar {
+        flex-direction: column;
+        gap: var(--spacing-sm);
+    }
+    .filters-bar select[multiple] {
+        max-width: 100%;
+        min-width: unset;
+        width: 100%;
+        max-height: 120px;
+    }
+    .filter-text-input {
+        min-width: unset;
+        width: 100%;
+    }
+
+    /* ── Modales : plein écran ── */
+    .modal__dialog {
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        max-height: none;
+        border-radius: 0;
+        margin: 0;
+    }
+    .modal__dialog--small { max-width: none; }
+
+    /* ── Fiche établissement modale ── */
+    .fiche-modal {
+        width: 100vw;
+        height: 100vh;
+        max-width: none;
+        max-height: none;
+        border-radius: 0;
+    }
+
+    /* ── Carte ── */
+    #map-container {
+        height: calc(100vh - 120px); /* plein écran sous la tab bar */
+    }
+    .map-legend {
+        bottom: 70px; /* au-dessus de la tab bar */
+        right: 8px;
+        font-size: 11px;
+        padding: 6px 10px;
+    }
+    .map-stats {
+        flex-direction: column;
+        gap: var(--spacing-xs);
+    }
+
+    /* ── Boutons d'action ── */
+    .btn { min-height: 44px; } /* cible tactile minimale */
+    .setting-button { min-height: 44px; }
+
+    /* ── Onglet Recherche ── */
+    .search-panel-header { font-size: var(--font-size-base); }
+
+    /* ── Voie checkboxes ── */
+    .voie-checkboxes { flex-direction: column; gap: var(--spacing-sm); }
+
+    /* ── Boutons d'extraction ── */
+    .u-flex.u-gap-2 { flex-direction: column; }
+
+    /* ── Export buttons ── */
+    .export-buttons { gap: var(--spacing-xs); }
+    .export-buttons .btn { padding: 6px 10px; font-size: 12px; }
+
+    /* ── Content container height ── */
+    #content-container {
+        max-height: calc(100vh - 280px);
+    }
+}
+
+/* ══════════════════════════════════════════════════════════
+   TRÈS PETIT ÉCRAN (≤ 360px)
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 360px) {
+    header h1 { font-size: 14px; }
+    .stats-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+    .stat-value { font-size: 18px; }
+    .tabs__item { font-size: 10px; }
+}
+
+/* ══════════════════════════════════════════════════════════

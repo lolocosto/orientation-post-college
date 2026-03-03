@@ -1,0 +1,52 @@
+   BANNIÈRE DE CHARGEMENT DES DONNÉES (db-loading-banner)
+   Apparaît au démarrage si localStorage contient des données.
+   ══════════════════════════════════════════════════════════ */
+
+.db-loading-banner {
+    position: fixed;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9000;
+    background: var(--primary);
+    color: white;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 0.6rem 1.2rem;
+    font-size: var(--font-size-sm);
+    pointer-events: none;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.db-loading-banner--hidden {
+    opacity: 0;
+    transform: translateX(-50%) translateY(2rem);
+}
+
+.db-loading-banner__inner {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.db-loading-banner__spinner {
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid rgba(255,255,255,0.4);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: db-banner-spin 0.7s linear infinite;
+    flex-shrink: 0;
+}
+
+.db-loading-banner__size {
+    opacity: 0.75;
+    font-size: var(--font-size-xs, 0.75rem);
+}
+
+@keyframes db-banner-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ══════════════════════════════════════════════════════════════
